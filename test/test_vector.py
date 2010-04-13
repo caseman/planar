@@ -164,6 +164,26 @@ def test_safe_normalized():
 
     assert_equal(Vec2(0, 0).safe_normalized(), Vec2(0, 0))
 
+def test_perpendicular():
+    from planar import Vec2
+    assert_equal(Vec2(10,0).perpendicular(), Vec2(0, 10))
+    assert_equal(Vec2(2,2).perpendicular(), Vec2(-2, 2))
+
+def test_dot():
+    from planar import Vec2
+    v1 = Vec2.polar(60, 5)
+    v2 = Vec2.polar(80, 7)
+    assert_almost_equal(v1.dot(v2), 5 * 7 * math.cos(math.radians(20)))
+
+def test_cross():
+    from planar import Vec2
+    v1 = Vec2.polar(10, 4)
+    v2 = Vec2.polar(35, 6)
+    assert_almost_equal(v1.cross(v2), 4 * 6 * math.sin(math.radians(25)))
+
+def test_distance_to():
+    from planar import Vec2
+    assert_equal(Vec2(3,0).distance_to(Vec2(0,4)), 5)
 
 def test_comparison():
     from planar import Vec2

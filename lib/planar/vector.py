@@ -55,7 +55,7 @@ class Vec2(tuple):
         :type angle: float
         :param length: The length of the vector.
         :type length: float
-        :return: ``Vec2`` instance.
+        :rtype: Vec2
         """
         radians = math.radians(angle)
         vec = tuple.__new__(cls, (math.cos(radians) * length, math.sin(radians) * length))
@@ -113,6 +113,8 @@ class Vec2(tuple):
         
         Do not use this method if the vector may be null,
         instead use :meth:`safe_normalized`.
+        
+        :rtype: Vec2
         """
         L = self.length
         v = tuple.__new__(Vec2, (self[0] / L, self[1] / L))
@@ -123,11 +125,39 @@ class Vec2(tuple):
         """Return the vector scaled to unit length. If the vector
         is null, the null vector is returned. This is safer, but
         slightly slower than :meth:`normalized`.
+        
+        :return: Vec2
         """
         if not self.is_null:
             return self.normalized()
         else:
             return null
+
+    def perpendicular(self):
+        """Compute the perpendicular vector.
+        
+        :rtype: Vec2
+        """
+        return tuple.__new__(Vec2, (-self[1], self[0]))
+
+    def dot(self, other):
+        """Compute the dot product with another vector.
+
+        :param other: The vector with which to compute the dot product.
+        :type other: Vec2
+        :rtype: float
+        """
+        return self[0] * other[0] + self[1] * other[1]
+
+    def cross(self, other):
+        """Compute the cross product with another vector.
+
+        :param other: The vector with which to compute the cross product.
+        :type other: Vec2
+        :return: The length of the cross-product vector
+        :rtype: float
+        """
+        return self[0] * other[1] - self[1] * other[0]
 
     @cached_property
     def angle(self):
@@ -142,8 +172,18 @@ class Vec2(tuple):
         :param other: Vector to compute the angle to.
         :type other: Vec2
         :return: Angle in degrees in the range ``(-180, 180]``.
+        :rtype: float
         """
         return other.angle - self.angle
+
+    def distance_to(self, other):
+        """Compute the distance to another point vector.
+
+        :param other: The point vector to which to compute the distance.
+        :type other: Vec2
+        :rtype: float
+        """
+        return math.sqrt((self[0] - other[0])**2 + (self[1] - other[1])**2)
 
     def __gt__(self, other):
         """Compare vector length, longer vectors are "greater than"
