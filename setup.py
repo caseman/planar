@@ -22,6 +22,8 @@ srcdir = os.path.dirname(__file__)
 def read(fname):
     return open(os.path.join(srcdir, fname)).read()
 
+include_dirs = ['include']
+
 setup(
     name='planar',
     version='0.1', # *** REMEMBER TO UPDATE __init__.py ***
@@ -48,6 +50,17 @@ setup(
 
     package_dir={'planar': 'lib/planar'},
     packages=['planar'], 
+	ext_modules=[
+		Extension('planar.cvector', 
+			['lib/planar/cvectormodule.c'], 
+			include_dirs=include_dirs,
+			#library_dirs=library_dirs,
+			#libraries=libraries,
+			#extra_link_args=extra_link_args,
+			#extra_compile_args=compile_args,
+			#define_macros=macros,
+		),
+    ],
 
     cmdclass = {'build_py': build_py},
 )
