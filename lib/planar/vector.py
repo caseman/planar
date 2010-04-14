@@ -45,7 +45,7 @@ class Vec2(tuple):
     """
 
     def __new__(self, x, y):
-		return tuple.__new__(Vec2, ((x * 1.0, y * 1.0)))
+        return tuple.__new__(Vec2, ((x * 1.0, y * 1.0)))
 
     @classmethod
     def polar(cls, angle, length=1.0):

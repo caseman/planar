@@ -3,6 +3,12 @@ __version__ = (0, 1, 0)
 
 from planar.vector import Vec2
 
+Point = Vec2
+"""``Point`` is an alias for ``Vec2``, since points are mathematically
+equivilent to vectors. Use ``Point`` where desired for clarity in
+your code.
+"""
+
 def set_epsilon(epsilon):
     """Set the global limit value for floating point comparisons. 
 
