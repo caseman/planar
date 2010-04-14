@@ -23,20 +23,20 @@ def read(fname):
     return open(os.path.join(srcdir, fname)).read()
 
 setup(
-	name='planar',
+    name='planar',
     version='0.1', # *** REMEMBER TO UPDATE __init__.py ***
-	description='2D planar geometry library for Python.',
-	#long_description=read('README.txt'),
-	author='Casey Duncan',
-	author_email='casey.duncan@gmail.com',
-	url='http://bitbucket.org/caseman/planar/',
-	license='BSD',
+    description='2D planar geometry library for Python.',
+    #long_description=read('README.txt'),
+    author='Casey Duncan',
+    author_email='casey.duncan@gmail.com',
+    url='http://bitbucket.org/caseman/planar/',
+    license='BSD',
     classifiers = [
         'Development Status :: 3 - Alpha',
         'Topic :: Software Development :: Libraries',
         'Topic :: Software Development :: Libraries :: Python Modules',
         'License :: OSI Approved :: BSD License',
-		'Intended Audience :: Developers',
+        'Intended Audience :: Developers',
         'Programming Language :: Python :: 2.6',
         'Programming Language :: Python :: 2.7',
         'Programming Language :: Python :: 3.1',
