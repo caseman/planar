@@ -1,6 +1,20 @@
 #include "Python.h"
 #include "planar.h"
 
+PlanarVec2Object *
+PlanarVec2_FromPair(double x, double y)
+{
+    PlanarVec2Object *v;
+
+    v = (PlanarVec2Object *)PlanarVec2Type.tp_alloc(&PlanarVec2Type, 0);
+    if (v == NULL) {
+        return NULL;
+    }
+    v->vec.x = x;
+    v->vec.y = y;
+    return v;
+}
+
 static int
 Vec2_init(PlanarVec2Object *self, PyObject *args)
 {
@@ -9,17 +23,20 @@ Vec2_init(PlanarVec2Object *self, PyObject *args)
 
     assert(PlanarVec2_Check(self));
     if (PyTuple_GET_SIZE(args) != 2) {
-        PyErr_SetString(PyExc_TypeError, "Vec2: wrong number of arguments");
+        PyErr_SetString(PyExc_TypeError, 
+            "Vec2: wrong number of arguments");
         return -1;
     }
     xarg = PyTuple_GET_ITEM(args, 0);
     if (!PyNumber_Check(xarg)) {
-        PyErr_SetString(PyExc_TypeError, "Vec2: expected number for argument one");
+        PyErr_SetString(PyExc_TypeError, 
+            "Vec2: expected number for argument x");
         return -1;
     }
     yarg = PyTuple_GET_ITEM(args, 1);
     if (!PyNumber_Check(yarg)) {
-        PyErr_SetString(PyExc_TypeError, "Vec2: expected number for argument two");
+        PyErr_SetString(PyExc_TypeError, 
+            "Vec2: expected number for argument y");
         return -1;
     }
     xarg = PyNumber_Float(xarg);
@@ -30,8 +47,8 @@ Vec2_init(PlanarVec2Object *self, PyObject *args)
         return -1;
     }
 
-    self->vec.x = PyFloat_AsDouble(xarg);
-    self->vec.y = PyFloat_AsDouble(yarg);
+    self->vec.x = PyFloat_AS_DOUBLE(xarg);
+    self->vec.y = PyFloat_AS_DOUBLE(yarg);
     Py_DECREF(xarg);
     Py_DECREF(yarg);
     return 0;
@@ -44,6 +61,68 @@ Vec2_dealloc(PlanarVec2Object *self)
 }
 
 static PyObject *
+Vec2_new_polar(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+{
+    PyObject *angle_arg;
+    PyObject *length_arg;
+    PlanarVec2Object *v;
+    int arg_count;
+    double angle;
+    double length = 1.0;
+
+    static char *kwlist[] = {"angle", "length"};
+
+    assert(PyType_IsSubtype(type, &PlanarVec2Type));
+    if (kwargs == NULL) {
+        /* No kwargs, do fast manual arg handling */
+        arg_count = PyTuple_GET_SIZE(args);
+        if (arg_count != 1 && arg_count != 2) {
+            PyErr_SetString(PyExc_TypeError, 
+                "Vec2.polar(): wrong number of arguments");
+            return NULL;
+        }
+        angle_arg = PyTuple_GET_ITEM(args, 0);
+        if (!PyNumber_Check(angle_arg)) {
+            PyErr_SetString(PyExc_TypeError, 
+                "Vec2.polar(): expected number for argument angle");
+            return NULL;
+        }
+        angle_arg = PyNumber_Float(angle_arg);
+        if (angle_arg == NULL) {
+            return NULL;
+        }
+        angle = PyFloat_AS_DOUBLE(angle_arg);
+        Py_CLEAR(angle_arg);
+        if (arg_count == 2) {
+            length_arg = PyTuple_GET_ITEM(args, 1);
+            if (!PyNumber_Check(length_arg)) {
+                PyErr_SetString(PyExc_TypeError, 
+                    "Vec2.polar(): expected number for argument length");
+                return NULL;
+            }
+            length_arg = PyNumber_Float(length_arg);
+            if (length_arg == NULL) {
+                Py_DECREF(angle_arg);
+                return NULL;
+            }
+            length = PyFloat_AS_DOUBLE(length_arg);
+            Py_CLEAR(length_arg);
+        }
+    } else if (!PyArg_ParseTupleAndKeywords(
+        args, kwargs, "f|f:Vec2.polar()", kwlist, &angle, &length)) {
+        return NULL;
+    }
+
+    v = (PlanarVec2Object *)type->tp_alloc(type, 0);
+    if (v != NULL) {
+        angle = radians(angle);
+        v->vec.x = cos(angle) * length;
+        v->vec.y = sin(angle) * length;
+    }
+    return (PyObject *)v;
+}
+
+static PyObject *
 Vec2_get_x(PlanarVec2Object *self) {
     return PyFloat_FromDouble(self->vec.x);
 }
@@ -53,13 +132,29 @@ Vec2_get_y(PlanarVec2Object *self) {
     return PyFloat_FromDouble(self->vec.y);
 }
 
+static PyObject *
+Vec2_get_length(PlanarVec2Object *self) {
+    return PyFloat_FromDouble(sqrt(self->vec.y * self->vec.y + self->vec.x * self->vec.x));
+}
+
+static PyObject *
+Vec2_get_length2(PlanarVec2Object *self) {
+    return PyFloat_FromDouble(self->vec.y * self->vec.y + self->vec.x * self->vec.x);
+}
+
+
 static PyGetSetDef Vec2_getset[] = {
     {"x", (getter)Vec2_get_x, NULL, "The horizontal coordinate.", NULL},
     {"y", (getter)Vec2_get_y, NULL, "The vertical coordinate.", NULL},
+    {"length", (getter)Vec2_get_length, NULL, 
+        "The length or scalar magnitude of the vector.", NULL},
+    {"length2", (getter)Vec2_get_length2, NULL, 
+        "The square of the length of the vector.", NULL},
     {NULL}
 };
 
 static PyMethodDef Vec2_methods[] = {
+    {"polar", (PyCFunction)Vec2_new_polar, METH_CLASS | METH_VARARGS | METH_KEYWORDS, ""},
     {NULL, NULL}
 };
 
@@ -88,7 +183,7 @@ PyTypeObject PlanarVec2Type = {
     0, /* PyObject_GenericGetAttr, */                   /* tp_getattro */
     0,/* PyObject_GenericSetAttr, */                    /* tp_setattro */
     0,                    /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_GC,   /* tp_flags */
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
     Vec2_doc,          /* tp_doc */
     0,                    /* tp_traverse */
     0,                    /* tp_clear */
@@ -105,9 +200,9 @@ PyTypeObject PlanarVec2Type = {
     0,                    /* tp_descr_set */
     0,                    /* tp_dictoffset */
     (initproc)Vec2_init,                    /* tp_init */
-    PyType_GenericAlloc,        /* tp_alloc */
+    0,        /* tp_alloc */
     0,          /* tp_new */
-    PyObject_GC_Del,              /* tp_free */
+    0,              /* tp_free */
 };
 
 PyDoc_STRVAR(module_doc, "Native code vector implementation");
