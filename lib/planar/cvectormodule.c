@@ -70,7 +70,7 @@ Vec2_new_polar(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     double angle;
     double length = 1.0;
 
-    static char *kwlist[] = {"angle", "length"};
+    static char *kwlist[] = {"angle", "length", NULL};
 
     assert(PyType_IsSubtype(type, &PlanarVec2Type));
     if (kwargs == NULL) {
@@ -141,7 +141,6 @@ static PyObject *
 Vec2_get_length2(PlanarVec2Object *self) {
     return PyFloat_FromDouble(self->vec.y * self->vec.y + self->vec.x * self->vec.x);
 }
-
 
 static PyGetSetDef Vec2_getset[] = {
     {"x", (getter)Vec2_get_x, NULL, "The horizontal coordinate.", NULL},
