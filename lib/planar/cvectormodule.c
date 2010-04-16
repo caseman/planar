@@ -142,6 +142,11 @@ Vec2_get_length2(PlanarVec2Object *self) {
     return PyFloat_FromDouble(self->vec.y * self->vec.y + self->vec.x * self->vec.x);
 }
 
+static PyObject *
+Vec2_get_angle(PlanarVec2Object *self) {
+    return PyFloat_FromDouble(degrees(atan2(self->vec.y, self->vec.x)));
+}
+
 static PyGetSetDef Vec2_getset[] = {
     {"x", (getter)Vec2_get_x, NULL, "The horizontal coordinate.", NULL},
     {"y", (getter)Vec2_get_y, NULL, "The vertical coordinate.", NULL},
@@ -149,6 +154,9 @@ static PyGetSetDef Vec2_getset[] = {
         "The length or scalar magnitude of the vector.", NULL},
     {"length2", (getter)Vec2_get_length2, NULL, 
         "The square of the length of the vector.", NULL},
+    {"angle", (getter)Vec2_get_angle, NULL, 
+        "The angle the vector makes to the positive x axis in the range"
+        " (-180, 180]"},
     {NULL}
 };
 

@@ -4,6 +4,7 @@
 #define M_PI 3.14159265358979323846264338327
 #endif
 #define radians(d) ((d) * M_PI / 180.0)
+#define degrees(d) ((d) * 180.0 / M_PI)
 
 typedef struct {
     double x;
