@@ -102,7 +102,6 @@ Vec2_new_polar(PyTypeObject *type, PyObject *args, PyObject *kwargs)
             }
             length_arg = PyNumber_Float(length_arg);
             if (length_arg == NULL) {
-                Py_DECREF(angle_arg);
                 return NULL;
             }
             length = PyFloat_AS_DOUBLE(length_arg);
