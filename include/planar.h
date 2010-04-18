@@ -1,5 +1,9 @@
 #include "Python.h"
 
+#ifndef PyUnicode_FromString
+#define PyUnicode_FromString(o) PyString_FromString(o)
+#endif
+
 #ifndef M_PI
 #define M_PI 3.14159265358979323846264338327
 #endif
@@ -15,8 +19,7 @@ typedef struct {
     PyObject_HEAD
     union {
         PyObject *next;
-        planar_vec2_t vec;
-        double member[2];
+        struct {double x; double y;};
     };
 } PlanarVec2Object;
 

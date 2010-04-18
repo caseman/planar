@@ -48,8 +48,9 @@ setup(
     ],
     platforms = 'any',
 
-    package_dir={'planar': 'lib/planar'},
-    packages=['planar'], 
+    package_dir={'planar': 'lib/planar',
+                 'planar.test': 'test'},
+    packages=['planar', 'planar.test'], 
 	ext_modules=[
 		Extension('planar.cvector', 
 			['lib/planar/cvectormodule.c'], 
