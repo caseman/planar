@@ -185,29 +185,55 @@ class Vec2(tuple):
         """
         return math.sqrt((self[0] - other[0])**2 + (self[1] - other[1])**2)
 
+    def __eq__(self, other):
+        try:
+            return (self[0] == other[0] and self[1] == other[1] 
+                and len(other) == 2)
+        except (TypeError, IndexError):
+            return False
+
+    def __ne__(self, other):
+        try:
+            return (self[0] != other[0] or self[1] != other[1]
+                or len(other) != 2)
+        except (TypeError, IndexError):
+            return True
+
     def __gt__(self, other):
         """Compare vector length, longer vectors are "greater than"
         shorter vectors.
         """
-        return self.length2 > other.length2
+        try:
+            return self.length2 > other.length2
+        except AttributeError:
+            return NotImplemented
 
     def __ge__(self, other):
         """Compare vector length, longer vectors are "greater than"
         shorter vectors.
         """
-        return self.length2 >= other.length2
+        try:
+            return self.length2 >= other.length2
+        except AttributeError:
+            return NotImplemented
 
     def __lt__(self, other):
         """Compare vector length, shorter vectors are "less than"
         longer vectors.
         """
-        return self.length2 < other.length2
+        try:
+            return self.length2 < other.length2
+        except AttributeError:
+            return NotImplemented
 
     def __le__(self, other):
         """Compare vector length, shorter vectors are "less than"
         longer vectors.
         """
-        return self.length2 <= other.length2
+        try:
+            return self.length2 <= other.length2
+        except AttributeError:
+            return NotImplemented
 
     def __add__(self, other):
         """Add the vectors componentwise.

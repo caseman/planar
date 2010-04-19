@@ -25,6 +25,58 @@ PlanarVec2_FromPair(double x, double y)
     return v;
 }
 
+int
+Planar_ParseVec2(PyObject *o, double *x, double *y)
+{
+    PyObject *x_obj = NULL;
+    PyObject *y_obj = NULL;
+    PyObject *iter = NULL;
+    PyObject *item;
+
+    if (PlanarVec2_Check(o)) {
+        *x = ((PlanarVec2Object *)o)->x;
+        *y = ((PlanarVec2Object *)o)->y;
+        return 1;
+    } else if (PyTuple_Check(o)) {
+        /* Use fast tuple access code */
+        if (PyTuple_GET_SIZE(o) != 2) {
+            PyErr_SetString(PyExc_TypeError, "Expected sequence of 2 numbers");
+            return 0;
+        }
+        x_obj = PyNumber_Float(PyTuple_GET_ITEM(o, 0));
+        y_obj = PyNumber_Float(PyTuple_GET_ITEM(o, 1));
+    } else if (PySequence_Check(o)) {
+        /* Fall back to general sequence access */
+        PyErr_SetString(PyExc_TypeError, "Expected sequence of 2 numbers");
+        if (PySequence_Size(o) != 2) {
+            return 0;
+        }
+        if (item = PySequence_GetItem(o, 0)) {
+            x_obj = PyNumber_Float(item);
+            Py_DECREF(item);
+        }
+        if (item = PySequence_GetItem(o, 1)) {
+            y_obj = PyNumber_Float(item);
+            Py_DECREF(item);
+        }
+    }
+    if (x_obj == NULL || y_obj == NULL) {
+        goto error;
+    }
+    *x = PyFloat_AS_DOUBLE(x_obj);
+    *y = PyFloat_AS_DOUBLE(y_obj);
+    Py_DECREF(x_obj);
+    Py_DECREF(y_obj);
+    PyErr_Clear();
+    return 1;
+
+error:
+    Py_XDECREF(x_obj);
+    Py_XDECREF(y_obj);
+    return 0;
+}
+        
+
 static PlanarVec2Object *
 Vec2_result(PlanarVec2Object *self, double x, double y)
 {
@@ -85,6 +137,65 @@ Vec2_dealloc(PlanarVec2Object *self)
     Py_TYPE(self)->tp_free(self);
 }
 
+static PyObject *
+Vec2_compare(PyObject *a, PyObject *b, int op)
+{
+    double ax, bx, ay, by;
+    int result = 0;
+
+    if (Planar_ParseVec2(a, &ax, &ay) && Planar_ParseVec2(b, &bx, &by)) {
+        switch (op) {
+            case Py_EQ:
+                result = ax == bx && ay == by;
+                break;
+            case Py_NE:
+                result = ax != bx || ay != by;
+                break;
+            case Py_GT:
+                result = (ax*ax + ay*ay) > (bx*bx + by*by);
+                break;
+            case Py_LT:
+                result = (ax*ax + ay*ay) < (bx*bx + by*by);
+                break;
+            case Py_GE:
+                result = (ax*ax + ay*ay) >= (bx*bx + by*by);
+                break;
+            case Py_LE:
+                result = (ax*ax + ay*ay) <= (bx*bx + by*by);
+                break;
+            default:
+                Py_INCREF(Py_NotImplemented);
+                return Py_NotImplemented;
+        }
+    } else {
+        /* We can't parse one or both operands */
+        if (PyErr_Occurred() && PyErr_ExceptionMatches(PyExc_MemoryError)) {
+            /* Don't mask memory errors */
+            return NULL;
+        }
+        PyErr_Clear();
+        switch (op) {
+            case Py_EQ:
+                result = 0;
+                break;
+            case Py_NE:
+                result = 1;
+                break;
+            default:
+                /* Other comparisons are undefined */
+                Py_INCREF(Py_NotImplemented);
+                return Py_NotImplemented;
+        }
+    }
+
+    if (result) {
+        Py_INCREF(Py_True);
+        return Py_True;
+    } else {
+        Py_INCREF(Py_False);
+        return Py_False;
+    }
+}
 
 /* Property descriptors */
 
@@ -305,9 +416,9 @@ PyTypeObject PlanarVec2Type = {
     0,                    /* tp_print */
     0,                    /* tp_getattr */
     0,                    /* tp_setattr */
-    0,                    /* tp_compare */
+    0,                    /* reserved */
     (reprfunc)Vec2_repr,  /* tp_repr */
-    Vec2_as_number,      /* tp_as_number */
+    Vec2_as_number,       /* tp_as_number */
     &Vec2_as_sequence,    /* tp_as_sequence */
     0,                    /* tp_as_mapping */
     0,                    /* tp_hash */
@@ -320,7 +431,7 @@ PyTypeObject PlanarVec2Type = {
     Vec2_doc,          /* tp_doc */
     0,                    /* tp_traverse */
     0,                    /* tp_clear */
-    0,                    /* tp_richcompare */
+    Vec2_compare,         /* tp_richcompare */
     0,                    /* tp_weaklistoffset */
     0,                    /* tp_iter */
     0,                    /* tp_iternext */

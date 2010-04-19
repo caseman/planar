@@ -29,3 +29,6 @@ PyTypeObject PlanarVec2Type;
 #define PlanarVec2_CheckExact(op) (Py_TYPE(op) == &PlanarVec2Type)
 
 PlanarVec2Object *PlanarVec2_FromPair(double x, double y);
+
+int Planar_ParseVec2(PyObject *o, double *x, double *y);
+

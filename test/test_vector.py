@@ -181,6 +181,44 @@ class Vec2BaseTestCase:
         assert v1 <= v2
         assert v1 < v2
 
+    def test_comparison_casts(self):
+        assert self.Vec2(6.2, 3) == (6.2, 3)
+        assert (6.2, 3) == self.Vec2(6.2, 3)
+        assert not self.Vec2(6.2, 3) == (6.2, 3.2)
+        assert self.Vec2(6.2, 3) != (6.2, 3.2)
+        assert (6.2, 3.2) != self.Vec2(6.2, 3)
+        assert self.Vec2(6.2, 3) != (6.2, 3, 2)
+        assert not self.Vec2(6.2, 3) == (6.2, 3, 2)
+        assert self.Vec2(6.2, 3) != (6.2,)
+        assert self.Vec2(6.2, 3) != 6.2
+        assert self.Vec2(6.2, 3) != None
+        assert not self.Vec2(6.2, 3) == None
+        assert self.Vec2(6.2, 3) != ()
+        assert not self.Vec2(6.2, 3) == ()
+        assert None != self.Vec2(6.2, 3)
+        assert self.Vec2(8, 1) == [8, 1]
+        assert [8, 1] == self.Vec2(8, 1)
+        assert self.Vec2(8, 1) != set([8, 1])
+        assert self.Vec2(8, 1) != [8, 1, 0]
+        assert self.Vec2(8, 1) != [8]
+        assert not self.Vec2(8, 1) == []
+        assert self.Vec2(8, 1) != []
+
+    @raises(TypeError)
+    def test_comparison_cast_unordered_gt(self):
+        self.Vec2(2, 3) > 3
+
+    @raises(TypeError)
+    def test_comparison_cast_unordered_lt(self):
+        self.Vec2(2, 3) < 3
+
+    def test_comparison_subclass(self):
+        class V(self.Vec2): pass
+        assert self.Vec2(5, 4) == V(5, 4)
+        assert V(5, 4) == self.Vec2(5, 4)
+        assert self.Vec2(5, 4) != V(4, 4)
+        assert V(4, 4) != self.Vec2(5, 4)
+
     def test_add(self):
         assert_equal(self.Vec2(1, 2) + self.Vec2(3, 4), self.Vec2(4, 6))
         v = self.Vec2(2, 2)
