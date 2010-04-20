@@ -243,6 +243,7 @@ class Vec2BaseTestCase:
 
     def test_truediv(self):
         assert_equal(self.Vec2(1, 4) / 2, self.Vec2(0.5, 2))
+        assert_equal(6 / self.Vec2(1, 4), self.Vec2(6, 1.5))
         assert_equal(self.Vec2(1, 4) / self.Vec2(4, 2), self.Vec2(0.25, 2))
         v = self.Vec2(6, 3)
         v /= 3
@@ -250,13 +251,38 @@ class Vec2BaseTestCase:
 
     def test_floordiv(self):
         assert_equal(self.Vec2(1, 4) // 2, self.Vec2(0, 2))
+        assert_equal(5 // self.Vec2(2, 4), self.Vec2(2, 1))
         assert_equal(self.Vec2(1, 4) // self.Vec2(4, 2), self.Vec2(0, 2))
         v = self.Vec2(6, 2)
         v //= 3
         assert_equal(v, self.Vec2(2, 0))
 
+    def test_div_by_zero(self):
+        for a, b in [
+            (self.Vec2(1, 2), self.Vec2(0, 0)),
+            (self.Vec2(1, 2), self.Vec2(1, 0)),
+            (self.Vec2(1, 2), self.Vec2(0, 1)),
+            (self.Vec2(1, 2), 0),
+            (5, self.Vec2(0, 0)),
+            (5, self.Vec2(1, 0)),
+            (5, self.Vec2(0, 1)),]:
+            try: a / b
+            except ZeroDivisionError: pass
+            else: 
+                self.fail("Expected ZeroDivisionError for: %r / %r" % (a, b))
+            try: a // b
+            except ZeroDivisionError: pass
+            else: 
+                self.fail("Expected ZeroDivisionError for: %r // %r" % (a, b))
+
     def test_neg(self):
         assert_equal(-self.Vec2(5,6), self.Vec2(-5,-6))
+
+    def test_bool(self):
+        assert self.Vec2(0.1, 0)
+        assert self.Vec2(0, 0.1)
+        assert self.Vec2(0.1, 0.1)
+        assert not self.Vec2(0, 0)
 
 
 class PyVec2TestCase(Vec2BaseTestCase, unittest.TestCase):

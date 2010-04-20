@@ -43,8 +43,8 @@ Planar_ParseVec2(PyObject *o, double *x, double *y)
             PyErr_SetString(PyExc_TypeError, "Expected sequence of 2 numbers");
             return 0;
         }
-        x_obj = PyNumber_Float(PyTuple_GET_ITEM(o, 0));
-        y_obj = PyNumber_Float(PyTuple_GET_ITEM(o, 1));
+        x_obj = PyObject_ToFloat(PyTuple_GET_ITEM(o, 0));
+        y_obj = PyObject_ToFloat(PyTuple_GET_ITEM(o, 1));
     } else if (PySequence_Check(o)) {
         /* Fall back to general sequence access */
         PyErr_SetString(PyExc_TypeError, "Expected sequence of 2 numbers");
@@ -52,11 +52,11 @@ Planar_ParseVec2(PyObject *o, double *x, double *y)
             return 0;
         }
         if (item = PySequence_GetItem(o, 0)) {
-            x_obj = PyNumber_Float(item);
+            x_obj = PyObject_ToFloat(item);
             Py_DECREF(item);
         }
         if (item = PySequence_GetItem(o, 1)) {
-            y_obj = PyNumber_Float(item);
+            y_obj = PyObject_ToFloat(item);
             Py_DECREF(item);
         }
     }
@@ -104,20 +104,8 @@ Vec2_init(PlanarVec2Object *self, PyObject *args)
             "Vec2: wrong number of arguments");
         return -1;
     }
-    xarg = PyTuple_GET_ITEM(args, 0);
-    if (!PyNumber_Check(xarg)) {
-        PyErr_SetString(PyExc_TypeError, 
-            "Vec2: expected number for argument x");
-        return -1;
-    }
-    yarg = PyTuple_GET_ITEM(args, 1);
-    if (!PyNumber_Check(yarg)) {
-        PyErr_SetString(PyExc_TypeError, 
-            "Vec2: expected number for argument y");
-        return -1;
-    }
-    xarg = PyNumber_Float(xarg);
-    yarg = PyNumber_Float(yarg);
+    xarg = PyObject_ToFloat(PyTuple_GET_ITEM(args, 0));
+    yarg = PyObject_ToFloat(PyTuple_GET_ITEM(args, 1));
     if (xarg == NULL || yarg == NULL) {
         Py_XDECREF(xarg);
         Py_XDECREF(yarg);
@@ -261,31 +249,19 @@ Vec2_new_polar(PyTypeObject *type, PyObject *args, PyObject *kwargs)
                 "Vec2.polar(): wrong number of arguments");
             return NULL;
         }
-        angle_arg = PyTuple_GET_ITEM(args, 0);
-        if (!PyNumber_Check(angle_arg)) {
-            PyErr_SetString(PyExc_TypeError, 
-                "Vec2.polar(): expected number for argument angle");
-            return NULL;
-        }
-        angle_arg = PyNumber_Float(angle_arg);
+        angle_arg = PyObject_ToFloat(PyTuple_GET_ITEM(args, 0));
         if (angle_arg == NULL) {
             return NULL;
         }
         angle = PyFloat_AS_DOUBLE(angle_arg);
-        Py_CLEAR(angle_arg);
+        Py_DECREF(angle_arg);
         if (arg_count == 2) {
-            length_arg = PyTuple_GET_ITEM(args, 1);
-            if (!PyNumber_Check(length_arg)) {
-                PyErr_SetString(PyExc_TypeError, 
-                    "Vec2.polar(): expected number for argument length");
-                return NULL;
-            }
-            length_arg = PyNumber_Float(length_arg);
+            length_arg = PyObject_ToFloat(PyTuple_GET_ITEM(args, 1));
             if (length_arg == NULL) {
                 return NULL;
             }
             length = PyFloat_AS_DOUBLE(length_arg);
-            Py_CLEAR(length_arg);
+            Py_DECREF(length_arg);
         }
     } else if (!PyArg_ParseTupleAndKeywords(
         args, kwargs, "f|f:Vec2.polar()", kwlist, &angle, &length)) {
@@ -326,23 +302,150 @@ static PyMethodDef Vec2_methods[] = {
 
 /* Aritmetic operations */
 
+static PyObject *
+Vec2__add__(PyObject *a, PyObject *b)
+{
+    double ax, ay, bx, by;
+
+    if (Planar_ParseVec2(a, &ax, &ay) && Planar_ParseVec2(b, &bx, &by)) {
+        return (PyObject *)PlanarVec2_FromPair(ax + bx, ay + by);
+    } else {
+        Py_INCREF(Py_NotImplemented);
+        return Py_NotImplemented;
+    }
+}
+
+static PyObject *
+Vec2__sub__(PyObject *a, PyObject *b)
+{
+    double ax, ay, bx, by;
+
+    if (Planar_ParseVec2(a, &ax, &ay) && Planar_ParseVec2(b, &bx, &by)) {
+        return (PyObject *)PlanarVec2_FromPair(ax - bx, ay - by);
+    } else {
+        Py_INCREF(Py_NotImplemented);
+        return Py_NotImplemented;
+    }
+}
+
+static PyObject *
+Vec2__mul__(PyObject *a, PyObject *b)
+{
+    int a_is_vec, b_is_vec;
+    double ax, ay, bx, by;
+
+    a_is_vec = Planar_ParseVec2(a, &ax, &ay);
+    b_is_vec = Planar_ParseVec2(b, &bx, &by);
+
+    if (a_is_vec && b_is_vec) {
+        return (PyObject *)PlanarVec2_FromPair(ax * bx, ay * by);
+    } else if (a_is_vec) {
+        b = PyObject_ToFloat(b);
+        if (b != NULL) {
+            bx = PyFloat_AS_DOUBLE(b);
+            a = (PyObject *)PlanarVec2_FromPair(ax * bx, ay * bx);
+            Py_DECREF(b);
+            return a;
+        }
+    } else if (b_is_vec) {
+        a = PyObject_ToFloat(a);
+        if (a != NULL) {
+            ax = PyFloat_AS_DOUBLE(a);
+            b = (PyObject *)PlanarVec2_FromPair(bx * ax, by * ax);
+            Py_DECREF(a);
+            return b;
+        }
+    }
+    Py_INCREF(Py_NotImplemented);
+    return Py_NotImplemented;
+}
+
+static PyObject *
+Vec2__truediv__(PyObject *a, PyObject *b)
+{
+    int a_is_vec, b_is_vec;
+    double ax, ay, bx, by;
+
+    a_is_vec = Planar_ParseVec2(a, &ax, &ay);
+    b_is_vec = Planar_ParseVec2(b, &bx, &by);
+
+    if (a_is_vec && b_is_vec) {
+        if (!bx || !by) {
+            goto div_by_zero;
+        }
+        return (PyObject *)PlanarVec2_FromPair(ax / bx, ay / by);
+    } else if (a_is_vec) {
+        b = PyObject_ToFloat(b);
+        if (b != NULL) {
+            bx = PyFloat_AS_DOUBLE(b);
+            if (!bx) {
+                goto div_by_zero;
+            }
+            a = (PyObject *)PlanarVec2_FromPair(ax / bx, ay / bx);
+            Py_DECREF(b);
+            return a;
+        }
+    } else if (b_is_vec) {
+        a = PyObject_ToFloat(a);
+        if (a != NULL) {
+            ax = PyFloat_AS_DOUBLE(a);
+            if (!bx || !by) {
+                goto div_by_zero;
+            }
+            b = (PyObject *)PlanarVec2_FromPair(ax / bx, ax / by);
+            Py_DECREF(a);
+            return b;
+        }
+    }
+    Py_INCREF(Py_NotImplemented);
+    return Py_NotImplemented;
+
+div_by_zero:
+    PyErr_SetString(PyExc_ZeroDivisionError, "Vec2 division by zero");
+    return NULL;
+}
+
+static PyObject *
+Vec2__floordiv__(PyObject *a, PyObject *b)
+{
+    PyObject *q;
+    PlanarVec2Object *v;
+    q = Vec2__truediv__(a, b);
+    if (q != NULL && q != Py_NotImplemented) {
+        /* Since q is a new vector, not referenced from outside,
+           we can modify it here without breaking immutability */
+        v = (PlanarVec2Object *)q;
+        v->x = floor(v->x);
+        v->y = floor(v->y);
+    }
+    return q;
+}
+
 static PlanarVec2Object *
 Vec2__neg__(PlanarVec2Object *self)
 {
+    assert(PlanarVec2_Check(self));
     return Vec2_result(self, -self->x, -self->y);
 }
 
+static int
+Vec2__nonzero__(PlanarVec2Object *self)
+{
+    assert(PlanarVec2_Check(self));
+    return self->x || self->y;
+}
+
 static PyNumberMethods Vec2_as_number[] = {
-    0,       /* binaryfunc nb_add */
-    0,       /* binaryfunc nb_subtract */
-    0,       /* binaryfunc nb_multiply */
+    (binaryfunc)Vec2__add__,       /* binaryfunc nb_add */
+    (binaryfunc)Vec2__sub__,       /* binaryfunc nb_subtract */
+    (binaryfunc)Vec2__mul__,       /* binaryfunc nb_multiply */
     0,       /* binaryfunc nb_remainder */
     0,       /* binaryfunc nb_divmod */
     0,       /* ternaryfunc nb_power */
     (unaryfunc)Vec2__neg__,       /* unaryfunc nb_negative */
     0,       /* unaryfunc nb_positive */
     0,       /* unaryfunc nb_absolute */
-    0,       /* inquiry nb_bool */
+    (inquiry)Vec2__nonzero__,       /* inquiry nb_bool */
     0,       /* unaryfunc nb_invert */
     0,       /* binaryfunc nb_lshift */
     0,       /* binaryfunc nb_rshift */
@@ -353,9 +456,9 @@ static PyNumberMethods Vec2_as_number[] = {
     0,       /* void *nb_reserved */
     0,       /* unaryfunc nb_float */
 
-    0,       /* binaryfunc nb_inplace_add */
-    0,       /* binaryfunc nb_inplace_subtract */
-    0,       /* binaryfunc nb_inplace_multiply */
+    (binaryfunc)Vec2__add__,       /* binaryfunc nb_inplace_add */
+    (binaryfunc)Vec2__sub__,       /* binaryfunc nb_inplace_subtract */
+    (binaryfunc)Vec2__mul__,       /* binaryfunc nb_inplace_multiply */
     0,       /* binaryfunc nb_inplace_remainder */
     0,       /* ternaryfunc nb_inplace_power */
     0,       /* binaryfunc nb_inplace_lshift */
@@ -364,10 +467,10 @@ static PyNumberMethods Vec2_as_number[] = {
     0,       /* binaryfunc nb_inplace_xor */
     0,       /* binaryfunc nb_inplace_or */
 
-    0,       /* binaryfunc nb_floor_divide */
-    0,       /* binaryfunc nb_true_divide */
-    0,       /* binaryfunc nb_inplace_floor_divide */
-    0,       /* binaryfunc nb_inplace_true_divide */
+    (binaryfunc)Vec2__floordiv__,    /* binaryfunc nb_floor_divide */
+    (binaryfunc)Vec2__truediv__,     /* binaryfunc nb_true_divide */
+    (binaryfunc)Vec2__floordiv__,    /* binaryfunc nb_inplace_floor_divide */
+    (binaryfunc)Vec2__truediv__,     /* binaryfunc nb_inplace_true_divide */
 
     0,       /* unaryfunc nb_index */
 };

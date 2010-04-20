@@ -23,6 +23,48 @@ typedef struct {
     };
 } PlanarVec2Object;
 
+/* Convert the object to a float, this is designed to
+   be faster and more strict than PyNumber_Float
+   (it does not allow strings), but will convert
+   any type that supports float conversion.
+
+   If the argument provided is NULL, NULL is returned
+   and no exception is set. If an error occurs, NULL
+   is returned with an exception set. In the former
+   case it is assumed that an exception has already
+   been set.
+
+   Returns: New reference
+*/
+PyObject *
+PyObject_ToFloat(PyObject *o) 
+{
+    PyNumberMethods *m;
+
+    if (o == NULL) {
+        return NULL;
+    }
+    if (PyFloat_Check(o)) {
+        Py_INCREF(o);
+        return o;
+    }
+	m = o->ob_type->tp_as_number;
+	if (m && m->nb_float) {
+        o = m->nb_float(o);
+        if (o && !PyFloat_Check(o)) {
+            PyErr_Format(PyExc_TypeError,
+                "__float__ returned non-float (type %.200s)",
+                o->ob_type->tp_name);
+			Py_DECREF(o);
+			return NULL;
+		}
+        return o;
+    }
+    PyErr_Format(PyExc_TypeError,
+        "Can't convert %.200s to float", o->ob_type->tp_name);
+    return NULL;
+}
+
 PyTypeObject PlanarVec2Type;
 
 #define PlanarVec2_Check(op) PyObject_TypeCheck(op, &PlanarVec2Type)

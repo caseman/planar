@@ -98,6 +98,10 @@ class Vec2(tuple):
         """
         return self.length2 < planar.EPSILON2
 
+    def __nonzero__(self):
+        """A vector is True if it is not the null vector."""
+        return self[0] != 0.0 or self[1] != 0.0
+
     def almost_equals(self, other):
         """Compare vectors for approximate equality.
 
@@ -270,7 +274,7 @@ class Vec2(tuple):
     
     __rmul__ = __imul__ = __mul__
 
-    def __div__(self, other):
+    def __truediv__(self, other):
         """Divide the vector by a scalar or componentwise
         by another vector.
 
@@ -283,7 +287,19 @@ class Vec2(tuple):
         except TypeError:
             return tuple.__new__(Vec2, (self[0] / other[0], self[1] / other[1]))
 
-    __truediv__ = __idiv__ = __div__
+    __itruediv__ = __truediv__
+
+    def __rtruediv__(self, other):
+        """Divide a scalar or vector by this vector componentwise.
+
+        :param other: The value to divide into.
+        :type other: Vec2 or float
+        """
+        try:
+            other = float(other)
+            return tuple.__new__(Vec2, (other / self[0], other / self[1]))
+        except TypeError:
+            return tuple.__new__(Vec2, (other[0] / self[0], other[1] / self[1]))
 
     def __floordiv__(self, other):
         """Divide the vector by a scalar or componentwise by
@@ -299,6 +315,19 @@ class Vec2(tuple):
             return tuple.__new__(Vec2, (self[0] // other[0], self[1] // other[1]))
 
     __ifloordiv__ = __floordiv__
+
+    def __rfloordiv__(self, other):
+        """Divide a scalar or vector by this vector componentwise,
+        rounding down.
+
+        :param other: The value to divide into.
+        :type other: Vec2 or float
+        """
+        try:
+            other = float(other)
+            return tuple.__new__(Vec2, (other // self[0], other // self[1]))
+        except TypeError:
+            return tuple.__new__(Vec2, (other[0] // self[0], other[1] // self[1]))
 
     def __neg__(self):
         """Compute the unary negation of the vector."""
