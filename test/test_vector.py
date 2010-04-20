@@ -160,6 +160,16 @@ class Vec2BaseTestCase:
     def test_distance_to(self):
         assert_equal(self.Vec2(3,0).distance_to(self.Vec2(0,4)), 5)
 
+    def test_rotated(self):
+        assert_almost_equal(self.Vec2.polar(45).rotated(22).angle, 67)
+        assert_almost_equal(self.Vec2.polar(70).rotated(-15).angle, 55)
+
+    def test_scaled_to(self):
+        v = self.Vec2.polar(77, 50)
+        assert_almost_equal(v.scaled_to(15).length, 15)
+        assert_almost_equal(v.scaled_to(5).length2, 25)
+        assert_equal(self.Vec2(0, 0).scaled_to(100), self.Vec2(0, 0))
+
     def test_comparison(self):
         v1 = self.Vec2(1, 2)
         v2 = self.Vec2(2, 3)

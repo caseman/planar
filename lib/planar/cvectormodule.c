@@ -395,6 +395,43 @@ Vec2_cross(PlanarVec2Object *self, PyObject *other)
 }
 
 static PlanarVec2Object *
+Vec2_rotated(PlanarVec2Object *self, PyObject *angle_arg)
+{
+    double angle, sa, ca;
+
+    assert(PlanarVec2_Check(self));
+    angle_arg = PyObject_ToFloat(angle_arg);
+    if (angle_arg == NULL) {
+        return NULL;
+    }
+    angle = radians(PyFloat_AS_DOUBLE(angle_arg));
+    sa = sin(angle);
+    ca = cos(angle);
+    return PlanarVec2_FromPair(
+        self->x * ca - self->y * sa, self->x * sa + self->y * ca);
+}
+
+static PlanarVec2Object *
+Vec2_scaled_to(PlanarVec2Object *self, PyObject *length)
+{
+    double L, s;
+
+    assert(PlanarVec2_Check(self));
+    length = PyObject_ToFloat(length);
+    if (length == NULL) {
+        return NULL;
+    }
+    L = self->x * self->x + self->y * self->y;
+    if (L >= EPSILON2) {
+        s = PyFloat_AS_DOUBLE(length) / sqrt(L);
+        Py_DECREF(length);
+        return PlanarVec2_FromPair(self->x * s, self->y * s);
+    } else {
+        return PlanarVec2_FromPair(0.0, 0.0);
+    }
+}
+
+static PlanarVec2Object *
 Vec2_normalized(PlanarVec2Object *self)
 {
     double length;
@@ -429,6 +466,11 @@ static PyMethodDef Vec2_methods[] = {
         "Compute the dot product with another vector."},
     {"cross", (PyCFunction)Vec2_cross, METH_O, 
         "Compute the cross product with another vector."},
+    {"rotated", (PyCFunction)Vec2_rotated, METH_O, 
+        "Compute the vector rotated by an angle, in degrees."},
+    {"scaled_to", (PyCFunction)Vec2_scaled_to, METH_O, 
+        "Compute the vector scaled to a given length. "
+        "If the vector is null, the null vector is returned."},
     {"normalized", (PyCFunction)Vec2_normalized, METH_NOARGS, 
         "Return the vector scaled to unit length. "
         "If the vector is null, the null vector is returned."},

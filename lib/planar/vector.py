@@ -178,6 +178,35 @@ class Vec2(tuple):
         """
         return math.sqrt((self[0] - other[0])**2 + (self[1] - other[1])**2)
 
+    def rotated(self, angle):
+        """Compute the vector rotated by an angle.
+
+        :param angle: The angle to rotate by, in degrees.
+        :rtype: Vec2
+        """
+        vx, vy = self
+        angle = math.radians(angle)
+        ca, sa = math.cos(angle), math.sin(angle)
+        return tuple.__new__(Vec2, (vx * ca - vy * sa, vx * sa + vy * ca))
+
+    def scaled_to(self, length):
+        """Compute the vector scaled to a given length. If the
+        vector is null, the null vector is returned.
+
+        :param length: The length of the vector returned, unless
+            the vector is null.
+        :rtype: Vec2
+        """
+        L = self.length
+        if L > planar.EPSILON:
+            vx, vy = self
+            s = length / L
+            v = tuple.__new__(Vec2, (vx * s, vy * s))
+            v.__dict__['length'] = length
+            return v
+        else:
+            return null
+
     def __eq__(self, other):
         try:
             return (self[0] == other[0] and self[1] == other[1] 
