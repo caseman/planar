@@ -170,6 +170,12 @@ class Vec2BaseTestCase:
         assert_almost_equal(v.scaled_to(5).length2, 25)
         assert_equal(self.Vec2(0, 0).scaled_to(100), self.Vec2(0, 0))
 
+    def test_project(self):
+        assert_equal(
+            self.Vec2(4, 0).project(self.Vec2(2, 1)), self.Vec2(2, 0))
+        assert_equal(
+            self.Vec2(0, 0).project(self.Vec2(2, 2)), self.Vec2(0, 0))
+
     def test_comparison(self):
         v1 = self.Vec2(1, 2)
         v2 = self.Vec2(2, 3)

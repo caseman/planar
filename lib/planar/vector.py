@@ -182,6 +182,7 @@ class Vec2(tuple):
         """Compute the vector rotated by an angle.
 
         :param angle: The angle to rotate by, in degrees.
+        :type angle: float
         :rtype: Vec2
         """
         vx, vy = self
@@ -195,6 +196,7 @@ class Vec2(tuple):
 
         :param length: The length of the vector returned, unless
             the vector is null.
+        :type length: float
         :rtype: Vec2
         """
         L = self.length
@@ -204,6 +206,20 @@ class Vec2(tuple):
             v = tuple.__new__(Vec2, (vx * s, vy * s))
             v.__dict__['length'] = length
             return v
+        else:
+            return null
+
+    def project(self, other):
+        """Compute the projection of another vector onto this one.
+
+        :param other: The vector to project.
+        :type other: Vec2
+        :rtype: Vec2
+        """
+        L = self.length2
+        if L > planar.EPSILON2:
+            s = self.dot(other) / L
+            return tuple.__new__(Vec2, (self[0] * s, self[1] * s))
         else:
             return null
 

@@ -432,6 +432,25 @@ Vec2_scaled_to(PlanarVec2Object *self, PyObject *length)
 }
 
 static PlanarVec2Object *
+Vec2_project(PlanarVec2Object *self, PyObject *other)
+{
+    double ox, oy, L, s;
+
+    assert(PlanarVec2_Check(self));
+    if (Planar_ParseVec2(other, &ox, &oy)) {
+        L = self->x * self->x + self->y * self->y;
+        if (L >= EPSILON2) {
+            s = (self->x * ox + self->y * oy) / L;
+            return PlanarVec2_FromPair(self->x * s, self->y * s);
+        } else {
+            return PlanarVec2_FromPair(0.0, 0.0);
+        }
+    } else {
+        CONVERSION_ERROR();
+    }
+}
+
+static PlanarVec2Object *
 Vec2_normalized(PlanarVec2Object *self)
 {
     double length;
@@ -471,6 +490,8 @@ static PyMethodDef Vec2_methods[] = {
     {"scaled_to", (PyCFunction)Vec2_scaled_to, METH_O, 
         "Compute the vector scaled to a given length. "
         "If the vector is null, the null vector is returned."},
+    {"project", (PyCFunction)Vec2_project, METH_O, 
+        "Compute the projection of another vector onto this one."},
     {"normalized", (PyCFunction)Vec2_normalized, METH_NOARGS, 
         "Return the vector scaled to unit length. "
         "If the vector is null, the null vector is returned."},
