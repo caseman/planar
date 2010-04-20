@@ -141,13 +141,7 @@ class Vec2BaseTestCase:
         assert_almost_equal(n.x, 1)
         assert_almost_equal(n.y, 0)
 
-    def test_safe_normalized(self):
-        n = self.Vec2(1,1).safe_normalized()
-        assert_almost_equal(n.length, 1)
-        assert_almost_equal(n.x, 1 / math.sqrt(2))
-        assert_almost_equal(n.y, 1 / math.sqrt(2))
-
-        assert_equal(self.Vec2(0, 0).safe_normalized(), self.Vec2(0, 0))
+        assert_equal(self.Vec2(0, 0).normalized(), self.Vec2(0, 0))
 
     def test_perpendicular(self):
         assert_equal(self.Vec2(10,0).perpendicular(), self.Vec2(0, 10))

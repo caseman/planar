@@ -22,4 +22,4 @@ def set_epsilon(epsilon):
     EPSILON = float(epsilon)
     EPSILON2 = EPSILON**2
 
-set_epsilon(0.00001)
+set_epsilon(1e-5)

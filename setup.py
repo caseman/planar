@@ -53,7 +53,7 @@ setup(
     packages=['planar', 'planar.test'], 
 	ext_modules=[
 		Extension('planar.cvector', 
-			['lib/planar/cvectormodule.c'], 
+			['lib/planar.c', 'lib/planar/cvectormodule.c'], 
 			include_dirs=include_dirs,
 			#library_dirs=library_dirs,
 			#libraries=libraries,

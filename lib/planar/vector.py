@@ -113,27 +113,16 @@ class Vec2(tuple):
             + (self[1] - other[1])**2) < planar.EPSILON2
 
     def normalized(self):
-        """Return the vector scaled to unit length.
-        
-        Do not use this method if the vector may be null,
-        instead use :meth:`safe_normalized`.
+        """Return the vector scaled to unit length. If the vector
+        is null, the null vector is returned.
         
         :rtype: Vec2
         """
         L = self.length
-        v = tuple.__new__(Vec2, (self[0] / L, self[1] / L))
-        v.__dict__['length'] = v.__dict__['length2'] = 1.0
-        return v
-
-    def safe_normalized(self):
-        """Return the vector scaled to unit length. If the vector
-        is null, the null vector is returned. This is safer, but
-        slightly slower than :meth:`normalized`.
-        
-        :return: Vec2
-        """
-        if not self.is_null:
-            return self.normalized()
+        if L > planar.EPSILON:
+            v = tuple.__new__(Vec2, (self[0] / L, self[1] / L))
+            v.__dict__['length'] = v.__dict__['length2'] = 1.0
+            return v
         else:
             return null
 

@@ -10,6 +10,9 @@
 #define radians(d) ((d) * M_PI / 180.0)
 #define degrees(d) ((d) * 180.0 / M_PI)
 
+extern double EPSILON;
+extern double EPSILON2;
+
 typedef struct {
     double x;
     double y;

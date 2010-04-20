@@ -212,6 +212,20 @@ Vec2_get_angle(PlanarVec2Object *self) {
     return PyFloat_FromDouble(degrees(atan2(self->y, self->x)));
 }
 
+static PyObject *
+Vec2_get_is_null(PlanarVec2Object *self)
+{
+    PyObject *r;
+
+    if (self->y * self->y + self->x * self->x < EPSILON2) {
+        r = Py_True;
+    } else {
+        r = Py_False;
+    }
+    Py_INCREF(r);
+    return r;
+}
+
 
 static PyGetSetDef Vec2_getset[] = {
     {"x", (getter)Vec2_get_x, NULL, "The horizontal coordinate.", NULL},
@@ -223,6 +237,8 @@ static PyGetSetDef Vec2_getset[] = {
     {"angle", (getter)Vec2_get_angle, NULL, 
         "The angle the vector makes to the positive x axis in the range"
         " (-180, 180]"},
+    {"is_null", (getter)Vec2_get_is_null, NULL, 
+        "Flag indicating if the vector is effectively zero-length."},
     {NULL}
 };
 
@@ -295,8 +311,120 @@ Vec2_str(PlanarVec2Object *self)
     return PyUnicode_FromString(buf);
 }
 
+#define CONVERSION_ERROR() \
+    PyErr_Format(PyExc_TypeError, \
+        "Can't compare %.200s to %.200s", \
+        Py_TYPE(self)->tp_name, Py_TYPE(other)->tp_name); \
+    return NULL
+
+static PyObject *
+Vec2_almost_equals(PlanarVec2Object *self, PyObject *other)
+{
+    double ox, oy, dx, dy;
+    PyObject *r;
+
+    assert(PlanarVec2_Check(self));
+    if (Planar_ParseVec2(other, &ox, &oy)) {
+        dx = self->x - ox;
+        dy = self->y - oy;
+        if (dx*dx + dy*dy <= EPSILON2) {
+            r = Py_True;
+        } else {
+            r = Py_False;
+        }
+        Py_INCREF(r);
+        return r;
+    } else {
+        CONVERSION_ERROR();
+    }
+}
+
+static PyObject *
+Vec2_angle_to(PlanarVec2Object *self, PyObject *other)
+{
+    double ox, oy;
+
+    assert(PlanarVec2_Check(self));
+    if (Planar_ParseVec2(other, &ox, &oy)) {
+        return PyFloat_FromDouble(
+            degrees(atan2(oy, ox) - atan2(self->y, self->x)));
+    } else {
+        CONVERSION_ERROR();
+    }
+}
+
+static PyObject *
+Vec2_distance_to(PlanarVec2Object *self, PyObject *other)
+{
+    double ox, oy, dx, dy;
+
+    assert(PlanarVec2_Check(self));
+    if (Planar_ParseVec2(other, &ox, &oy)) {
+        dx = self->x - ox;
+        dy = self->y - oy;
+        return PyFloat_FromDouble(sqrt(dx*dx + dy*dy));
+    } else {
+        CONVERSION_ERROR();
+    }
+}
+
+static PyObject *
+Vec2_dot(PlanarVec2Object *self, PyObject *other)
+{
+    double ox, oy;
+
+    assert(PlanarVec2_Check(self));
+    if (Planar_ParseVec2(other, &ox, &oy)) {
+        return PyFloat_FromDouble(self->x * ox + self->y * oy);
+    } else {
+        CONVERSION_ERROR();
+    }
+}
+
+static PyObject *
+Vec2_cross(PlanarVec2Object *self, PyObject *other)
+{
+    double ox, oy;
+
+    assert(PlanarVec2_Check(self));
+    if (Planar_ParseVec2(other, &ox, &oy)) {
+        return PyFloat_FromDouble(self->x * oy - self->y * ox);
+    } else {
+        CONVERSION_ERROR();
+    }
+}
+
+static PlanarVec2Object *
+Vec2_normalized(PlanarVec2Object *self)
+{
+    double length;
+
+    assert(PlanarVec2_Check(self));
+    length = sqrt(self->y * self->y + self->x * self->x);
+    if (length > EPSILON) {
+        return PlanarVec2_FromPair(self->x / length, self->y / length);
+    } else {
+        return PlanarVec2_FromPair(0.0, 0.0);
+    }
+}
+
+static PlanarVec2Object *
+Vec2_perpendicular(PlanarVec2Object *self)
+{
+    assert(PlanarVec2_Check(self));
+    return PlanarVec2_FromPair(-self->y, self->x);
+}
+
 static PyMethodDef Vec2_methods[] = {
-    {"polar", (PyCFunction)Vec2_new_polar, METH_CLASS | METH_VARARGS | METH_KEYWORDS, ""},
+    {"polar", (PyCFunction)Vec2_new_polar, 
+        METH_CLASS | METH_VARARGS | METH_KEYWORDS, ""},
+    {"almost_equals", (PyCFunction)Vec2_almost_equals, METH_O, ""},
+    {"angle_to", (PyCFunction)Vec2_angle_to, METH_O, ""},
+    {"distance_to", (PyCFunction)Vec2_distance_to, METH_O, ""},
+    {"dot", (PyCFunction)Vec2_dot, METH_O, ""},
+    {"cross", (PyCFunction)Vec2_cross, METH_O, ""},
+    {"normalized", (PyCFunction)Vec2_normalized, METH_NOARGS, ""},
+    {"perpendicular", (PyCFunction)Vec2_perpendicular, METH_NOARGS, ""},
     {NULL, NULL}
 };
 
