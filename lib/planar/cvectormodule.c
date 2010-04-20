@@ -432,7 +432,7 @@ static int
 Vec2__nonzero__(PlanarVec2Object *self)
 {
     assert(PlanarVec2_Check(self));
-    return self->x || self->y;
+    return self->x != 0.0 || self->y != 0.0;
 }
 
 static PyNumberMethods Vec2_as_number[] = {
