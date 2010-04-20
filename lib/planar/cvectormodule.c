@@ -417,14 +417,23 @@ Vec2_perpendicular(PlanarVec2Object *self)
 
 static PyMethodDef Vec2_methods[] = {
     {"polar", (PyCFunction)Vec2_new_polar, 
-        METH_CLASS | METH_VARARGS | METH_KEYWORDS, ""},
-    {"almost_equals", (PyCFunction)Vec2_almost_equals, METH_O, ""},
-    {"angle_to", (PyCFunction)Vec2_angle_to, METH_O, ""},
-    {"distance_to", (PyCFunction)Vec2_distance_to, METH_O, ""},
-    {"dot", (PyCFunction)Vec2_dot, METH_O, ""},
-    {"cross", (PyCFunction)Vec2_cross, METH_O, ""},
-    {"normalized", (PyCFunction)Vec2_normalized, METH_NOARGS, ""},
-    {"perpendicular", (PyCFunction)Vec2_perpendicular, METH_NOARGS, ""},
+        METH_CLASS | METH_VARARGS | METH_KEYWORDS, 
+        "Create a vector from polar coordinates."},
+    {"almost_equals", (PyCFunction)Vec2_almost_equals, METH_O, 
+        "Compare vectors for approximate equality."},
+    {"angle_to", (PyCFunction)Vec2_angle_to, METH_O, 
+        "Compute the smallest angle from this vector to another."},
+    {"distance_to", (PyCFunction)Vec2_distance_to, METH_O, 
+        "Compute the distance to another point vector."},
+    {"dot", (PyCFunction)Vec2_dot, METH_O, 
+        "Compute the dot product with another vector."},
+    {"cross", (PyCFunction)Vec2_cross, METH_O, 
+        "Compute the cross product with another vector."},
+    {"normalized", (PyCFunction)Vec2_normalized, METH_NOARGS, 
+        "Return the vector scaled to unit length. "
+        "If the vector is null, the null vector is returned."},
+    {"perpendicular", (PyCFunction)Vec2_perpendicular, METH_NOARGS, 
+        "Compute the perpendicular vector."},
     {NULL, NULL}
 };
 

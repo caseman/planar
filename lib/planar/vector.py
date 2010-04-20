@@ -49,7 +49,7 @@ class Vec2(tuple):
 
     @classmethod
     def polar(cls, angle, length=1.0):
-        """Create a vector from polar coordinates
+        """Create a vector from polar coordinates.
 
         :param angle: Vector angle in degrees from the positive x-axis.
         :type angle: float
