@@ -9,6 +9,7 @@
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 ****************************************************************************/
 #include "Python.h"
+#include <float.h>
 #include "planar.h"
 
 #define VEC2_FREE_MAX 1000
@@ -308,7 +309,7 @@ Vec2_new_polar(PyTypeObject *type, PyObject *args, PyObject *kwargs)
             Py_DECREF(length_arg);
         }
     } else if (!PyArg_ParseTupleAndKeywords(
-        args, kwargs, "f|f:Vec2.polar()", kwlist, &angle, &length)) {
+        args, kwargs, "d|d:Vec2.polar", kwlist, &angle, &length)) {
         return NULL;
     }
 
@@ -479,6 +480,54 @@ Vec2_project(PlanarVec2Object *self, PyObject *other)
 }
 
 static PlanarVec2Object *
+Vec2_clamped(PlanarVec2Object *self, PyObject *args, PyObject *kwargs)
+{
+    double min = 0.0;
+    double max = DBL_MAX;
+    double L, CL;
+
+    static char *kwlist[] = {"min_length", "max_length", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(
+        args, kwargs, "|dd:Vec2.clamped", kwlist, &min, &max)) {
+        return NULL;
+    }
+    if (min > max) {
+        PyErr_SetString(PyExc_ValueError, 
+            "Vec2.clamped: expected min_length <= max_length");
+        return NULL;
+    }
+
+    L = sqrt(self->y * self->y + self->x * self->x);
+    CL = (L < min) ? min : L;
+    CL = (CL > max) ? max : CL;
+
+    if (L > EPSILON) {
+        return PlanarVec2_FromPair(
+            self->x * (CL / L), self->y * (CL / L));
+    } else {
+        return PlanarVec2_FromPair(0.0, 0.0);
+    }
+}
+
+static PlanarVec2Object *
+Vec2_lerp(PlanarVec2Object *self, PyObject *args)
+{
+    PyObject *other;
+    double v, ox, oy;
+
+    if (!PyArg_ParseTuple(args, "Od", &other, &v)) {
+        return NULL;
+    }
+    if (!Planar_ParseVec2(other, &ox, &oy)) {
+        return NULL;
+    }
+    return PlanarVec2_FromPair(
+        self->x * (1.0 - v) + ox * v, 
+        self->y * (1.0 - v) + oy * v);
+}
+
+static PlanarVec2Object *
 Vec2_normalized(PlanarVec2Object *self)
 {
     double length;
@@ -520,6 +569,11 @@ static PyMethodDef Vec2_methods[] = {
         "If the vector is null, the null vector is returned."},
     {"project", (PyCFunction)Vec2_project, METH_O, 
         "Compute the projection of another vector onto this one."},
+    {"clamped", (PyCFunction)Vec2_clamped, METH_VARARGS | METH_KEYWORDS, 
+        "Compute a vector in the same direction with a bounded length."},
+    {"lerp", (PyCFunction)Vec2_lerp, METH_VARARGS, 
+        "Compute a vector by linear interpolation between "
+        "this vector and another."},
     {"normalized", (PyCFunction)Vec2_normalized, METH_NOARGS, 
         "Return the vector scaled to unit length. "
         "If the vector is null, the null vector is returned."},

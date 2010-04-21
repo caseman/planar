@@ -223,6 +223,42 @@ class Vec2(tuple):
         else:
             return null
 
+    def clamped(self, min_length=None, max_length=None):
+        """Compute a vector in the same direction with a bounded
+        length. If ``min_length`` <= ``self.length`` <= ``max_length``
+        then the original vector is returned.
+
+        :param min_length: Minimum length of computed vector. Note if 
+            the input vector is null, the null vector is always returned.
+        :type min_length: float
+        :param max_length: Maximum length of computed vector. Must
+            be >= ``min_length``.
+        :type max_length: float
+        :rtype: Vec2
+        """
+        L2 = self.length2
+        if min_length is not None and L2 < min_length**2:
+            return self.scaled_to(min_length)
+        if max_length is not None and L2 > max_length**2:
+            return self.scaled_to(max_length)
+        return self
+
+    def lerp(self, other, v):
+        """Compute a vector by linear interpolation between
+        this vector and another.
+
+        :param other: The vector to interpolate to. its value
+            is returned when ``v == 1.0``.
+        :type other: Vec2
+        :param v: Interpolation value when in the range [0, 1]. Becomes 
+            an extrapolation value outside this range.
+        :type v: float
+        :rtype Vec2:
+        """
+        v1 = 1.0 - v
+        return tuple.__new__(Vec2,
+            (self[0] * v1 + other[0] * v, self[1] * v1 + other[1] * v))
+
     def __eq__(self, other):
         try:
             return (self[0] == other[0] and self[1] == other[1] 

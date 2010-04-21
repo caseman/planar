@@ -38,6 +38,9 @@ class Vec2BaseTestCase:
         assert_almost_equal(v2.x, 0)
         assert_almost_equal(v2.y, -10)
 
+        assert_equal(self.Vec2.polar(10, 10), 
+            self.Vec2.polar(angle=10, length=10))
+
         assert_almost_equal(self.Vec2.polar(361).angle, 1)
 
     @raises(TypeError)
@@ -175,6 +178,26 @@ class Vec2BaseTestCase:
             self.Vec2(4, 0).project(self.Vec2(2, 1)), self.Vec2(2, 0))
         assert_equal(
             self.Vec2(0, 0).project(self.Vec2(2, 2)), self.Vec2(0, 0))
+
+    def test_clamped(self):
+        v = self.Vec2(30, 40)
+        clamped = v.clamped(max_length=5)
+        assert_equal(clamped.length, 5)
+        assert_equal(clamped, self.Vec2(3, 4))
+        assert_equal(
+            self.Vec2(3, 4).clamped(min_length=50), self.Vec2(30, 40))
+        assert_equal(v.clamped(40, 60), v)
+        assert_equal(v.clamped(50, 50), v)
+        assert_equal(self.Vec2(0,0).clamped(min_length=20), self.Vec2(0,0))
+
+    def test_lerp(self):
+        v1 = self.Vec2(1, 1)
+        v2 = self.Vec2(3, 2)
+        assert_equal(v1.lerp(v2, 0.5), self.Vec2(2, 1.5))
+        assert_equal(v1.lerp(v2, 0), v1)
+        assert_equal(v1.lerp(v2, 1), v2)
+        assert_equal(v1.lerp(v2, 2), v2 * 2 - v1)
+        assert_equal(v1.lerp(v2, -1), v1 * 2 - v2)
 
     def test_comparison(self):
         v1 = self.Vec2(1, 2)
