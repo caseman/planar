@@ -11,6 +11,10 @@
 #include "Python.h"
 #include "planar.h"
 
+#define VEC2_FREE_MAX 1000
+static PyObject *vec2_free_list = NULL;
+static int vec2_free_size = 0;
+
 PlanarVec2Object *
 PlanarVec2_FromPair(double x, double y)
 {
@@ -75,7 +79,6 @@ error:
     Py_XDECREF(y_obj);
     return 0;
 }
-        
 
 static PlanarVec2Object *
 Vec2_result(PlanarVec2Object *self, double x, double y)
@@ -119,10 +122,35 @@ Vec2_init(PlanarVec2Object *self, PyObject *args)
     return 0;
 }
 
+static PyObject *
+Vec2_alloc(PyTypeObject *type, Py_ssize_t nitems)
+{
+    PlanarVec2Object *v;
+
+    assert(PyType_IsSubtype(type, &PlanarVec2Type));
+    if (vec2_free_list != NULL) {
+        v = (PlanarVec2Object *)vec2_free_list;
+        Py_INCREF(v);
+        vec2_free_list = v->next_free;
+        --vec2_free_size;
+        v->x = v->y = 0.0;
+        return (PyObject *)v;
+    } else {
+        PyObject *p = PyType_GenericAlloc(type, nitems);
+        return p;
+    }
+}
+
 static void
 Vec2_dealloc(PlanarVec2Object *self)
 {
-    Py_TYPE(self)->tp_free(self);
+    if (PlanarVec2_CheckExact(self) && vec2_free_size < VEC2_FREE_MAX) {
+        self->next_free = vec2_free_list;
+        vec2_free_list = (PyObject *)self;
+        ++vec2_free_size;
+    } else {
+        Py_TYPE(self)->tp_free((PyObject *)self);
+    }
 }
 
 static PyObject *
@@ -746,8 +774,8 @@ PyTypeObject PlanarVec2Type = {
     0,                    /* tp_descr_get */
     0,                    /* tp_descr_set */
     0,                    /* tp_dictoffset */
-    (initproc)Vec2_init,                    /* tp_init */
-    0,        /* tp_alloc */
+    (initproc)Vec2_init,  /* tp_init */
+    Vec2_alloc,           /* tp_alloc */
     0,          /* tp_new */
     0,              /* tp_free */
 };

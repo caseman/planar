@@ -21,7 +21,7 @@ typedef struct {
 typedef struct {
     PyObject_HEAD
     union {
-        PyObject *next;
+        PyObject *next_free;
         struct {double x; double y;};
     };
 } PlanarVec2Object;
