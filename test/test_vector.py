@@ -1,6 +1,7 @@
 """Vector class unit tests"""
 
 from __future__ import division
+import sys
 import math
 import unittest
 from nose.tools import assert_equal, assert_almost_equal, raises
@@ -68,7 +69,7 @@ class Vec2BaseTestCase:
         assert_equal(str(self.Vec2(-3.5, 4.446)), 'Vec2(-3.50, 4.45)')
 
     def test_repr(self):
-        assert_equal(repr(self.Vec2(-3.5, 4.445)), 'Vec2(-3.5, 4.445)')
+        assert_equal(repr(self.Vec2(-3.5, 4.444)), 'Vec2(-3.5, 4.444)')
 
     def test_coords(self):
         v = self.Vec2(1, 3)
@@ -237,13 +238,17 @@ class Vec2BaseTestCase:
         assert not self.Vec2(8, 1) == []
         assert self.Vec2(8, 1) != []
 
-    @raises(TypeError)
-    def test_comparison_cast_unordered_gt(self):
-        self.Vec2(2, 3) > 3
+    if sys.version_info >= (3, 0):
+        # Python 2 has implicit ordering between different 
+        # types, so these tests are Py 3 only
 
-    @raises(TypeError)
-    def test_comparison_cast_unordered_lt(self):
-        self.Vec2(2, 3) < 3
+        @raises(TypeError)
+        def test_comparison_cast_unordered_gt(self):
+            self.Vec2(2, 3) > 3
+
+        @raises(TypeError)
+        def test_comparison_cast_unordered_lt(self):
+            self.Vec2(2, 3) < 3
 
     def test_comparison_subclass(self):
         class V(self.Vec2): pass
