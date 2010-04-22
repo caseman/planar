@@ -32,7 +32,7 @@ from __future__ import division
 
 import math
 import planar
-from planar.util import cached_property
+from planar.util import cached_property, assert_unorderable
 
 
 class Vec2(tuple):
@@ -280,7 +280,7 @@ class Vec2(tuple):
         try:
             return self.length2 > other.length2
         except AttributeError:
-            return NotImplemented
+            return assert_unorderable(self, other)
 
     def __ge__(self, other):
         """Compare vector length, longer vectors are "greater than"
@@ -289,7 +289,7 @@ class Vec2(tuple):
         try:
             return self.length2 >= other.length2
         except AttributeError:
-            return NotImplemented
+            return assert_unorderable(self, other)
 
     def __lt__(self, other):
         """Compare vector length, shorter vectors are "less than"
@@ -298,7 +298,7 @@ class Vec2(tuple):
         try:
             return self.length2 < other.length2
         except AttributeError:
-            return NotImplemented
+            return assert_unorderable(self, other)
 
     def __le__(self, other):
         """Compare vector length, shorter vectors are "less than"
@@ -307,7 +307,7 @@ class Vec2(tuple):
         try:
             return self.length2 <= other.length2
         except AttributeError:
-            return NotImplemented
+            return assert_unorderable(self, other)
 
     def __add__(self, other):
         """Add the vectors componentwise.

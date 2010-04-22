@@ -199,8 +199,15 @@ Vec2_compare(PyObject *a, PyObject *b, int op)
                 break;
             default:
                 /* Other comparisons are undefined */
+#if PY_MAJOR_VERSION >= 3
                 Py_INCREF(Py_NotImplemented);
                 return Py_NotImplemented;
+#else
+                PyErr_Format(PyExc_TypeError,
+                    "Unorderable types: %.200s and %.200s",
+                    Py_TYPE(a)->tp_name, Py_TYPE(b)->tp_name);
+                return NULL;
+#endif
         }
     }
 

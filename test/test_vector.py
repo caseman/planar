@@ -238,17 +238,21 @@ class Vec2BaseTestCase:
         assert not self.Vec2(8, 1) == []
         assert self.Vec2(8, 1) != []
 
-    if sys.version_info >= (3, 0):
-        # Python 2 has implicit ordering between different 
-        # types, so these tests are Py 3 only
+    @raises(TypeError)
+    def test_comparison_cast_unordered_gt(self):
+        self.Vec2(2, 3) > 3
 
-        @raises(TypeError)
-        def test_comparison_cast_unordered_gt(self):
-            self.Vec2(2, 3) > 3
+    @raises(TypeError)
+    def test_comparison_cast_unordered_ge(self):
+        self.Vec2(2, 3) >= 3
 
-        @raises(TypeError)
-        def test_comparison_cast_unordered_lt(self):
-            self.Vec2(2, 3) < 3
+    @raises(TypeError)
+    def test_comparison_cast_unordered_lt(self):
+        self.Vec2(2, 3) < 3
+
+    @raises(TypeError)
+    def test_comparison_cast_unordered_le(self):
+        self.Vec2(2, 3) <= 3
 
     def test_comparison_subclass(self):
         class V(self.Vec2): pass
@@ -283,6 +287,8 @@ class Vec2BaseTestCase:
         assert_equal(self.Vec2(1, 4) / 2, self.Vec2(0.5, 2))
         assert_equal(6 / self.Vec2(1, 4), self.Vec2(6, 1.5))
         assert_equal(self.Vec2(1, 4) / self.Vec2(4, 2), self.Vec2(0.25, 2))
+        assert_equal(self.Vec2(1, 4) / (4, 2), self.Vec2(0.25, 2))
+        assert_equal((1, 4) / self.Vec2(4, 2), self.Vec2(0.25, 2))
         v = self.Vec2(6, 3)
         v /= 3
         assert_equal(v, self.Vec2(2, 1))
@@ -291,6 +297,8 @@ class Vec2BaseTestCase:
         assert_equal(self.Vec2(1, 4) // 2, self.Vec2(0, 2))
         assert_equal(5 // self.Vec2(2, 4), self.Vec2(2, 1))
         assert_equal(self.Vec2(1, 4) // self.Vec2(4, 2), self.Vec2(0, 2))
+        assert_equal(self.Vec2(1, 4) // (4, 2), self.Vec2(0, 2))
+        assert_equal((1, 4) // self.Vec2(4, 2), self.Vec2(0, 2))
         v = self.Vec2(6, 2)
         v //= 3
         assert_equal(v, self.Vec2(2, 0))
