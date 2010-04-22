@@ -28,7 +28,8 @@ setup(
     name='planar',
     version='0.1', # *** REMEMBER TO UPDATE __init__.py ***
     description='2D planar geometry library for Python.',
-    #long_description=read('README.txt'),
+    long_description=read('README.txt'),
+    provides=['planar'],
     author='Casey Duncan',
     author_email='casey.duncan@gmail.com',
     url='http://bitbucket.org/caseman/planar/',
