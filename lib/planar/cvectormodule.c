@@ -35,7 +35,6 @@ Planar_ParseVec2(PyObject *o, double *x, double *y)
 {
     PyObject *x_obj = NULL;
     PyObject *y_obj = NULL;
-    PyObject *iter = NULL;
     PyObject *item;
 
     if (PlanarVec2_Check(o)) {
@@ -56,11 +55,11 @@ Planar_ParseVec2(PyObject *o, double *x, double *y)
         if (PySequence_Size(o) != 2) {
             return 0;
         }
-        if (item = PySequence_GetItem(o, 0)) {
+        if ((item = PySequence_GetItem(o, 0))) {
             x_obj = PyObject_ToFloat(item);
             Py_DECREF(item);
         }
-        if (item = PySequence_GetItem(o, 1)) {
+        if ((item = PySequence_GetItem(o, 1))) {
             y_obj = PyObject_ToFloat(item);
             Py_DECREF(item);
         }
@@ -721,6 +720,9 @@ static PyNumberMethods Vec2_as_number[] = {
     (binaryfunc)Vec2__add__,       /* binaryfunc nb_add */
     (binaryfunc)Vec2__sub__,       /* binaryfunc nb_subtract */
     (binaryfunc)Vec2__mul__,       /* binaryfunc nb_multiply */
+#if PY_MAJOR_VERSION < 3
+    0,       /* binaryfunc nb_div */
+#endif
     0,       /* binaryfunc nb_remainder */
     0,       /* binaryfunc nb_divmod */
     0,       /* ternaryfunc nb_power */
@@ -734,13 +736,23 @@ static PyNumberMethods Vec2_as_number[] = {
     0,       /* binaryfunc nb_and */
     0,       /* binaryfunc nb_xor */
     0,       /* binaryfunc nb_or */
+#if PY_MAJOR_VERSION < 3
+    0,       /* coercion nb_coerce */
+#endif
     0,       /* unaryfunc nb_int */
     0,       /* void *nb_reserved */
     0,       /* unaryfunc nb_float */
+#if PY_MAJOR_VERSION < 3
+    0,       /* binaryfunc nb_oct */
+    0,       /* binaryfunc nb_hex */
+#endif
 
     (binaryfunc)Vec2__add__,       /* binaryfunc nb_inplace_add */
     (binaryfunc)Vec2__sub__,       /* binaryfunc nb_inplace_subtract */
     (binaryfunc)Vec2__mul__,       /* binaryfunc nb_inplace_multiply */
+#if PY_MAJOR_VERSION < 3
+    0,       /* binaryfunc nb_inplace_divide */
+#endif
     0,       /* binaryfunc nb_inplace_remainder */
     0,       /* ternaryfunc nb_inplace_power */
     0,       /* binaryfunc nb_inplace_lshift */
@@ -812,7 +824,7 @@ PyTypeObject PlanarVec2Type = {
     0, /* PyObject_GenericGetAttr, */                   /* tp_getattro */
     0,/* PyObject_GenericSetAttr, */                    /* tp_setattro */
     0,                    /* tp_as_buffer */
-    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE,   /* tp_flags */
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_CHECKTYPES,   /* tp_flags */
     Vec2_doc,          /* tp_doc */
     0,                    /* tp_traverse */
     0,                    /* tp_clear */
@@ -867,7 +879,6 @@ initcvector(void)
 #else
     PyObject *module = Py_InitModule3("cvector", NULL, module_doc);
 #endif
-
     PlanarVec2Type.tp_new = PyType_GenericNew;
     if (PyType_Ready(&PlanarVec2Type) < 0) {
         goto fail;
@@ -877,9 +888,10 @@ initcvector(void)
         Py_DECREF((PyObject*)&PlanarVec2Type);
         goto fail;
     }
-
 #if PY_MAJOR_VERSION >= 3
     return module;
+#else
+    return;
 #endif
 fail:
     Py_DECREF(module);

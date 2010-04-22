@@ -1,7 +1,11 @@
 #include "Python.h"
 
+/* Python 2/3 compatibility */
 #ifndef PyUnicode_FromString
 #define PyUnicode_FromString(o) PyString_FromString(o)
+#endif
+#ifndef Py_TPFLAGS_CHECKTYPES /* not in Py 3 */
+#define Py_TPFLAGS_CHECKTYPES 0
 #endif
 
 #ifndef M_PI
