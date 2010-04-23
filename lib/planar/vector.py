@@ -403,6 +403,8 @@ class Vec2(tuple):
         """Compute the unary negation of the vector."""
         return tuple.__new__(Vec2, (-self[0], -self[1]))
 
+    __hash__ = tuple.__hash__ # hash is not inherited in Py 3
+
 
 null = Vec2(0, 0)
 

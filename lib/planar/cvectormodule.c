@@ -220,6 +220,29 @@ Vec2_compare(PyObject *a, PyObject *b, int op)
     }
 }
 
+static long
+hash_double(double v)
+{
+	/* Derived from Python 3.1.2 _Py_HashDouble() */
+	long hipart;
+	int expo;
+
+	v = frexp(v, &expo);
+	v *= 2147483648.0;	/* 2**31 */
+	hipart = (long)v;	/* take the top 32 bits */
+	v = (v - (double)hipart) * 2147483648.0; /* get the next 32 bits */
+	return hipart + (long)v + (expo << 15);
+}
+
+static long
+Vec2_hash(PlanarVec2Object *self) 
+{
+	long hash;
+
+	hash = (hash_double(self->x) + LONG_MAX/2) ^ hash_double(self->y);
+	return (hash != -1) ? hash : -2;
+}	
+
 /* Property descriptors */
 
 static PyObject *
@@ -825,7 +848,7 @@ PyTypeObject PlanarVec2Type = {
     Vec2_as_number,       /* tp_as_number */
     &Vec2_as_sequence,    /* tp_as_sequence */
     0,                    /* tp_as_mapping */
-    0,                    /* tp_hash */
+    (hashfunc)Vec2_hash,  /* tp_hash */
     0,                    /* tp_call */
     (reprfunc)Vec2_str,   /* tp_str */
     0, /* PyObject_GenericGetAttr, */                   /* tp_getattro */

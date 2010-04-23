@@ -329,6 +329,16 @@ class Vec2BaseTestCase:
         assert self.Vec2(0, 0.1)
         assert self.Vec2(0.1, 0.1)
         assert not self.Vec2(0, 0)
+    
+    def test_hash(self):
+        assert hash(self.Vec2(0,0)) != hash(self.Vec2(1,0))
+        assert hash(self.Vec2(0,1)) != hash(self.Vec2(1,0))
+        assert hash(self.Vec2(1,1)) == hash(self.Vec2(1,1))
+        s = set([self.Vec2(1,1), self.Vec2(1,0), self.Vec2(0,1)])
+        assert self.Vec2(1,1) in s
+        assert self.Vec2(1,0) in s
+        assert self.Vec2(0,1) in s
+        assert self.Vec2(0,0) not in s
 
 
 class PyVec2TestCase(Vec2BaseTestCase, unittest.TestCase):
