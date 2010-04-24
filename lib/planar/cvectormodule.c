@@ -465,7 +465,7 @@ Vec2_rotated(PlanarVec2Object *self, PyObject *angle_arg)
     angle = radians(PyFloat_AS_DOUBLE(angle_arg));
     sa = sin(angle);
     ca = cos(angle);
-    return PlanarVec2_FromPair(
+    return Vec2_result(self, 
         self->x * ca - self->y * sa, self->x * sa + self->y * ca);
 }
 
@@ -483,9 +483,9 @@ Vec2_scaled_to(PlanarVec2Object *self, PyObject *length)
     if (L >= EPSILON2) {
         s = PyFloat_AS_DOUBLE(length) / sqrt(L);
         Py_DECREF(length);
-        return PlanarVec2_FromPair(self->x * s, self->y * s);
+        return Vec2_result(self, self->x * s, self->y * s);
     } else {
-        return PlanarVec2_FromPair(0.0, 0.0);
+        return Vec2_result(self, 0.0, 0.0);
     }
 }
 
@@ -499,9 +499,9 @@ Vec2_project(PlanarVec2Object *self, PyObject *other)
         L = self->x * self->x + self->y * self->y;
         if (L >= EPSILON2) {
             s = (self->x * ox + self->y * oy) / L;
-            return PlanarVec2_FromPair(self->x * s, self->y * s);
+            return Vec2_result(self, self->x * s, self->y * s);
         } else {
-            return PlanarVec2_FromPair(0.0, 0.0);
+            return Vec2_result(self, 0.0, 0.0);
         }
     } else {
         CONVERSION_ERROR();
@@ -518,9 +518,9 @@ Vec2_reflect(PlanarVec2Object *self, PyObject *other)
         L = ox * ox + oy * oy;
         if (L >= EPSILON2) {
             s = 2 * (self->x * ox + self->y * oy) / L;
-            return PlanarVec2_FromPair(ox * s - self->x, oy * s - self->y);
+            return Vec2_result(self, ox * s - self->x, oy * s - self->y);
         } else {
-            return PlanarVec2_FromPair(0.0, 0.0);
+            return Vec2_result(self, 0.0, 0.0);
         }
     } else {
         CONVERSION_ERROR();
@@ -551,10 +551,10 @@ Vec2_clamped(PlanarVec2Object *self, PyObject *args, PyObject *kwargs)
     CL = (CL > max) ? max : CL;
 
     if (L > EPSILON) {
-        return PlanarVec2_FromPair(
+        return Vec2_result(self, 
             self->x * (CL / L), self->y * (CL / L));
     } else {
-        return PlanarVec2_FromPair(0.0, 0.0);
+        return Vec2_result(self, 0.0, 0.0);
     }
 }
 
@@ -570,7 +570,7 @@ Vec2_lerp(PlanarVec2Object *self, PyObject *args)
     if (!Planar_ParseVec2(other, &ox, &oy)) {
         return NULL;
     }
-    return PlanarVec2_FromPair(
+    return Vec2_result(self, 
         self->x * (1.0 - v) + ox * v, 
         self->y * (1.0 - v) + oy * v);
 }
@@ -583,9 +583,9 @@ Vec2_normalized(PlanarVec2Object *self)
     assert(PlanarVec2_Check(self));
     length = sqrt(self->y * self->y + self->x * self->x);
     if (length > EPSILON) {
-        return PlanarVec2_FromPair(self->x / length, self->y / length);
+        return Vec2_result(self, self->x / length, self->y / length);
     } else {
-        return PlanarVec2_FromPair(0.0, 0.0);
+        return Vec2_result(self, 0.0, 0.0);
     }
 }
 
@@ -593,7 +593,7 @@ static PlanarVec2Object *
 Vec2_perpendicular(PlanarVec2Object *self)
 {
     assert(PlanarVec2_Check(self));
-    return PlanarVec2_FromPair(-self->y, self->x);
+    return Vec2_result(self, -self->y, self->x);
 }
 
 static PyMethodDef Vec2_methods[] = {
@@ -754,6 +754,13 @@ Vec2__floordiv__(PyObject *a, PyObject *b)
 }
 
 static PlanarVec2Object *
+Vec2__pos__(PlanarVec2Object *self)
+{
+	Py_INCREF(self);
+    return self;
+}
+
+static PlanarVec2Object *
 Vec2__neg__(PlanarVec2Object *self)
 {
     assert(PlanarVec2_Check(self));
@@ -778,8 +785,8 @@ static PyNumberMethods Vec2_as_number[] = {
     0,       /* binaryfunc nb_divmod */
     0,       /* ternaryfunc nb_power */
     (unaryfunc)Vec2__neg__,       /* unaryfunc nb_negative */
-    0,       /* unaryfunc nb_positive */
-    0,       /* unaryfunc nb_absolute */
+    (unaryfunc)Vec2__pos__,       /* unaryfunc nb_positive */
+    (unaryfunc)Vec2_get_length,   /* unaryfunc nb_absolute */
     (inquiry)Vec2__nonzero__,       /* inquiry nb_bool */
     0,       /* unaryfunc nb_invert */
     0,       /* binaryfunc nb_lshift */

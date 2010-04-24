@@ -415,9 +415,16 @@ class Vec2(tuple):
         except TypeError:
             return tuple.__new__(Vec2, (other[0] // self[0], other[1] // self[1]))
 
+    def __pos__(self):
+        return self
+
     def __neg__(self):
         """Compute the unary negation of the vector."""
         return tuple.__new__(Vec2, (-self[0], -self[1]))
+    
+    def __abs__(self):
+        """Compute the absolute magnitude of the vector."""
+        return self.length
 
     __hash__ = tuple.__hash__ # hash is not inherited in Py 3
 

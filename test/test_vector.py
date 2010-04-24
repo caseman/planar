@@ -336,6 +336,13 @@ class Vec2BaseTestCase:
     def test_neg(self):
         assert_equal(-self.Vec2(5,6), self.Vec2(-5,-6))
 
+    def test_pos(self):
+        assert_equal(+self.Vec2(-1,0), self.Vec2(-1,0))
+
+    def test_abs(self):
+        assert_equal(abs(self.Vec2(3, 4)), 5)
+        assert_equal(abs(self.Vec2(-3, 4)), 5)
+
     def test_bool(self):
         assert self.Vec2(0.1, 0)
         assert self.Vec2(0, 0.1)
