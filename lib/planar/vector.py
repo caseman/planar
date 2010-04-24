@@ -38,9 +38,9 @@ from planar.util import cached_property, assert_unorderable
 class Vec2(tuple):
     """Two dimensional immutable vector.
     
-    :param x:
+    :param x: x coordinate.
     :type x: float
-    :param y:
+    :param y: y coordinate.
     :type y: float
     """
 

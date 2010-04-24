@@ -1,20 +1,24 @@
-.. Planar documentation master file, created by
-   sphinx-quickstart on Mon Apr  5 22:12:06 2010.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+.. Planar documentation master file
 
-Welcome to Planar's documentation!
-==================================
+Planar Documentation Contents
+=============================
 
-Contents:
+Planar is a 2D geometry library for Python designed for use by
+games and other iteractive applications.
+
+Planar was created for use by the `Grease game framework <http://www.pygamesf.org/~casey/grease/doc/>`_, but is distributed as a separate standalone library so that it can be more useful for everyone.
 
 .. toctree::
    :maxdepth: 2
+
+   overview
+   usage
+   vectors
 
 Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`modindex`
+* :ref:`Class Listing <modindex>`
 * :ref:`search`
 
