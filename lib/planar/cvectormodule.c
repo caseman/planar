@@ -509,6 +509,25 @@ Vec2_project(PlanarVec2Object *self, PyObject *other)
 }
 
 static PlanarVec2Object *
+Vec2_reflect(PlanarVec2Object *self, PyObject *other)
+{
+    double ox, oy, L, s;
+
+    assert(PlanarVec2_Check(self));
+    if (Planar_ParseVec2(other, &ox, &oy)) {
+        L = ox * ox + oy * oy;
+        if (L >= EPSILON2) {
+            s = 2 * (self->x * ox + self->y * oy) / L;
+            return PlanarVec2_FromPair(ox * s - self->x, oy * s - self->y);
+        } else {
+            return PlanarVec2_FromPair(0.0, 0.0);
+        }
+    } else {
+        CONVERSION_ERROR();
+    }
+}
+
+static PlanarVec2Object *
 Vec2_clamped(PlanarVec2Object *self, PyObject *args, PyObject *kwargs)
 {
     double min = 0.0;
@@ -598,6 +617,8 @@ static PyMethodDef Vec2_methods[] = {
         "If the vector is null, the null vector is returned."},
     {"project", (PyCFunction)Vec2_project, METH_O, 
         "Compute the projection of another vector onto this one."},
+    {"reflect", (PyCFunction)Vec2_reflect, METH_O, 
+		"Compute the reflection of this vector against another."},
     {"clamped", (PyCFunction)Vec2_clamped, METH_VARARGS | METH_KEYWORDS, 
         "Compute a vector in the same direction with a bounded length."},
     {"lerp", (PyCFunction)Vec2_lerp, METH_VARARGS, 

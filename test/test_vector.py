@@ -179,6 +179,18 @@ class Vec2BaseTestCase:
             self.Vec2(4, 0).project(self.Vec2(2, 1)), self.Vec2(2, 0))
         assert_equal(
             self.Vec2(0, 0).project(self.Vec2(2, 2)), self.Vec2(0, 0))
+    
+    def test_reflect(self):
+        assert_equal(
+            self.Vec2(2, -2).reflect(self.Vec2(3, 0)), self.Vec2(2, 2))
+        assert_equal(
+            self.Vec2(2, -2).reflect(self.Vec2(1, 0)), self.Vec2(2, 2))
+        assert_equal(
+            self.Vec2(3, 1).reflect(self.Vec2(-1, -1)), self.Vec2(1,3))
+        assert_equal(
+            self.Vec2(0, 0).reflect(self.Vec2(1, 1)), self.Vec2(0,0))
+        assert_equal(
+            self.Vec2(1, 1).reflect(self.Vec2(0, 0)), self.Vec2(0,0))
 
     def test_clamped(self):
         v = self.Vec2(30, 40)
@@ -352,3 +364,5 @@ class CVec2TestCase(Vec2BaseTestCase, unittest.TestCase):
 if __name__ == '__main__':
     unittest.main()
 
+
+# vim: ai ts=4 sts=4 et sw=4 tw=78

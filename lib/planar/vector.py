@@ -223,6 +223,22 @@ class Vec2(tuple):
         else:
             return null
 
+    def reflect(self, other):
+        """Compute the reflection of this vector against another.
+
+        :param other: The vector to reflect against.
+        :type other: Vec2
+        :rtype: Vec2
+        """
+        x1, y1 = self
+        x2, y2 = other
+        L = (x2 * x2 + y2 * y2)
+        if L > planar.EPSILON2:
+            temp = 2 * (x1 * x2 + y1 * y2) / L
+            return tuple.__new__(Vec2, (x2 * temp - x1, y2 * temp - y1))
+        else:
+            return null
+
     def clamped(self, min_length=None, max_length=None):
         """Compute a vector in the same direction with a bounded
         length. If ``min_length`` <= ``self.length`` <= ``max_length``
