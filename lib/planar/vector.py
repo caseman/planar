@@ -259,21 +259,21 @@ class Vec2(tuple):
             return self.scaled_to(max_length)
         return self
 
-    def lerp(self, other, v):
+    def lerp(self, other, bias):
         """Compute a vector by linear interpolation between
         this vector and another.
 
         :param other: The vector to interpolate to. its value
             is returned when ``v == 1.0``.
         :type other: Vec2
-        :param v: Interpolation value when in the range [0, 1]. Becomes 
+        :param bias: Interpolation value when in the range [0, 1]. Becomes 
             an extrapolation value outside this range.
-        :type v: float
-        :rtype Vec2:
+        :type bias: float
+        :rtype: Vec2
         """
-        v1 = 1.0 - v
+        b1 = 1.0 - bias
         return tuple.__new__(Vec2,
-            (self[0] * v1 + other[0] * v, self[1] * v1 + other[1] * v))
+            (self[0] * b1 + other[0] * bias, self[1] * b1 + other[1] * bias))
 
     def __eq__(self, other):
         try:

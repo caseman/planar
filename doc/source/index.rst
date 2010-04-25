@@ -15,10 +15,18 @@ Planar was created for use by the `Grease game framework <http://www.pygamesf.or
    usage
    vectors
 
+Reference
+---------
+
+.. toctree::
+   :maxdepth: 2
+
+   vectorref
+
+
 Indices and tables
 ==================
 
 * :ref:`genindex`
-* :ref:`Class Listing <modindex>`
 * :ref:`search`
 
