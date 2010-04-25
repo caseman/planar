@@ -1,12 +1,20 @@
 __all__ = ('set_epsilon', 'Vec2')
-__version__ = (0, 1, 0)
 
-from planar.vector import Vec2
+__versioninfo__ = (0, 1, 0)
+__version__ = '.'.join(str(n) for n in __versioninfo__)
+
+try: # pragma: no cover
+    # Default to C implementation
+    from planar.cvector import Vec2
+    __implementation__ = 'C'
+except ImportError: # pragma: no cover
+    # Fall-back to Python implementation
+    from planar.vector import Vec2
+    __implementation__ = 'Python'
 
 Point = Vec2
-"""``Point`` is an alias for ``Vec2``, since points are mathematically
-equivilent to vectors. Use ``Point`` where desired for clarity in
-your code.
+"""``Point`` is an alias for ``Vec2``. 
+Use ``Point`` where desired for clarity in your code.
 """
 
 def set_epsilon(epsilon):
