@@ -1,12 +1,15 @@
 include *.txt *.sh
 include MANIFEST.in MANIFEST
 
+recursive-include include *
 recursive-include lib *
 recursive-include test *
 recursive-include examples *
 recursive-include doc *
 
 prune **/.hg
+prune doc/build/doctest/
+prune doc/build/doctrees/
 global-exclude *.pyc 
 global-exclude *.pyo
 global-exclude *.o
