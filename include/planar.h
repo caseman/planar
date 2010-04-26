@@ -1,3 +1,13 @@
+/***************************************************************************
+* Copyright (c) 2010 by Casey Duncan
+* All rights reserved.
+*
+* This software is subject to the provisions of the BSD License
+* A copy of the license should accompany this distribution.
+* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+****************************************************************************/
 #include "Python.h"
 
 /* Python 2/3 compatibility */
@@ -14,8 +24,9 @@
 #define radians(d) ((d) * M_PI / 180.0)
 #define degrees(d) ((d) * 180.0 / M_PI)
 
-extern double EPSILON;
-extern double EPSILON2;
+/***************************************************************************/
+
+/* Type definitions */
 
 typedef struct {
     double x;
@@ -29,6 +40,8 @@ typedef struct {
         struct {double x; double y;};
     };
 } PlanarVec2Object;
+
+/***************************************************************************/
 
 /* Convert the object to a float, this is designed to
    be faster and more strict than PyNumber_Float
@@ -71,6 +84,39 @@ PyObject_ToFloat(PyObject *o)
         "Can't convert %.200s to float", o->ob_type->tp_name);
     return NULL;
 }
+
+/***************************************************************************/
+
+/* We define epsilon, and a python function to modify it
+   in every module. Although this is not ideal, the main alternatives is to
+   use capsules, which have more overhead and aren't present in python 2.6.
+   The planar.set_epsilon() function must call C _set_epsilon() function for
+   each C module. This is simple and effective, if inelegant.
+*/
+
+static double EPSILON = 1e-5;
+static double EPSILON2 = 1e-5 * 1e-5;
+
+static PyObject *
+_set_epsilon_func(PyObject *self, PyObject *epsilon)
+{
+    epsilon = PyObject_ToFloat(epsilon);
+    if (epsilon == NULL) {
+        return NULL;
+    }
+
+    EPSILON = PyFloat_AS_DOUBLE(epsilon);
+    EPSILON2 = EPSILON * EPSILON;
+    Py_DECREF(epsilon);
+    Py_INCREF(Py_None);
+    return Py_None;
+}
+
+#define _SET_EPSILON_FUNCDEF \
+    {"_set_epsilon", (PyCFunction) _set_epsilon_func, METH_O, \
+     "PRIVATE: Set epsilon value used by C extension"}
+
+/***************************************************************************/
 
 PyTypeObject PlanarVec2Type;
 

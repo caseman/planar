@@ -904,6 +904,12 @@ PyTypeObject PlanarVec2Type = {
     0,              /* tp_free */
 };
 
+static PyMethodDef module_functions[] = {
+	_SET_EPSILON_FUNCDEF,
+    {NULL}
+};
+
+
 PyDoc_STRVAR(module_doc, "Native code vector implementation");
 
 #if PY_MAJOR_VERSION >= 3
@@ -913,7 +919,7 @@ static struct PyModuleDef moduledef = {
         "cvector",
         module_doc,
         -1,                 /* m_size */
-        NULL,               /* m_methods */
+        module_functions,   /* m_methods */
         NULL,               /* m_reload (unused) */
         NULL,               /* m_traverse */
         NULL,               /* m_clear */
@@ -935,7 +941,8 @@ initcvector(void)
 #if PY_MAJOR_VERSION >= 3
     PyObject *module = PyModule_Create(&moduledef);
 #else
-    PyObject *module = Py_InitModule3("cvector", NULL, module_doc);
+    PyObject *module = Py_InitModule3(
+		"cvector", module_functions, module_doc);
 #endif
     PlanarVec2Type.tp_new = PyType_GenericNew;
     if (PyType_Ready(&PlanarVec2Type) < 0) {
