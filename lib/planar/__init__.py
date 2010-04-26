@@ -57,13 +57,15 @@ Use ``Point`` where desired for clarity in your code.
 """
 
 def set_epsilon(epsilon):
-    """Set the global limit value for floating point comparisons. 
+    """Set the global absolute error value for approximate floating 
+    point comparison operations. This value is accessible via
+    the :attr:`planar.EPSILON` global variable.
 
     The default value of ``0.00001`` is suitable for values
     that are in the "counting range". You may need a larger
     epsilon when using large absolute values, and a smaller value
     for very small values close to zero. Otherwise approximate
-    comparison operations will not work as expected.
+    comparison operations will not behave as expected.
     """
     global EPSILON, EPSILON2
     EPSILON = float(epsilon)
