@@ -1,4 +1,4 @@
-include *.txt
+include *.txt *.sh
 include MANIFEST.in MANIFEST
 
 recursive-include lib *
