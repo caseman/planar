@@ -264,7 +264,7 @@ class Vec2(tuple):
         this vector and another.
 
         :param other: The vector to interpolate to. its value
-            is returned when ``v == 1.0``.
+            is returned when ``bias == 1.0``.
         :type other: Vec2
         :param bias: Interpolation value when in the range [0, 1]. Becomes 
             an extrapolation value outside this range.
