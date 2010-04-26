@@ -62,7 +62,7 @@ def set_epsilon(epsilon):
     the :attr:`planar.EPSILON` global variable.
 
     The default value of ``0.00001`` is suitable for values
-    that are in the "counting range". You may need a larger
+    that are in the "countable range". You may need a larger
     epsilon when using large absolute values, and a smaller value
     for very small values close to zero. Otherwise approximate
     comparison operations will not behave as expected.
