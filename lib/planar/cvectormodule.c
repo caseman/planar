@@ -774,7 +774,7 @@ Vec2__nonzero__(PlanarVec2Object *self)
     return self->x != 0.0 || self->y != 0.0;
 }
 
-static PyNumberMethods Vec2_as_number[] = {
+static PyNumberMethods Vec2_as_number = {
     (binaryfunc)Vec2__add__,       /* binaryfunc nb_add */
     (binaryfunc)Vec2__sub__,       /* binaryfunc nb_subtract */
     (binaryfunc)Vec2__mul__,       /* binaryfunc nb_multiply */
@@ -873,7 +873,7 @@ PyTypeObject PlanarVec2Type = {
     0,                    /* tp_setattr */
     0,                    /* reserved */
     (reprfunc)Vec2_repr,  /* tp_repr */
-    Vec2_as_number,       /* tp_as_number */
+    &Vec2_as_number,      /* tp_as_number */
     &Vec2_as_sequence,    /* tp_as_sequence */
     0,                    /* tp_as_mapping */
     (hashfunc)Vec2_hash,  /* tp_hash */
