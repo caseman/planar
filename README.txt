@@ -110,6 +110,16 @@ This runs the tests inside the ``build`` directory so that the C extensions
 can be tested. You can put a ``3`` suffix on the ``python`` and ``nosetests``
 commands above for Python 3.x. 
 
+Documentation
+-------------
+
+You can browse the documentation online here:
+
+* http://pygamesf.org/~casey/planar/doc/
+
+The same documentation is also available for offline browsing in the
+``doc/build/html`` subdirectory of the source distribution.
+
 Contributing and Getting Support
 --------------------------------
 
