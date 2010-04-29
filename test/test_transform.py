@@ -159,10 +159,11 @@ class AffineBaseTestCase(object):
         assert self.Affine.scale(EPSILON).is_degenerate
 
     def test_column_vectors(self):
+        import planar
         a, b, c = self.Affine(2, 3, 4, 5, 6, 7).column_vectors
-        assert isinstance(a, self.Vec2)
-        assert isinstance(b, self.Vec2)
-        assert isinstance(c, self.Vec2)
+        assert isinstance(a, planar.Vec2)
+        assert isinstance(b, planar.Vec2)
+        assert isinstance(c, planar.Vec2)
         assert_equal(a, self.Vec2(2, 5))
         assert_equal(b, self.Vec2(3, 6))
         assert_equal(c, self.Vec2(4, 7))
