@@ -88,7 +88,8 @@ class Vec2(tuple):
     @cached_property
     def length2(self):
         """The square of the length of the vector."""
-        return self[0] ** 2 + self[1] ** 2
+        x, y = self
+        return x*x + y*y
 
     @cached_property
     def is_null(self):

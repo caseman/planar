@@ -7,7 +7,7 @@ import unittest
 from nose.tools import assert_equal, assert_almost_equal, raises
 
 
-class Vec2BaseTestCase:
+class Vec2BaseTestCase(object):
 
     @raises(TypeError)
     def test_too_few_args_zero(self):
