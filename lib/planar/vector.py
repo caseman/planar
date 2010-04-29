@@ -110,8 +110,10 @@ class Vec2(tuple):
         :type other: Vec2
         :return: True if distance between the vectors < ``EPSILON``.
         """
-        return ((self[0] - other[0])**2 
-            + (self[1] - other[1])**2) < planar.EPSILON2
+        ox, oy = other
+        dx = self[0] - ox
+        dy = self[1] - oy
+        return (dx*dx + dy*dy) < planar.EPSILON2
 
     def normalized(self):
         """Return the vector scaled to unit length. If the vector
@@ -141,7 +143,8 @@ class Vec2(tuple):
         :type other: Vec2
         :rtype: float
         """
-        return self[0] * other[0] + self[1] * other[1]
+        ox, oy = other
+        return self[0] * ox + self[1] * oy
 
     def cross(self, other):
         """Compute the cross product with another vector.
@@ -151,7 +154,8 @@ class Vec2(tuple):
         :return: The length of the cross-product vector
         :rtype: float
         """
-        return self[0] * other[1] - self[1] * other[0]
+        ox, oy = other
+        return self[0] * oy - self[1] * ox
 
     @cached_property
     def angle(self):
@@ -177,7 +181,8 @@ class Vec2(tuple):
         :type other: Vec2
         :rtype: float
         """
-        return math.sqrt((self[0] - other[0])**2 + (self[1] - other[1])**2)
+        ox, oy = other
+        return math.hypot(self[0] - ox, self[1] - oy)
 
     def rotated(self, angle):
         """Compute the vector rotated by an angle.
@@ -272,9 +277,10 @@ class Vec2(tuple):
         :type bias: float
         :rtype: Vec2
         """
+        ox, oy = other
         b1 = 1.0 - bias
         return tuple.__new__(Vec2,
-            (self[0] * b1 + other[0] * bias, self[1] * b1 + other[1] * bias))
+            (self[0] * b1 + ox * bias, self[1] * b1 + oy * bias))
 
     def __eq__(self, other):
         try:
@@ -332,7 +338,11 @@ class Vec2(tuple):
         :param other: The vector to add.
         :type other: Vec2
         """
-        return tuple.__new__(Vec2, (self[0] + other[0], self[1] + other[1]))
+        try:
+            ox, oy = other
+        except Exception:
+            return NotImplemented
+        return tuple.__new__(Vec2, (self[0] + ox, self[1] + oy))
 
     __iadd__ = __add__
 
@@ -342,7 +352,11 @@ class Vec2(tuple):
         :param other: The vector to substract.
         :type other: Vec2
         """
-        return tuple.__new__(Vec2, (self[0] - other[0], self[1] - other[1]))
+        try:
+            ox, oy = other
+        except Exception:
+            return NotImplemented
+        return tuple.__new__(Vec2, (self[0] - ox, self[1] - oy))
 
     __isub__ = __sub__
 
@@ -357,7 +371,11 @@ class Vec2(tuple):
             other = float(other)
             return tuple.__new__(Vec2, (self[0] * other, self[1] * other))
         except TypeError:
-            return tuple.__new__(Vec2, (self[0] * other[0], self[1] * other[1]))
+            try:
+                ox, oy = other
+            except Exception:
+                return NotImplemented
+            return tuple.__new__(Vec2, (self[0] * ox, self[1] * oy))
     
     __rmul__ = __imul__ = __mul__
 
@@ -372,7 +390,11 @@ class Vec2(tuple):
             other = float(other)
             return tuple.__new__(Vec2, (self[0] / other, self[1] / other))
         except TypeError:
-            return tuple.__new__(Vec2, (self[0] / other[0], self[1] / other[1]))
+            try:
+                ox, oy = other
+            except Exception:
+                return NotImplemented
+            return tuple.__new__(Vec2, (self[0] / ox, self[1] / oy))
 
     __itruediv__ = __truediv__
 
@@ -386,7 +408,11 @@ class Vec2(tuple):
             other = float(other)
             return tuple.__new__(Vec2, (other / self[0], other / self[1]))
         except TypeError:
-            return tuple.__new__(Vec2, (other[0] / self[0], other[1] / self[1]))
+            try:
+                ox, oy = other
+            except Exception:
+                return NotImplemented
+            return tuple.__new__(Vec2, (ox / self[0], oy / self[1]))
 
     def __floordiv__(self, other):
         """Divide the vector by a scalar or componentwise by
@@ -399,7 +425,11 @@ class Vec2(tuple):
             other = float(other)
             return tuple.__new__(Vec2, (self[0] // other, self[1] // other))
         except TypeError:
-            return tuple.__new__(Vec2, (self[0] // other[0], self[1] // other[1]))
+            try:
+                ox, oy = other
+            except Exception:
+                return NotImplemented
+            return tuple.__new__(Vec2, (self[0] // ox, self[1] // oy))
 
     __ifloordiv__ = __floordiv__
 
@@ -414,7 +444,11 @@ class Vec2(tuple):
             other = float(other)
             return tuple.__new__(Vec2, (other // self[0], other // self[1]))
         except TypeError:
-            return tuple.__new__(Vec2, (other[0] // self[0], other[1] // self[1]))
+            try:
+                ox, oy = other
+            except Exception:
+                return NotImplemented
+            return tuple.__new__(Vec2, (ox // self[0], oy // self[1]))
 
     def __pos__(self):
         return self

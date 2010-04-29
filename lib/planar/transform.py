@@ -58,7 +58,7 @@ class Affine(tuple):
                 "Expected 6 number args, got %s" % len(members))
 
     @classmethod
-    def identity(self):
+    def identity(cls):
         """Return the identity transform
 
         :rtype: Affine
@@ -66,7 +66,7 @@ class Affine(tuple):
         return identity
 
     @classmethod
-    def translation(self, offset):
+    def translation(cls, offset):
         """Create a translation transform from an offset vector.
 
         :param offset: Translation offset.
@@ -74,13 +74,13 @@ class Affine(tuple):
         :rtype: Affine
         """
         ox, oy = offset
-        return tuple.__new__(Affine, 
+        return tuple.__new__(cls, 
             (1.0, 0.0, ox, 
              0.0, 1.0, oy,
              0.0, 0.0, 1.0))
 
     @classmethod
-    def scale(self, scaling, anchor=None):
+    def scale(cls, scaling, anchor=None):
         """Create a scaling transform from a scalar or vector,
         optionally about an anchor point.
 
@@ -97,19 +97,19 @@ class Affine(tuple):
         except TypeError:
             sx, sy = scaling
         if anchor is None:
-            return tuple.__new__(Affine, 
+            return tuple.__new__(cls, 
                 (sx, 0.0, 0.0,
                  0.0, sy, 0.0,
                  0.0, 0.0, 1.0))
         else:
             ax, ay = anchor
-            return tuple.__new__(Affine, 
+            return tuple.__new__(cls, 
                 (sx, 0.0, sx * ax - ax,
                  0.0, sy, sy * ay - ay,
                  0.0, 0.0, 1.0))
             
     @classmethod
-    def shear(self, shearing, anchor=None):
+    def shear(cls, shearing, anchor=None):
         """Create a shear transform from a vector,
         optionally about an anchor point.
 
@@ -121,19 +121,19 @@ class Affine(tuple):
         """
         sx, sy = shearing
         if anchor is None:
-            return tuple.__new__(Affine, 
+            return tuple.__new__(cls, 
                 (1.0, sx, 0.0,
                  sy, 1.0, 0.0,
                  0.0, 0.0, 1.0))
         else:
             ax, ay = anchor
-            return tuple.__new__(Affine, 
+            return tuple.__new__(cls, 
                 (1.0, sx, sx * ay,
                  sy, 1.0, sy * ax,
                  0.0, 0.0, 1.0))
 
     @classmethod
-    def rotation(self, angle, pivot=None):
+    def rotation(cls, angle, pivot=None):
         """Create a rotation transform at the specified angle,
         optionally about the specified pivot point.
 
@@ -148,13 +148,13 @@ class Affine(tuple):
         sa = math.sin(angle)
         ca = math.cos(angle)
         if pivot is None:
-            return tuple.__new__(Affine, 
+            return tuple.__new__(cls, 
                 (ca, sa, 0.0,
                 -sa, ca, 0.0,
                  0.0, 0.0, 1.0))
         else:
             px, py = pivot
-            return tuple.__new__(Affine,
+            return tuple.__new__(cls,
                 (ca, sa, ca*px + sa*py - px,
                 -sa, ca, ca*py - sa*px - py,
                  0.0, 0.0, 1.0))
@@ -254,41 +254,44 @@ class Affine(tuple):
                 (sa*oa + sb*od, sa*ob + sb*oe, sa*oc + sb*of + sc,
                  sd*oa + se*od, sd*ob + se*oe, sd*oc + se*of + sf,
                  0.0, 0.0, 1.0))
-        elif isinstance(other, planar.Vec2):
-            vx, vy = other
-            return planar.Vec2(vx*sa + vy*sb + sc, vx*sd + vy*se + sf)
-        elif hasattr(other, 'from_points'):
+        elif hasattr(other, '_new_from_points'):
+            # Point/vector array
             Point = planar.Point
-            return other.from_points(
-                Point(px*sa + py*sb + sc, px*sd + py*se + sf)
+            return other._new_from_points(
+                Point(px*sa + py*sd + sc, px*sb + py*se + sf)
                 for px, py in other)
-        return NotImplemented
+        else:
+            try:
+                vx, vy = other
+            except Exception:
+                return NotImplemented
+            return planar.Vec2(vx*sa + vy*sd + sc, vx*sb + vy*se + sf)
     
     def __rmul__(self, other):
-        """Apply the transform using matrix multiplication, creating a
-        resulting object of the same type.  A transform may be applied to
-        another transform, a vector, vector array, or shape.
-
-        :param other: The object to transform.
-        :type other: Affine, :class:`~planar.Vec2`, 
-            :class:`~planar.Vec2Array`, :class:`~planar.Shape`
-        :rtype: Same as ``other``
-        """
-        sa, sb, sc, sd, se, sf, _, _, _ = self
-        if isinstance(other, Affine):
-            oa, ob, oc, od, oe, of, _, _, _ = other
-            return tuple.__new__(Affine, 
-                (oa*sa + ob*sd, oa*sb + ob*se, oa*sc + ob*sf + oc,
-                 od*sa + oe*sd, od*sb + oe*se, od*sc + oe*sf + of,
-                 0.0, 0.0, 1.0))
-        else:
-            return self.__mul__(other)
+        # We should not be called if other is an affine instance
+        # This is just a guarantee, since we would potentially
+        # return the wrong answer in that case
+        assert not isinstance(other, Affine)
+        return self.__mul__(other)
 
     def __imul__(self, other):
         if isinstance(other, Affine) or isinstance(other, planar.Vec2):
             return self.__mul__(other)
         else:
             return NotImplemented
+
+    def itransform(self, seq):
+        """Transform a sequence of points or vectors in place.
+
+        :param seq: Mutable sequence of :class:`~planar.Vec2` to be 
+            transformed.
+        :returns: None, the input sequence is mutated in place.
+        """
+        if self is not identity and self != identity:
+            sa, sb, sc, sd, se, sf, _, _, _ = self
+            Vec2 = planar.Vec2
+            for i, (x, y) in enumerate(seq):
+                seq[i] = Vec2(x*sa + y*sd + sc, x*sb + y*se + sf)
 
     def __invert__(self):
         """Return the inverse transform.

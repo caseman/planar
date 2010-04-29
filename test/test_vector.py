@@ -279,11 +279,19 @@ class Vec2BaseTestCase(object):
         v += self.Vec2(1, 0)
         assert_equal(v, self.Vec2(3, 2))
 
+    @raises(TypeError)
+    def test_add_wrong_len(self):
+        self.Vec2(-1, 5) + (3, 4, 5)
+
     def test_sub(self):
         assert_equal(self.Vec2(3, 3) - self.Vec2(1, 4), self.Vec2(2, -1))
         v = self.Vec2(-1, 3)
         v -= self.Vec2(3, 3)
         assert_equal(v, self.Vec2(-4, 0))
+
+    @raises(TypeError)
+    def test_sub_wrong_len(self):
+        self.Vec2(-1, 5) - (3, 4, 5)
 
     def test_mul(self):
         assert_equal(self.Vec2(2, 3) * 2, self.Vec2(4, 6))
@@ -295,6 +303,10 @@ class Vec2BaseTestCase(object):
         v *= self.Vec2(-1, 2)
         assert_equal(v, self.Vec2(-12, 16))
 
+    @raises(TypeError)
+    def test_mul_wrong_len(self):
+        self.Vec2(-1, 5) * (3, 4, 5)
+
     def test_truediv(self):
         assert_equal(self.Vec2(1, 4) / 2, self.Vec2(0.5, 2))
         assert_equal(6 / self.Vec2(1, 4), self.Vec2(6, 1.5))
@@ -305,6 +317,14 @@ class Vec2BaseTestCase(object):
         v /= 3
         assert_equal(v, self.Vec2(2, 1))
 
+    @raises(TypeError)
+    def test_truediv_wrong_len(self):
+        self.Vec2(-1, 5) / (3, 4, 5)
+
+    @raises(TypeError)
+    def test_rtruediv_wrong_len(self):
+        (3, 4, 5) / self.Vec2(-1, 5)
+
     def test_floordiv(self):
         assert_equal(self.Vec2(1, 4) // 2, self.Vec2(0, 2))
         assert_equal(5 // self.Vec2(2, 4), self.Vec2(2, 1))
@@ -314,6 +334,14 @@ class Vec2BaseTestCase(object):
         v = self.Vec2(6, 2)
         v //= 3
         assert_equal(v, self.Vec2(2, 0))
+
+    @raises(TypeError)
+    def test_floordiv_wrong_len(self):
+        self.Vec2(-1, 5) // (3, 4, 5)
+
+    @raises(TypeError)
+    def test_rfloordiv_wrong_len(self):
+        (3, 4, 5) // self.Vec2(-1, 5)
 
     def test_div_by_zero(self):
         for a, b in [
