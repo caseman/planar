@@ -29,7 +29,7 @@
 #############################################################################
 """2d planar geometry library for Python"""
 
-__all__ = ('set_epsilon', 'Vec2', 'Point')
+__all__ = ('TransformNotInvertibleError', 'set_epsilon', 'Vec2', 'Point')
 
 __versioninfo__ = (0, 1, 0)
 __version__ = '.'.join(str(n) for n in __versioninfo__)
@@ -55,6 +55,11 @@ Point = Vec2
 """``Point`` is an alias for ``Vec2``. 
 Use ``Point`` where desired for clarity in your code.
 """
+
+
+class TransformNotInvertibleError(Exception):
+    """The transform could not be inverted"""
+
 
 def set_epsilon(epsilon):
     """Set the global absolute error value for approximate floating 
