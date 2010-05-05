@@ -55,10 +55,9 @@ class AffineBaseTestCase(object):
 
     def test_repr(self):
         assert_equal(
-            repr(self.Affine(1.111, 2.222, 3.456, 4.444, 5.5, 6)), 
+            repr(self.Affine(1.111, 2.222, 3.456, 4.444, 5.5, 6.25)), 
             ("Affine(1.111, 2.222, 3.456,\n"
-             "       4.444, 5.5, 6.0,\n"
-             "       0.0, 0.0, 1.0)"))
+             "       4.444, 5.5, 6.25)"))
 
     def test_identity_constructor(self):
         ident = self.Affine.identity()
@@ -81,7 +80,8 @@ class AffineBaseTestCase(object):
         assert_equal(tuple(scale), (-1,0,0, 0,2,0, 0,0,1))
         scale = self.Affine.scale(self.Vec2(3, 4))
         assert_equal(tuple(scale), (3,0,0, 0,4,0, 0,0,1))
-        assert_equal(tuple(self.Affine.scale(1)), self.Affine.identity())
+        assert_equal(tuple(self.Affine.scale(1)), 
+            tuple(self.Affine.identity()))
 
     def test_scale_constructor_with_anchor(self):
         scale = self.Affine.scale(5, anchor=(0,0))
@@ -149,6 +149,14 @@ class AffineBaseTestCase(object):
         assert self.Affine.rotation(90).is_rectilinear
         assert not self.Affine.shear((4, -1)).is_rectilinear
         assert not self.Affine.rotation(-26).is_rectilinear
+
+    def test_is_conformal(self):
+        assert self.Affine.identity().is_conformal
+        assert self.Affine.scale((2.5, 6.1)).is_conformal
+        assert self.Affine.translation((4, -1)).is_conformal
+        assert self.Affine.rotation(90).is_conformal
+        assert self.Affine.rotation(-26).is_conformal
+        assert not self.Affine.shear((4, -1)).is_conformal
 
     def test_is_degenerate(self):
         from planar import EPSILON
@@ -306,6 +314,10 @@ class AffineBaseTestCase(object):
 class PyAffineTestCase(AffineBaseTestCase, unittest.TestCase):
     from planar.transform import Affine
     from planar.vector import Vec2
+    
+
+class CAffineTestCase(AffineBaseTestCase, unittest.TestCase):
+    from planar.c import Affine, Vec2
 
 
 if __name__ == '__main__':

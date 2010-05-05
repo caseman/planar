@@ -16,70 +16,6 @@
 static PyObject *vec2_free_list = NULL;
 static int vec2_free_size = 0;
 
-PlanarVec2Object *
-PlanarVec2_FromPair(double x, double y)
-{
-    PlanarVec2Object *v;
-
-    v = (PlanarVec2Object *)PlanarVec2Type.tp_alloc(&PlanarVec2Type, 0);
-    if (v == NULL) {
-        return NULL;
-    }
-    v->x = x;
-    v->y = y;
-    return v;
-}
-
-int
-Planar_ParseVec2(PyObject *o, double *x, double *y)
-{
-    PyObject *x_obj = NULL;
-    PyObject *y_obj = NULL;
-    PyObject *item;
-
-    if (PlanarVec2_Check(o)) {
-        *x = ((PlanarVec2Object *)o)->x;
-        *y = ((PlanarVec2Object *)o)->y;
-        return 1;
-    } else if (PyTuple_Check(o)) {
-        /* Use fast tuple access code */
-        if (PyTuple_GET_SIZE(o) != 2) {
-            PyErr_SetString(PyExc_TypeError, "Expected sequence of 2 numbers");
-            return 0;
-        }
-        x_obj = PyObject_ToFloat(PyTuple_GET_ITEM(o, 0));
-        y_obj = PyObject_ToFloat(PyTuple_GET_ITEM(o, 1));
-    } else if (PySequence_Check(o)) {
-        /* Fall back to general sequence access */
-        PyErr_SetString(PyExc_TypeError, "Expected sequence of 2 numbers");
-        if (PySequence_Size(o) != 2) {
-            return 0;
-        }
-        if ((item = PySequence_GetItem(o, 0))) {
-            x_obj = PyObject_ToFloat(item);
-            Py_DECREF(item);
-        }
-        if ((item = PySequence_GetItem(o, 1))) {
-            y_obj = PyObject_ToFloat(item);
-            Py_DECREF(item);
-        }
-    }
-    if (x_obj == NULL || y_obj == NULL) {
-        goto error;
-    }
-    *x = PyFloat_AS_DOUBLE(x_obj);
-    *y = PyFloat_AS_DOUBLE(y_obj);
-    Py_DECREF(x_obj);
-    Py_DECREF(y_obj);
-    PyErr_Clear();
-    return 1;
-
-error:
-    Py_XDECREF(x_obj);
-    Py_XDECREF(y_obj);
-    return 0;
-}
-
 static PlanarVec2Object *
 Vec2_result(PlanarVec2Object *self, double x, double y)
 {
@@ -159,7 +95,7 @@ Vec2_compare(PyObject *a, PyObject *b, int op)
     double ax, bx, ay, by;
     int result = 0;
 
-    if (Planar_ParseVec2(a, &ax, &ay) && Planar_ParseVec2(b, &bx, &by)) {
+    if (PlanarVec2_Parse(a, &ax, &ay) && PlanarVec2_Parse(b, &bx, &by)) {
         switch (op) {
             case Py_EQ:
                 result = ax == bx && ay == by;
@@ -180,8 +116,7 @@ Vec2_compare(PyObject *a, PyObject *b, int op)
                 result = (ax*ax + ay*ay) <= (bx*bx + by*by);
                 break;
             default:
-                Py_INCREF(Py_NotImplemented);
-                return Py_NotImplemented;
+                RETURN_NOT_IMPLEMENTED;
         }
     } else {
         /* We can't parse one or both operands */
@@ -199,15 +134,7 @@ Vec2_compare(PyObject *a, PyObject *b, int op)
                 break;
             default:
                 /* Other comparisons are undefined */
-#if PY_MAJOR_VERSION >= 3
-                Py_INCREF(Py_NotImplemented);
-                return Py_NotImplemented;
-#else
-                PyErr_Format(PyExc_TypeError,
-                    "Unorderable types: %.200s and %.200s",
-                    Py_TYPE(a)->tp_name, Py_TYPE(b)->tp_name);
-                return NULL;
-#endif
+                RETURN_NOT_IMPLEMENTED;
         }
     }
 
@@ -221,27 +148,13 @@ Vec2_compare(PyObject *a, PyObject *b, int op)
 }
 
 static long
-hash_double(double v)
-{
-	/* Derived from Python 3.1.2 _Py_HashDouble() */
-	long hipart;
-	int expo;
-
-	v = frexp(v, &expo);
-	v *= 2147483648.0;	/* 2**31 */
-	hipart = (long)v;	/* take the top 32 bits */
-	v = (v - (double)hipart) * 2147483648.0; /* get the next 32 bits */
-	return hipart + (long)v + (expo << 15);
-}
-
-static long
 Vec2_hash(PlanarVec2Object *self) 
 {
-	long hash;
+    long hash;
 
-	hash = (hash_double(self->x) + LONG_MAX/2) ^ hash_double(self->y);
-	return (hash != -1) ? hash : -2;
-}	
+    hash = (hash_double(self->x) + LONG_MAX/2) ^ hash_double(self->y);
+    return (hash != -1) ? hash : -2;
+}    
 
 /* Property descriptors */
 
@@ -275,7 +188,7 @@ Vec2_get_is_null(PlanarVec2Object *self)
 {
     PyObject *r;
 
-    if (self->y * self->y + self->x * self->x < EPSILON2) {
+    if (self->y * self->y + self->x * self->x < PLANAR_EPSILON2) {
         r = Py_True;
     } else {
         r = Py_False;
@@ -369,12 +282,6 @@ Vec2_str(PlanarVec2Object *self)
     return PyUnicode_FromString(buf);
 }
 
-#define CONVERSION_ERROR() \
-    PyErr_Format(PyExc_TypeError, \
-        "Can't compare %.200s to %.200s", \
-        Py_TYPE(self)->tp_name, Py_TYPE(other)->tp_name); \
-    return NULL
-
 static PyObject *
 Vec2_almost_equals(PlanarVec2Object *self, PyObject *other)
 {
@@ -382,10 +289,10 @@ Vec2_almost_equals(PlanarVec2Object *self, PyObject *other)
     PyObject *r;
 
     assert(PlanarVec2_Check(self));
-    if (Planar_ParseVec2(other, &ox, &oy)) {
+    if (PlanarVec2_Parse(other, &ox, &oy)) {
         dx = self->x - ox;
         dy = self->y - oy;
-        if (dx*dx + dy*dy <= EPSILON2) {
+        if (dx*dx + dy*dy <= PLANAR_EPSILON2) {
             r = Py_True;
         } else {
             r = Py_False;
@@ -403,7 +310,7 @@ Vec2_angle_to(PlanarVec2Object *self, PyObject *other)
     double ox, oy;
 
     assert(PlanarVec2_Check(self));
-    if (Planar_ParseVec2(other, &ox, &oy)) {
+    if (PlanarVec2_Parse(other, &ox, &oy)) {
         return PyFloat_FromDouble(
             degrees(atan2(oy, ox) - atan2(self->y, self->x)));
     } else {
@@ -417,7 +324,7 @@ Vec2_distance_to(PlanarVec2Object *self, PyObject *other)
     double ox, oy, dx, dy;
 
     assert(PlanarVec2_Check(self));
-    if (Planar_ParseVec2(other, &ox, &oy)) {
+    if (PlanarVec2_Parse(other, &ox, &oy)) {
         dx = self->x - ox;
         dy = self->y - oy;
         return PyFloat_FromDouble(sqrt(dx*dx + dy*dy));
@@ -432,7 +339,7 @@ Vec2_dot(PlanarVec2Object *self, PyObject *other)
     double ox, oy;
 
     assert(PlanarVec2_Check(self));
-    if (Planar_ParseVec2(other, &ox, &oy)) {
+    if (PlanarVec2_Parse(other, &ox, &oy)) {
         return PyFloat_FromDouble(self->x * ox + self->y * oy);
     } else {
         CONVERSION_ERROR();
@@ -445,7 +352,7 @@ Vec2_cross(PlanarVec2Object *self, PyObject *other)
     double ox, oy;
 
     assert(PlanarVec2_Check(self));
-    if (Planar_ParseVec2(other, &ox, &oy)) {
+    if (PlanarVec2_Parse(other, &ox, &oy)) {
         return PyFloat_FromDouble(self->x * oy - self->y * ox);
     } else {
         CONVERSION_ERROR();
@@ -480,7 +387,7 @@ Vec2_scaled_to(PlanarVec2Object *self, PyObject *length)
         return NULL;
     }
     L = self->x * self->x + self->y * self->y;
-    if (L >= EPSILON2) {
+    if (L >= PLANAR_EPSILON2) {
         s = PyFloat_AS_DOUBLE(length) / sqrt(L);
         Py_DECREF(length);
         return Vec2_result(self, self->x * s, self->y * s);
@@ -495,9 +402,9 @@ Vec2_project(PlanarVec2Object *self, PyObject *other)
     double ox, oy, L, s;
 
     assert(PlanarVec2_Check(self));
-    if (Planar_ParseVec2(other, &ox, &oy)) {
+    if (PlanarVec2_Parse(other, &ox, &oy)) {
         L = self->x * self->x + self->y * self->y;
-        if (L >= EPSILON2) {
+        if (L >= PLANAR_EPSILON2) {
             s = (self->x * ox + self->y * oy) / L;
             return Vec2_result(self, self->x * s, self->y * s);
         } else {
@@ -514,9 +421,9 @@ Vec2_reflect(PlanarVec2Object *self, PyObject *other)
     double ox, oy, L, s;
 
     assert(PlanarVec2_Check(self));
-    if (Planar_ParseVec2(other, &ox, &oy)) {
+    if (PlanarVec2_Parse(other, &ox, &oy)) {
         L = ox * ox + oy * oy;
-        if (L >= EPSILON2) {
+        if (L >= PLANAR_EPSILON2) {
             s = 2 * (self->x * ox + self->y * oy) / L;
             return Vec2_result(self, ox * s - self->x, oy * s - self->y);
         } else {
@@ -536,6 +443,7 @@ Vec2_clamped(PlanarVec2Object *self, PyObject *args, PyObject *kwargs)
 
     static char *kwlist[] = {"min_length", "max_length", NULL};
 
+    assert(PlanarVec2_Check(self));
     if (!PyArg_ParseTupleAndKeywords(
         args, kwargs, "|dd:Vec2.clamped", kwlist, &min, &max)) {
         return NULL;
@@ -550,7 +458,7 @@ Vec2_clamped(PlanarVec2Object *self, PyObject *args, PyObject *kwargs)
     CL = (L < min) ? min : L;
     CL = (CL > max) ? max : CL;
 
-    if (L > EPSILON) {
+    if (L > PLANAR_EPSILON) {
         return Vec2_result(self, 
             self->x * (CL / L), self->y * (CL / L));
     } else {
@@ -564,10 +472,11 @@ Vec2_lerp(PlanarVec2Object *self, PyObject *args)
     PyObject *other;
     double v, ox, oy;
 
+    assert(PlanarVec2_Check(self));
     if (!PyArg_ParseTuple(args, "Od", &other, &v)) {
         return NULL;
     }
-    if (!Planar_ParseVec2(other, &ox, &oy)) {
+    if (!PlanarVec2_Parse(other, &ox, &oy)) {
         return NULL;
     }
     return Vec2_result(self, 
@@ -582,7 +491,7 @@ Vec2_normalized(PlanarVec2Object *self)
 
     assert(PlanarVec2_Check(self));
     length = sqrt(self->y * self->y + self->x * self->x);
-    if (length > EPSILON) {
+    if (length > PLANAR_EPSILON) {
         return Vec2_result(self, self->x / length, self->y / length);
     } else {
         return Vec2_result(self, 0.0, 0.0);
@@ -618,7 +527,7 @@ static PyMethodDef Vec2_methods[] = {
     {"project", (PyCFunction)Vec2_project, METH_O, 
         "Compute the projection of another vector onto this one."},
     {"reflect", (PyCFunction)Vec2_reflect, METH_O, 
-		"Compute the reflection of this vector against another."},
+        "Compute the reflection of this vector against another."},
     {"clamped", (PyCFunction)Vec2_clamped, METH_VARARGS | METH_KEYWORDS, 
         "Compute a vector in the same direction with a bounded length."},
     {"lerp", (PyCFunction)Vec2_lerp, METH_VARARGS, 
@@ -639,8 +548,8 @@ Vec2__add__(PyObject *a, PyObject *b)
 {
     double ax, ay, bx, by;
 
-    if (Planar_ParseVec2(a, &ax, &ay) && Planar_ParseVec2(b, &bx, &by)) {
-        return (PyObject *)PlanarVec2_FromPair(ax + bx, ay + by);
+    if (PlanarVec2_Parse(a, &ax, &ay) && PlanarVec2_Parse(b, &bx, &by)) {
+        return (PyObject *)PlanarVec2_FromDoubles(ax + bx, ay + by);
     } else {
         Py_INCREF(Py_NotImplemented);
         return Py_NotImplemented;
@@ -652,8 +561,8 @@ Vec2__sub__(PyObject *a, PyObject *b)
 {
     double ax, ay, bx, by;
 
-    if (Planar_ParseVec2(a, &ax, &ay) && Planar_ParseVec2(b, &bx, &by)) {
-        return (PyObject *)PlanarVec2_FromPair(ax - bx, ay - by);
+    if (PlanarVec2_Parse(a, &ax, &ay) && PlanarVec2_Parse(b, &bx, &by)) {
+        return (PyObject *)PlanarVec2_FromDoubles(ax - bx, ay - by);
     } else {
         Py_INCREF(Py_NotImplemented);
         return Py_NotImplemented;
@@ -666,16 +575,16 @@ Vec2__mul__(PyObject *a, PyObject *b)
     int a_is_vec, b_is_vec;
     double ax, ay, bx, by;
 
-    a_is_vec = Planar_ParseVec2(a, &ax, &ay);
-    b_is_vec = Planar_ParseVec2(b, &bx, &by);
+    a_is_vec = PlanarVec2_Parse(a, &ax, &ay);
+    b_is_vec = PlanarVec2_Parse(b, &bx, &by);
 
     if (a_is_vec && b_is_vec) {
-        return (PyObject *)PlanarVec2_FromPair(ax * bx, ay * by);
+        return (PyObject *)PlanarVec2_FromDoubles(ax * bx, ay * by);
     } else if (a_is_vec) {
         b = PyObject_ToFloat(b);
         if (b != NULL) {
             bx = PyFloat_AS_DOUBLE(b);
-            a = (PyObject *)PlanarVec2_FromPair(ax * bx, ay * bx);
+            a = (PyObject *)PlanarVec2_FromDoubles(ax * bx, ay * bx);
             Py_DECREF(b);
             return a;
         }
@@ -683,7 +592,7 @@ Vec2__mul__(PyObject *a, PyObject *b)
         a = PyObject_ToFloat(a);
         if (a != NULL) {
             ax = PyFloat_AS_DOUBLE(a);
-            b = (PyObject *)PlanarVec2_FromPair(bx * ax, by * ax);
+            b = (PyObject *)PlanarVec2_FromDoubles(bx * ax, by * ax);
             Py_DECREF(a);
             return b;
         }
@@ -698,14 +607,14 @@ Vec2__truediv__(PyObject *a, PyObject *b)
     int a_is_vec, b_is_vec;
     double ax, ay, bx, by;
 
-    a_is_vec = Planar_ParseVec2(a, &ax, &ay);
-    b_is_vec = Planar_ParseVec2(b, &bx, &by);
+    a_is_vec = PlanarVec2_Parse(a, &ax, &ay);
+    b_is_vec = PlanarVec2_Parse(b, &bx, &by);
 
     if (a_is_vec && b_is_vec) {
         if (!bx || !by) {
             goto div_by_zero;
         }
-        return (PyObject *)PlanarVec2_FromPair(ax / bx, ay / by);
+        return (PyObject *)PlanarVec2_FromDoubles(ax / bx, ay / by);
     } else if (a_is_vec) {
         b = PyObject_ToFloat(b);
         if (b != NULL) {
@@ -713,7 +622,7 @@ Vec2__truediv__(PyObject *a, PyObject *b)
             if (!bx) {
                 goto div_by_zero;
             }
-            a = (PyObject *)PlanarVec2_FromPair(ax / bx, ay / bx);
+            a = (PyObject *)PlanarVec2_FromDoubles(ax / bx, ay / bx);
             Py_DECREF(b);
             return a;
         }
@@ -724,7 +633,7 @@ Vec2__truediv__(PyObject *a, PyObject *b)
             if (!bx || !by) {
                 goto div_by_zero;
             }
-            b = (PyObject *)PlanarVec2_FromPair(ax / bx, ax / by);
+            b = (PyObject *)PlanarVec2_FromDoubles(ax / bx, ax / by);
             Py_DECREF(a);
             return b;
         }
@@ -756,7 +665,7 @@ Vec2__floordiv__(PyObject *a, PyObject *b)
 static PlanarVec2Object *
 Vec2__pos__(PlanarVec2Object *self)
 {
-	Py_INCREF(self);
+    Py_INCREF(self);
     return self;
 }
 
@@ -904,62 +813,5 @@ PyTypeObject PlanarVec2Type = {
     0,              /* tp_free */
 };
 
-static PyMethodDef module_functions[] = {
-	_SET_EPSILON_FUNCDEF,
-    {NULL}
-};
-
-
-PyDoc_STRVAR(module_doc, "Native code vector implementation");
-
-#if PY_MAJOR_VERSION >= 3
-
-static struct PyModuleDef moduledef = {
-        PyModuleDef_HEAD_INIT,
-        "cvector",
-        module_doc,
-        -1,                 /* m_size */
-        module_functions,   /* m_methods */
-        NULL,               /* m_reload (unused) */
-        NULL,               /* m_traverse */
-        NULL,               /* m_clear */
-        NULL                /* m_free */
-};
-
-#define INITERROR return NULL
-
-PyObject *
-PyInit_cvector(void)
-
-#else
-#define INITERROR return
-
-void
-initcvector(void)
-#endif
-{
-#if PY_MAJOR_VERSION >= 3
-    PyObject *module = PyModule_Create(&moduledef);
-#else
-    PyObject *module = Py_InitModule3(
-		"cvector", module_functions, module_doc);
-#endif
-    PlanarVec2Type.tp_new = PyType_GenericNew;
-    if (PyType_Ready(&PlanarVec2Type) < 0) {
-        goto fail;
-    }
-    Py_INCREF((PyObject*)&PlanarVec2Type);
-    if (PyModule_AddObject(module, "Vec2", (PyObject*)&PlanarVec2Type) < 0) {
-        Py_DECREF((PyObject*)&PlanarVec2Type);
-        goto fail;
-    }
-#if PY_MAJOR_VERSION >= 3
-    return module;
-#else
-    return;
-#endif
-fail:
-    Py_DECREF(module);
-    INITERROR;
-}
+/* vim: ai ts=4 sts=4 et sw=4 tw=78 */
 

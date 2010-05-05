@@ -393,7 +393,19 @@ class PyVec2TestCase(Vec2BaseTestCase, unittest.TestCase):
 
 
 class CVec2TestCase(Vec2BaseTestCase, unittest.TestCase):
-    from planar.cvector import Vec2
+    from planar.c import Vec2
+
+    def test_lerp(self):
+        v1 = self.Vec2(1, 1)
+        v2 = self.Vec2(3, 2)
+        assert_equal(v1.lerp(v2, 0.5), self.Vec2(2, 1.5))
+        assert_equal(v1.lerp(v2, 0), v1)
+        assert_equal(v1.lerp(v2, 1), v2)
+        v1.lerp(v2, 2) == v2 * 2 - v1
+        v1.lerp(v2, -1) == v1 * 2 - v2
+        assert_equal(v1.lerp(v2, 2), v2 * 2 - v1)
+        assert_equal(v1.lerp(v2, -1), v1 * 2 - v2)
+
 
 
 if __name__ == '__main__':

@@ -29,23 +29,25 @@
 #############################################################################
 """2d planar geometry library for Python"""
 
-__all__ = ('TransformNotInvertibleError', 'set_epsilon', 'Vec2', 'Point')
+__all__ = ('TransformNotInvertibleError', 'set_epsilon', 
+    'Vec2', 'Point', 'Affine')
 
 __versioninfo__ = (0, 1, 0)
 __version__ = '.'.join(str(n) for n in __versioninfo__)
 
 try: # pragma: no cover
     # Default to C implementation
-    from planar import cvector
-    from planar.cvector import Vec2
-
-    def _set_epsilon(e):
-        cvector._set_epsilon(e)
+    from planar.c import _set_epsilon, Vec2, Affine, \
+        TransformNotInvertibleError
 
     __implementation__ = 'C'
 except ImportError: # pragma: no cover
     # Fall-back to Python implementation
     from planar.vector import Vec2
+    from planar.transform import Affine
+
+    class TransformNotInvertibleError(Exception):
+        """The transform could not be inverted"""
 
     def _set_epsilon(e): pass
 
@@ -56,15 +58,10 @@ Point = Vec2
 Use ``Point`` where desired for clarity in your code.
 """
 
-
-class TransformNotInvertibleError(Exception):
-    """The transform could not be inverted"""
-
-
 def set_epsilon(epsilon):
-    """Set the global absolute error value for approximate floating 
-    point comparison operations. This value is accessible via
-    the :attr:`planar.EPSILON` global variable.
+    """Set the global absolute error value and rounding limit for approximate
+    floating point comparison operations. This value is accessible via the
+    :attr:`planar.EPSILON` global variable.
 
     The default value of ``0.00001`` is suitable for values
     that are in the "countable range". You may need a larger
@@ -78,3 +75,7 @@ def set_epsilon(epsilon):
     _set_epsilon(EPSILON)
 
 set_epsilon(1e-5)
+
+
+# vim: ai ts=4 sts=4 et sw=4 tw=78
+

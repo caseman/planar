@@ -59,7 +59,7 @@ class Affine(tuple):
 
     @classmethod
     def identity(cls):
-        """Return the identity transform
+        """Return the identity transform.
 
         :rtype: Affine
         """
@@ -168,8 +168,7 @@ class Affine(tuple):
     def __repr__(self):
         """Precise string representation."""
         return ("Affine(%r, %r, %r,\n"
-                "       %r, %r, %r,\n"
-                "       %r, %r, %r)") % self
+                "       %r, %r, %r)") % self[:6]
 
     @cached_property
     def determinant(self):
@@ -183,18 +182,28 @@ class Affine(tuple):
     @cached_property
     def is_identity(self):
         """True if this transform equals the identity matrix,
-        within rounding limits."""
+        within rounding limits.
+        """
         return self is identity or self.almost_equals(identity)
 
     @cached_property
     def is_rectilinear(self):
-        """True if the transform is rectilinear, i.e., whether
-        a shape would remain axis-aligned, within rounding 
-        limits, after applying the transform.
+        """True if the transform is rectilinear, i.e., whether a shape would
+        remain axis-aligned, within rounding limits, after applying the
+        transform.
         """
         a, b, c, d, e, f, g, h, i = self
         return ((abs(a) < planar.EPSILON and abs(e) < planar.EPSILON) 
             or (abs(d) < planar.EPSILON and abs(b) < planar.EPSILON))
+
+    @cached_property
+    def is_conformal(self):
+        """True if the transform is conformal, i.e., if angles between points
+        are preserved after applying the transform, within rounding limits.
+        This implies that the transform has no effective shear.
+        """
+        a, b, c, d, e, f, g, h, i = self
+        return abs(a*b + d*e) < planar.EPSILON
 
     @cached_property
     def is_degenerate(self):

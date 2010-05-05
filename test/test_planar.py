@@ -6,9 +6,9 @@ def test_version_info():
 
 def test_default_implementation():
     import planar
-    import planar.cvector
+    import planar.c
     assert_equal(planar.__implementation__, 'C')
-    assert planar.Vec2 is planar.cvector.Vec2, planar.Vec2
+    assert planar.Vec2 is planar.c.Vec2, planar.Vec2
 
 def test_default_epsilon():
     import planar
