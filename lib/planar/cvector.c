@@ -551,6 +551,7 @@ Vec2__add__(PyObject *a, PyObject *b)
     if (PlanarVec2_Parse(a, &ax, &ay) && PlanarVec2_Parse(b, &bx, &by)) {
         return (PyObject *)PlanarVec2_FromDoubles(ax + bx, ay + by);
     } else {
+		PyErr_Clear();
         Py_INCREF(Py_NotImplemented);
         return Py_NotImplemented;
     }
@@ -564,6 +565,7 @@ Vec2__sub__(PyObject *a, PyObject *b)
     if (PlanarVec2_Parse(a, &ax, &ay) && PlanarVec2_Parse(b, &bx, &by)) {
         return (PyObject *)PlanarVec2_FromDoubles(ax - bx, ay - by);
     } else {
+		PyErr_Clear();
         Py_INCREF(Py_NotImplemented);
         return Py_NotImplemented;
     }
@@ -586,6 +588,7 @@ Vec2__mul__(PyObject *a, PyObject *b)
             bx = PyFloat_AS_DOUBLE(b);
             a = (PyObject *)PlanarVec2_FromDoubles(ax * bx, ay * bx);
             Py_DECREF(b);
+			PyErr_Clear();
             return a;
         }
     } else if (b_is_vec) {
@@ -594,9 +597,11 @@ Vec2__mul__(PyObject *a, PyObject *b)
             ax = PyFloat_AS_DOUBLE(a);
             b = (PyObject *)PlanarVec2_FromDoubles(bx * ax, by * ax);
             Py_DECREF(a);
+			PyErr_Clear();
             return b;
         }
     }
+    PyErr_Clear();
     Py_INCREF(Py_NotImplemented);
     return Py_NotImplemented;
 }
@@ -624,6 +629,7 @@ Vec2__truediv__(PyObject *a, PyObject *b)
             }
             a = (PyObject *)PlanarVec2_FromDoubles(ax / bx, ay / bx);
             Py_DECREF(b);
+			PyErr_Clear();
             return a;
         }
     } else if (b_is_vec) {
@@ -635,9 +641,11 @@ Vec2__truediv__(PyObject *a, PyObject *b)
             }
             b = (PyObject *)PlanarVec2_FromDoubles(ax / bx, ax / by);
             Py_DECREF(a);
+			PyErr_Clear();
             return b;
         }
     }
+	PyErr_Clear();
     Py_INCREF(Py_NotImplemented);
     return Py_NotImplemented;
 

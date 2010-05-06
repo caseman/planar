@@ -204,6 +204,30 @@ Affine_get_is_degenerate(PlanarAffineObject *self)
     return r;
 }
 
+static PyObject *
+Affine_get_column_vectors(PlanarAffineObject *self) 
+{
+    PyObject *r, *v1, *v2, *v3;
+
+	r = PyTuple_New(3);
+	if (r == NULL) {
+		return NULL;
+	}
+	v1 = (PyObject *)PlanarVec2_FromDoubles(self->a, self->d);
+	v2 = (PyObject *)PlanarVec2_FromDoubles(self->b, self->e);
+	v3 = (PyObject *)PlanarVec2_FromDoubles(self->c, self->f);
+	if (v1 == NULL || v2 == NULL || v3 == NULL) {
+		Py_XDECREF(v1);
+		Py_XDECREF(v2);
+		Py_XDECREF(v3);
+		return NULL;
+	}
+	PyTuple_SET_ITEM(r, 0, v1);
+	PyTuple_SET_ITEM(r, 1, v2);
+	PyTuple_SET_ITEM(r, 2, v3);
+    return r;
+}
+
 static PyGetSetDef Affine_getset[] = {
     {"determinant", (getter)Affine_get_determinant, NULL, 
         "The determinant of the transform matrix. This value "
@@ -225,6 +249,8 @@ static PyGetSetDef Affine_getset[] = {
         "True if this transform is degenerate, which means that it "
         "will collapse a shape to an effective area of zero. "
         "Degenerate transforms cannot be inverted.", NULL},
+    {"column_vectors", (getter)Affine_get_column_vectors, NULL, 
+		"The values of the transform as three 2D column vectors", NULL},
     {NULL}
 };
 
@@ -448,6 +474,7 @@ Affine_itransform(PlanarAffineObject *self, PyObject *seq)
     if (len == -1) {
         PyErr_SetString(PyExc_TypeError, 
             "Affine.itransform(): Cannot transform non-sequence");
+		return NULL;
     }
     a = self->a;
     b = self->b;
@@ -511,12 +538,25 @@ static PyMethodDef Affine_methods[] = {
 /* Aritmetic operations */
 
 static PyObject *
+affine_mul_vec2(PlanarAffineObject *t, PlanarVec2Object *v)
+{
+    /* Affine * Vec2 = Vec2 */
+    return (PyObject *)PlanarVec2_FromDoubles(
+        v->x * t->a + v->y * t->d + t->c,
+        v->x * t->b + v->y * t->e + t->f);
+}
+
+static PyObject *
 Affine__mul__(PyObject *a, PyObject *b)
 {
     PlanarAffineObject *ta, *tb, *tr;
     PlanarVec2Object *v;
+	int a_is_affine, b_is_affine;
 
-    if (PlanarAffine_Check(a) && PlanarAffine_Check(b)) {
+	a_is_affine = PlanarAffine_Check(a);
+	b_is_affine = PlanarAffine_Check(b);
+
+    if (a_is_affine && b_is_affine) {
         /* Affine * Affine = Affine */
         ta = (PlanarAffineObject *)a;
         tb = (PlanarAffineObject *)b;
@@ -531,22 +571,18 @@ Affine__mul__(PyObject *a, PyObject *b)
         tr->e = ta->d * tb->b + ta->e * tb->e;
         tr->f = ta->d * tb->c + ta->e * tb->f + ta->f;
         return (PyObject *)tr;
-    } else if (PlanarAffine_Check(a) && PlanarVec2_Check(b)) {
-        ta = (PlanarAffineObject *)a;
-        v = (PlanarVec2Object *)b;
-    } else if (PlanarVec2_Check(a) && PlanarAffine_Check(b)) {
-        ta = (PlanarAffineObject *)b;
-        v = (PlanarVec2Object *)a;
+    } else if (a_is_affine && PlanarVec2_Check(b)) {
+		return affine_mul_vec2(
+			(PlanarAffineObject *)a, (PlanarVec2Object *)b);
+    } else if (PlanarVec2_Check(a) && b_is_affine) {
+		return affine_mul_vec2(
+			(PlanarAffineObject *)b, (PlanarVec2Object *)a);
     } else {
         /* Operation not supported */
         Py_INCREF(Py_NotImplemented);
         return Py_NotImplemented;
     }
 
-    /* Affine * Vec2 = Vec2 */
-    return (PyObject *)PlanarVec2_FromDoubles(
-        v->x * ta->a + v->y * ta->d + ta->c,
-        v->x * ta->b + v->y * ta->e + ta->f);
 }
 
 static PlanarAffineObject *

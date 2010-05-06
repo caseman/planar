@@ -48,7 +48,7 @@
 #endif
 #define radians(d) ((d) * M_PI / 180.0)
 #define degrees(d) ((d) * 180.0 / M_PI)
-#define almost_eq(a, b) (abs((a) - (b)) < PLANAR_EPSILON)
+#define almost_eq(a, b) (fabs((a) - (b)) < PLANAR_EPSILON)
 
 /***************************************************************************/
 

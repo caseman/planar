@@ -213,7 +213,7 @@ class Affine(tuple):
         """
         return abs(self.determinant) < planar.EPSILON
 
-    @cached_property
+    @property
     def column_vectors(self):
         """The values of the transform as three 2D column vectors"""
         a, b, c, d, e, f, _, _, _ = self
