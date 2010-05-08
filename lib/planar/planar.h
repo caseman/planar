@@ -68,6 +68,15 @@ typedef struct {
 } PlanarVec2Object;
 
 typedef struct {
+    PyObject_VAR_HEAD
+    planar_vec2_t *vec;
+    /* *vec points to the data[] array, so that it can
+       be positioned differently in memory in subtypes */
+    planar_vec2_t data[1];
+    /* data[] is dynamically sized to ob_size elements */
+} PlanarVec2ArrayObject;
+
+typedef struct {
     PyObject_HEAD
     union {
         PyObject *next_free;
@@ -140,6 +149,7 @@ extern double PLANAR_EPSILON;
 extern double PLANAR_EPSILON2;
 
 extern PyTypeObject PlanarVec2Type;
+extern PyTypeObject PlanarVec2ArrayType;
 extern PyTypeObject PlanarAffineType;
 
 extern PyObject *PlanarTransformNotInvertibleError;
@@ -160,6 +170,20 @@ PlanarVec2_FromDoubles(double x, double y)
     }
     v->x = x;
     v->y = y;
+    return v;
+}
+
+static PlanarVec2Object *
+PlanarVec2_FromStruct(planar_vec2_t *vs)
+{
+    PlanarVec2Object *v;
+
+    v = (PlanarVec2Object *)PlanarVec2Type.tp_alloc(&PlanarVec2Type, 0);
+    if (v == NULL) {
+        return NULL;
+    }
+    v->x = vs->x;
+    v->y = vs->y;
     return v;
 }
 
@@ -212,6 +236,11 @@ error:
     Py_XDECREF(y_obj);
     return 0;
 }
+
+/* Vec2Array utils */
+
+#define PlanarVec2Array_Check(op) PyObject_TypeCheck(op, &PlanarVec2ArrayType)
+#define PlanarVec2Array_CheckExact(op) (Py_TYPE(op) == &PlanarVec2ArrayType)
 
 /* Affine utils */
 

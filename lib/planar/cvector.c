@@ -551,7 +551,7 @@ Vec2__add__(PyObject *a, PyObject *b)
     if (PlanarVec2_Parse(a, &ax, &ay) && PlanarVec2_Parse(b, &bx, &by)) {
         return (PyObject *)PlanarVec2_FromDoubles(ax + bx, ay + by);
     } else {
-		PyErr_Clear();
+        PyErr_Clear();
         Py_INCREF(Py_NotImplemented);
         return Py_NotImplemented;
     }
@@ -565,7 +565,7 @@ Vec2__sub__(PyObject *a, PyObject *b)
     if (PlanarVec2_Parse(a, &ax, &ay) && PlanarVec2_Parse(b, &bx, &by)) {
         return (PyObject *)PlanarVec2_FromDoubles(ax - bx, ay - by);
     } else {
-		PyErr_Clear();
+        PyErr_Clear();
         Py_INCREF(Py_NotImplemented);
         return Py_NotImplemented;
     }
@@ -588,7 +588,7 @@ Vec2__mul__(PyObject *a, PyObject *b)
             bx = PyFloat_AS_DOUBLE(b);
             a = (PyObject *)PlanarVec2_FromDoubles(ax * bx, ay * bx);
             Py_DECREF(b);
-			PyErr_Clear();
+            PyErr_Clear();
             return a;
         }
     } else if (b_is_vec) {
@@ -597,7 +597,7 @@ Vec2__mul__(PyObject *a, PyObject *b)
             ax = PyFloat_AS_DOUBLE(a);
             b = (PyObject *)PlanarVec2_FromDoubles(bx * ax, by * ax);
             Py_DECREF(a);
-			PyErr_Clear();
+            PyErr_Clear();
             return b;
         }
     }
@@ -629,7 +629,7 @@ Vec2__truediv__(PyObject *a, PyObject *b)
             }
             a = (PyObject *)PlanarVec2_FromDoubles(ax / bx, ay / bx);
             Py_DECREF(b);
-			PyErr_Clear();
+            PyErr_Clear();
             return a;
         }
     } else if (b_is_vec) {
@@ -641,11 +641,11 @@ Vec2__truediv__(PyObject *a, PyObject *b)
             }
             b = (PyObject *)PlanarVec2_FromDoubles(ax / bx, ax / by);
             Py_DECREF(a);
-			PyErr_Clear();
+            PyErr_Clear();
             return b;
         }
     }
-	PyErr_Clear();
+    PyErr_Clear();
     Py_INCREF(Py_NotImplemented);
     return Py_NotImplemented;
 
@@ -821,5 +821,123 @@ PyTypeObject PlanarVec2Type = {
     0,              /* tp_free */
 };
 
-/* vim: ai ts=4 sts=4 et sw=4 tw=78 */
+/***************************************************************************/
+
+static PlanarVec2ArrayObject *
+Vec2Array_new(Py_ssize_t size)
+{
+    PlanarVec2ArrayObject *varray;
+
+    if (size < 0) {
+        PyErr_BadInternalCall();
+        return NULL;
+    }
+    varray = PyObject_NewVar(
+	PlanarVec2ArrayObject, &PlanarVec2ArrayType, size);
+    if (varray == NULL) {
+	return NULL;
+    }
+    varray->vec = varray->data;
+    return varray;
+}
+
+static void
+Vec2Array_dealloc(PyObject *self)
+{
+    Py_TYPE(self)->tp_free(self);
+}
+
+static PyObject *
+Vec2Array_getitem(PlanarVec2ArrayObject *self, Py_ssize_t index)
+{
+    if (index >= 0 && index < Py_SIZE(self)) {
+        return (PyObject *)PlanarVec2_FromStruct(self->vec + index);
+    }
+    PyErr_Format(PyExc_IndexError, "index %d out of range", (int)index);
+    return NULL;
+}
+
+static int
+Vec2Array_assitem(PlanarVec2ArrayObject *self, Py_ssize_t index, PyObject *v)
+{
+    double x, y;
+    if (index >= 0 && index < Py_SIZE(self)) {
+	if (!PlanarVec2_Parse(v, &x, &y)) {
+	    if (!PyErr_Occurred()) {
+		PyErr_Format(PyExc_TypeError, 
+		    "Cannot assign %.200s into %.200s",
+		    v->ob_type->tp_name, self->ob_type->tp_name);
+	    }
+	    return -1;
+	}
+        self->vec[index].x = x;
+        self->vec[index].y = y;
+        return 0;
+    }
+    PyErr_Format(PyExc_IndexError, 
+	"assignment index %d out of range", (int)index);
+    return -1;
+}
+
+static Py_ssize_t
+Vec2Array_length(PlanarVec2ArrayObject *self)
+{
+    return Py_SIZE(self);
+}
+
+static PySequenceMethods Vec2Array_as_sequence = {
+	(lenfunc)Vec2Array_length,	/* sq_length */
+	0,		/*sq_concat*/
+	0,		/*sq_repeat*/
+	(ssizeargfunc)Vec2Array_getitem,		/*sq_item*/
+	0,		/* sq_slice */
+	(ssizeobjargproc)Vec2Array_assitem,	/* sq_ass_item */
+};
+
+PyDoc_STRVAR(Vec2Array__doc__, "Fixed length vector array");
+
+PyTypeObject PlanarVec2ArrayType = {
+	PyObject_HEAD_INIT(NULL)
+	0,			        /*ob_size*/
+	"planar.Vec2Array",		/*tp_name*/
+	sizeof(PlanarVec2ArrayObject),	/*tp_basicsize*/
+	sizeof(planar_vec2_t),		/*tp_itemsize*/
+	/* methods */
+	(destructor)Vec2Array_dealloc, /*tp_dealloc*/
+	0,			       /*tp_print*/
+	0,                      /*tp_getattr*/
+	0,                      /*tp_setattr*/
+	0,		        /*tp_compare*/
+	0,                      /*tp_repr*/
+	0,		        /*tp_as_number*/
+	&Vec2Array_as_sequence, /*tp_as_sequence*/
+	0,	                /*tp_as_mapping*/
+	0,	                /*tp_hash*/
+	0,                      /*tp_call*/
+	0,                      /*tp_str*/
+	0,                      /*tp_getattro*/
+	0,                      /*tp_setattro*/
+	0,                      /*tp_as_buffer*/
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_CHECKTYPES,     /*tp_flags*/
+	Vec2Array__doc__,       /*tp_doc*/
+	0,                      /*tp_traverse*/
+	0,                      /*tp_clear*/
+	0,                      /*tp_richcompare*/
+	0,                      /*tp_weaklistoffset*/
+	0,                      /*tp_iter*/
+	0,                      /*tp_iternext*/
+	0,                      /*tp_methods*/
+	0,                      /*tp_members*/
+	0,                      /*tp_getset*/
+	0,                      /*tp_base*/
+	0,                      /*tp_dict*/
+	0,                      /*tp_descr_get*/
+	0,                      /*tp_descr_set*/
+	0,                      /*tp_dictoffset*/
+	0,                      /*tp_init*/
+	0,                      /*tp_alloc*/
+	(newfunc)Vec2Array_new, /*tp_new*/
+	0,                      /*tp_free*/
+	0,                      /*tp_is_gc*/
+};
 

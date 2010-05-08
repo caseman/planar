@@ -467,5 +467,61 @@ class Vec2(tuple):
 null = Vec2(0, 0)
 
 
+class Vec2Array(object):
+    """Fixed length vector array
+    
+    :param vectors: A sequence of :class:`~planar.Vec2` objects.
+    """
+
+    def __init__(self, vectors):
+        self._array = [Vec2(*v) for v in vectors]
+
+    @classmethod
+    def _new_from_points(cls, points):
+        self = cls.__new__(cls)
+        self._array = list(points)
+        return self
+
+    def __len__(self):
+        return len(self._array)
+
+    def __getitem__(self, index):
+        return self._array[index]
+
+    def __setitem__(self, index, value):
+        self._array[index] = Vec2(*value)
+
+    def __iter__(self):
+        return iter(self._array)
+
+    def __imul__(self, other):
+        try:
+           other.itransform(self)
+           return self
+        except AttributeError:
+            raise TypeError("Cannot multiple %s with %s"
+                % (type(self).__name__, type(other).__name__))
+
+    def almost_equals(self, other):
+        if self.__class__ is other.__class__ and len(self) == len(other):
+            for a, b in zip(self, other):
+                if not a.almost_equals(b):
+                    return False
+            return True
+        else:
+            return False
+
+    def __eq__(self, other):
+        return (self.__class__ is other.__class__ 
+            and tuple(self) == tuple(other))
+
+    def __ne__(self, other):
+        return (self.__class__ is not other.__class__ 
+            or tuple(self) != tuple(other))
+
+    def __copy__(self):
+        return self._new_from_points(self._array)
+
+
 # vim: ai ts=4 sts=4 et sw=4 tw=78
 

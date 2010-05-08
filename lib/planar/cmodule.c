@@ -39,6 +39,16 @@ static PyMethodDef module_functions[] = {
 
 PyDoc_STRVAR(module_doc, "Planar native code classes");
 
+#define INIT_TYPE(type, name) {                                         \
+    (type).tp_new = PyType_GenericNew;                                  \
+    if (PyType_Ready(&(type)) < 0) {                                    \
+        goto fail;                                                      \
+    }                                                                   \
+    if (PyModule_AddObject(module, (name), (PyObject *)&(type)) < 0) {  \
+        goto fail;                                                      \
+    }                                                                   \
+}
+
 #if PY_MAJOR_VERSION >= 3
 
 static struct PyModuleDef moduledef = {
@@ -68,29 +78,15 @@ initc(void)
 #if PY_MAJOR_VERSION >= 3
     PyObject *module = PyModule_Create(&moduledef);
 #else
-    PyObject *module = Py_InitModule3(
-        "c", module_functions, module_doc);
+    PyObject *module = Py_InitModule3("c", module_functions, module_doc);
 #endif
     Py_INCREF((PyObject *)&PlanarVec2Type);
+    Py_INCREF((PyObject *)&PlanarVec2ArrayType);
     Py_INCREF((PyObject *)&PlanarAffineType);
 
-    PlanarVec2Type.tp_new = PyType_GenericNew;
-    if (PyType_Ready(&PlanarVec2Type) < 0) {
-        goto fail;
-    }
-    if (PyModule_AddObject(
-        module, "Vec2", (PyObject *)&PlanarVec2Type) < 0) {
-        goto fail;
-    }
-
-    PlanarAffineType.tp_new = PyType_GenericNew;
-    if (PyType_Ready(&PlanarAffineType) < 0) {
-        goto fail;
-    }
-    if (PyModule_AddObject(
-        module, "Affine", (PyObject *)&PlanarAffineType) < 0) {
-        goto fail;
-    }
+    INIT_TYPE(PlanarVec2Type, "Vec2");
+    INIT_TYPE(PlanarVec2ArrayType, "Vec2Array");
+    INIT_TYPE(PlanarAffineType, "Affine");
 
 	PlanarTransformNotInvertibleError = PyErr_NewException(
 		"planar.TransformNotInvertibleError", NULL, NULL);
@@ -100,6 +96,7 @@ initc(void)
     if (PyModule_AddObject(
         module, "TransformNotInvertibleError", 
 		PlanarTransformNotInvertibleError) < 0) {
+        Py_DECREF(PlanarTransformNotInvertibleError);
         goto fail;
     }
 #if PY_MAJOR_VERSION >= 3
@@ -109,10 +106,9 @@ initc(void)
 #endif
 fail:
     Py_DECREF((PyObject *)&PlanarVec2Type);
+    Py_DECREF((PyObject *)&PlanarVec2ArrayType);
     Py_DECREF((PyObject *)&PlanarAffineType);
     Py_DECREF(module);
     INITERROR;
 }
-
-/* vim: ai ts=4 sts=4 et sw=4 tw=78 */
 

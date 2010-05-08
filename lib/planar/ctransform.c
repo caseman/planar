@@ -467,43 +467,56 @@ Affine_itransform(PlanarAffineObject *self, PyObject *seq)
     Py_ssize_t i;
     Py_ssize_t len;
     PyObject *point;
+    PlanarVec2ArrayObject *varray;
     double x, y, a, b, c, d, e, f;
 
-    assert(PlanarAffine_Check(self));
-    len = PySequence_Length(seq);
-    if (len == -1) {
-        PyErr_SetString(PyExc_TypeError, 
-            "Affine.itransform(): Cannot transform non-sequence");
-		return NULL;
-    }
     a = self->a;
     b = self->b;
     c = self->c;
     d = self->d;
     e = self->e;
     f = self->f;
-    for (i = 0; i < len; i++) {
-        point = PySequence_GetItem(seq, i);
-        if (point == NULL) {
-            return NULL;
-        }
-        if (!PlanarVec2_Parse(point, &x, &y)) {
-            Py_DECREF(point);
-            PyErr_Format(PyExc_TypeError, 
-                "Affine.itransform(): "
-                "Element at position %d is not a valid vector", i);
-            return NULL;
-        }
-        Py_DECREF(point);
-        point = (PyObject *)PlanarVec2_FromDoubles(x*a + y*d + c, x*b + y*e + f);
-        if (point == NULL) {
-            return NULL;
-        }
-        if (PySequence_SetItem(seq, i, point) < 0) {
-            Py_DECREF(point);
-            return NULL;
-        }
-        Py_DECREF(point);
+    assert(PlanarAffine_Check(self));
+    if (PlanarVec2Array_Check(seq)) {
+	/* Optimized code path for Vec2Arrays */
+	varray = (PlanarVec2ArrayObject *)seq;
+	for (i = 0; i < Py_SIZE(seq); i++) {
+	    x = varray->vec[i].x;
+	    y = varray->vec[i].y;
+	    varray->vec[i].x = x*a + y*d + c;
+	    varray->vec[i].y = x*b + y*e + f;
+	}
+    } else {
+	/* General vector sequence */
+	len = PySequence_Length(seq);
+	if (len == -1) {
+	    PyErr_SetString(PyExc_TypeError, 
+		"Affine.itransform(): Cannot transform non-sequence");
+		    return NULL;
+	}
+	for (i = 0; i < len; i++) {
+	    point = PySequence_GetItem(seq, i);
+	    if (point == NULL) {
+		return NULL;
+	    }
+	    if (!PlanarVec2_Parse(point, &x, &y)) {
+		Py_DECREF(point);
+		PyErr_Format(PyExc_TypeError, 
+		    "Affine.itransform(): "
+		    "Element at position %d is not a valid vector", i);
+		return NULL;
+	    }
+	    Py_DECREF(point);
+	    point = (PyObject *)PlanarVec2_FromDoubles(x*a + y*d + c, x*b + y*e + f);
+	    if (point == NULL) {
+		return NULL;
+	    }
+	    if (PySequence_SetItem(seq, i, point) < 0) {
+		Py_DECREF(point);
+		return NULL;
+	    }
+	    Py_DECREF(point);
+	}
     }
     Py_INCREF(Py_None);
     return Py_None;
@@ -789,6 +802,4 @@ PyTypeObject PlanarAffineType = {
     0,          /* tp_new */
     0,              /* tp_free */
 };
-
-/* vim: ai ts=4 sts=4 et sw=4 tw=78 */
 

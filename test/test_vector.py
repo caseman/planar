@@ -395,17 +395,134 @@ class PyVec2TestCase(Vec2BaseTestCase, unittest.TestCase):
 class CVec2TestCase(Vec2BaseTestCase, unittest.TestCase):
     from planar.c import Vec2
 
-    def test_lerp(self):
-        v1 = self.Vec2(1, 1)
-        v2 = self.Vec2(3, 2)
-        assert_equal(v1.lerp(v2, 0.5), self.Vec2(2, 1.5))
-        assert_equal(v1.lerp(v2, 0), v1)
-        assert_equal(v1.lerp(v2, 1), v2)
-        v1.lerp(v2, 2) == v2 * 2 - v1
-        v1.lerp(v2, -1) == v1 * 2 - v2
-        assert_equal(v1.lerp(v2, 2), v2 * 2 - v1)
-        assert_equal(v1.lerp(v2, -1), v1 * 2 - v2)
 
+class Vec2ArrayBaseTestCase(object):
+
+    def test_init(self):
+        a = self.Vec2Array([(0,1), (2,3)])
+        assert_equal(tuple(a), (self.Vec2(0,1), self.Vec2(2,3)))
+        a = self.Vec2Array([self.Vec2(4,5)])
+        assert_equal(tuple(a), (self.Vec2(4,5),))
+        a = self.Vec2Array([])
+        assert_equal(tuple(a), ())
+
+    def test_len(self):
+        a = self.Vec2Array([(0,1), (2,3)])
+        assert_equal(len(a), 2)
+        a = self.Vec2Array([])
+        assert_equal(len(a), 0)
+
+    def test_bool(self):
+        a = self.Vec2Array([(0,1), (2,3)])
+        assert a
+        a = self.Vec2Array([])
+        assert not a
+
+    def test_iter(self):
+        i = iter(self.Vec2Array([(-1,1.5), (3, 4.1)]))
+        assert_equal(i.next(), self.Vec2(-1, 1.5))
+        assert_equal(i.next(), self.Vec2(3, 4.1))
+        self.assertRaises(StopIteration, i.next)
+
+    def test_get_set_item(self):
+        a = self.Vec2Array([(0,1), (2,3)])
+        a[0] = (7,8)
+        assert isinstance(a[0], self.Vec2)
+        assert_equal(a[0], self.Vec2(7,8))
+        assert_equal(a[1], self.Vec2(2,3))
+        assert_equal(a[-1], self.Vec2(2,3))
+        a[-1] = self.Vec2(2.5,1)
+        assert_equal(a[1], self.Vec2(2.5,1))
+
+    @raises(IndexError)
+    def test_get_bad_index(self):
+        a = self.Vec2Array([(1,2), (3,4), (5,6)])
+        a[4]
+
+    @raises(IndexError)
+    def test_set_bad_index(self):
+        a = self.Vec2Array([(1,2), (3,4), (5,6), (7,8)])
+        a[8] = self.Vec2(3,3)
+
+    def test_imul_by_transform(self):
+        b = a = self.Vec2Array([(1,2), (3,4), (5,6)])
+        a *= self.Affine.translation((5, -4))
+        assert a is b
+        V = self.Vec2
+        assert_equal(tuple(a), (V(6, -2), V(8, 0), V(10, 2)))
+
+    @raises(TypeError)
+    def test_imul_incompatible(self):
+        a = self.Vec2Array([(1,2), (3,4)])
+        a *= 2
+
+    def test_mul_by_transform(self):
+        import planar
+        a = self.Vec2Array([(1,2), (3,4), (5,6)])
+        b = a * self.Affine.scale((2, -1))
+        assert a is not b
+        V = self.Vec2
+        assert_equal(tuple(b), (V(2, -2), V(6, -4), V(10, -6)))
+
+    @raises(TypeError)
+    def test_mul_incompatible(self):
+        a = self.Vec2Array([(1,2), (3,4)]) * 2
+
+    def test_eq(self):
+        assert (self.Vec2Array([(1,2), (3,4)]) ==
+            self.Vec2Array([self.Vec2(1,2), self.Vec2(3,4)]))
+        assert self.Vec2Array([]) == self.Vec2Array([])
+        assert not self.Vec2Array([]) == self.Vec2Array([(1,2)])
+        assert not self.Vec2Array([(3,4)]) == self.Vec2Array([(1,2)])
+        assert not self.Vec2Array([(1,2), (3,4)]) == self.Vec2Array([(1,2)])
+
+    def test_ne(self):
+        assert self.Vec2Array([]) != self.Vec2Array([(1,2)])
+        assert self.Vec2Array([(3,4)]) != self.Vec2Array([(1,2)])
+        assert self.Vec2Array([(1,2), (3,4)]) != self.Vec2Array([(1,2)])
+        assert not (self.Vec2Array([(1,2), (3,4)]) !=
+            self.Vec2Array([self.Vec2(1,2), self.Vec2(3,4)]))
+        assert not self.Vec2Array([]) != self.Vec2Array([])
+
+    def test_almost_equals(self):
+        from planar import EPSILON
+        a = self.Vec2Array([(3,2), (6,0)])
+        assert a.almost_equals(a)
+        b = self.Vec2Array([(3 - EPSILON/2, 2), (6, EPSILON/2)])
+        assert a.almost_equals(b)
+        c = self.Vec2Array([(3 - EPSILON/2, 2), (6, EPSILON/2), (0,0)])
+        assert not a.almost_equals(c)
+        assert not b.almost_equals(c)
+        d = self.Vec2Array([(3 - EPSILON, 2), (6, EPSILON*2)])
+        assert not a.almost_equals(d)
+
+    def test_copy(self):
+        from copy import copy
+        a = self.Vec2Array([(2,4), (5,5), (6,7)])
+        b = copy(a)
+        assert a is not b
+        assert isinstance(b, self.Vec2Array)
+        assert_equal(tuple(a), tuple(b))
+        a[0] = (0, 0)
+        assert_equal(b[0], self.Vec2(2, 4))
+
+    def test_copy_subclass(self):
+        from copy import copy
+        class Subclass(self.Vec2Array):
+            pass
+
+        a = Subclass([(0,1), (1,2)])
+        b = copy(a)
+        assert a is not b
+        assert isinstance(b, Subclass)
+        assert_equal(tuple(a), tuple(b))
+        a[0] = (0, 0)
+        assert_equal(b[0], self.Vec2(0, 1))
+        
+
+class PyVec2ArrayTestCase(Vec2ArrayBaseTestCase, unittest.TestCase):
+    from planar.vector import Vec2Array, Vec2
+    from planar.transform import Affine
 
 
 if __name__ == '__main__':
@@ -413,3 +530,4 @@ if __name__ == '__main__':
 
 
 # vim: ai ts=4 sts=4 et sw=4 tw=78
+
