@@ -467,32 +467,32 @@ class Vec2(tuple):
 null = Vec2(0, 0)
 
 
-class Vec2Array(object):
-    """Fixed length vector array
+class Seq2(object):
+    """Fixed length 2D point/vector sequence
     
     :param vectors: A sequence of :class:`~planar.Vec2` objects.
     """
 
     def __init__(self, vectors):
-        self._array = [Vec2(*v) for v in vectors]
+        self._vectors = [Vec2(*v) for v in vectors]
 
     @classmethod
     def _new_from_points(cls, points):
         self = cls.__new__(cls)
-        self._array = list(points)
+        self._vectors = list(points)
         return self
 
     def __len__(self):
-        return len(self._array)
+        return len(self._vectors)
 
     def __getitem__(self, index):
-        return self._array[index]
+        return self._vectors[index]
 
     def __setitem__(self, index, value):
-        self._array[index] = Vec2(*value)
+        self._vectors[index] = Vec2(*value)
 
     def __iter__(self):
-        return iter(self._array)
+        return iter(self._vectors)
 
     def __imul__(self, other):
         try:
@@ -503,6 +503,7 @@ class Vec2Array(object):
                 % (type(self).__name__, type(other).__name__))
 
     def almost_equals(self, other):
+        """Compare for approximate equality."""
         if self.__class__ is other.__class__ and len(self) == len(other):
             for a, b in zip(self, other):
                 if not a.almost_equals(b):
@@ -520,7 +521,7 @@ class Vec2Array(object):
             or tuple(self) != tuple(other))
 
     def __copy__(self):
-        return self._new_from_points(self._array)
+        return self._new_from_points(self._vectors)
 
 
 # vim: ai ts=4 sts=4 et sw=4 tw=78

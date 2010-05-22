@@ -40,7 +40,9 @@ static PyMethodDef module_functions[] = {
 PyDoc_STRVAR(module_doc, "Planar native code classes");
 
 #define INIT_TYPE(type, name) {                                         \
-    (type).tp_new = PyType_GenericNew;                                  \
+    if ((type).tp_new == 0) {                                           \
+	(type).tp_new = PyType_GenericNew;                              \
+    }                                                                   \
     if (PyType_Ready(&(type)) < 0) {                                    \
         goto fail;                                                      \
     }                                                                   \
@@ -81,11 +83,11 @@ initc(void)
     PyObject *module = Py_InitModule3("c", module_functions, module_doc);
 #endif
     Py_INCREF((PyObject *)&PlanarVec2Type);
-    Py_INCREF((PyObject *)&PlanarVec2ArrayType);
+    Py_INCREF((PyObject *)&PlanarSeq2Type);
     Py_INCREF((PyObject *)&PlanarAffineType);
 
     INIT_TYPE(PlanarVec2Type, "Vec2");
-    INIT_TYPE(PlanarVec2ArrayType, "Vec2Array");
+    INIT_TYPE(PlanarSeq2Type, "Seq2");
     INIT_TYPE(PlanarAffineType, "Affine");
 
 	PlanarTransformNotInvertibleError = PyErr_NewException(
@@ -106,7 +108,7 @@ initc(void)
 #endif
 fail:
     Py_DECREF((PyObject *)&PlanarVec2Type);
-    Py_DECREF((PyObject *)&PlanarVec2ArrayType);
+    Py_DECREF((PyObject *)&PlanarSeq2Type);
     Py_DECREF((PyObject *)&PlanarAffineType);
     Py_DECREF(module);
     INITERROR;

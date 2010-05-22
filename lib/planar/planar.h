@@ -74,7 +74,7 @@ typedef struct {
        be positioned differently in memory in subtypes */
     planar_vec2_t data[1];
     /* data[] is dynamically sized to ob_size elements */
-} PlanarVec2ArrayObject;
+} PlanarSeq2Object;
 
 typedef struct {
     PyObject_HEAD
@@ -149,7 +149,7 @@ extern double PLANAR_EPSILON;
 extern double PLANAR_EPSILON2;
 
 extern PyTypeObject PlanarVec2Type;
-extern PyTypeObject PlanarVec2ArrayType;
+extern PyTypeObject PlanarSeq2Type;
 extern PyTypeObject PlanarAffineType;
 
 extern PyObject *PlanarTransformNotInvertibleError;
@@ -237,10 +237,10 @@ error:
     return 0;
 }
 
-/* Vec2Array utils */
+/* Seq2 utils */
 
-#define PlanarVec2Array_Check(op) PyObject_TypeCheck(op, &PlanarVec2ArrayType)
-#define PlanarVec2Array_CheckExact(op) (Py_TYPE(op) == &PlanarVec2ArrayType)
+#define PlanarSeq2_Check(op) PyObject_TypeCheck(op, &PlanarSeq2Type)
+#define PlanarSeq2_CheckExact(op) (Py_TYPE(op) == &PlanarSeq2Type)
 
 /* Affine utils */
 

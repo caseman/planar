@@ -396,36 +396,36 @@ class CVec2TestCase(Vec2BaseTestCase, unittest.TestCase):
     from planar.c import Vec2
 
 
-class Vec2ArrayBaseTestCase(object):
+class Seq2BaseTestCase(object):
 
     def test_init(self):
-        a = self.Vec2Array([(0,1), (2,3)])
+        a = self.Seq2([(0,1), (2,3)])
         assert_equal(tuple(a), (self.Vec2(0,1), self.Vec2(2,3)))
-        a = self.Vec2Array([self.Vec2(4,5)])
+        a = self.Seq2([self.Vec2(4,5)])
         assert_equal(tuple(a), (self.Vec2(4,5),))
-        a = self.Vec2Array([])
+        a = self.Seq2([])
         assert_equal(tuple(a), ())
 
     def test_len(self):
-        a = self.Vec2Array([(0,1), (2,3)])
+        a = self.Seq2([(0,1), (2,3)])
         assert_equal(len(a), 2)
-        a = self.Vec2Array([])
+        a = self.Seq2([])
         assert_equal(len(a), 0)
 
     def test_bool(self):
-        a = self.Vec2Array([(0,1), (2,3)])
+        a = self.Seq2([(0,1), (2,3)])
         assert a
-        a = self.Vec2Array([])
+        a = self.Seq2([])
         assert not a
 
     def test_iter(self):
-        i = iter(self.Vec2Array([(-1,1.5), (3, 4.1)]))
+        i = iter(self.Seq2([(-1,1.5), (3, 4.1)]))
         assert_equal(i.next(), self.Vec2(-1, 1.5))
         assert_equal(i.next(), self.Vec2(3, 4.1))
         self.assertRaises(StopIteration, i.next)
 
     def test_get_set_item(self):
-        a = self.Vec2Array([(0,1), (2,3)])
+        a = self.Seq2([(0,1), (2,3)])
         a[0] = (7,8)
         assert isinstance(a[0], self.Vec2)
         assert_equal(a[0], self.Vec2(7,8))
@@ -436,16 +436,16 @@ class Vec2ArrayBaseTestCase(object):
 
     @raises(IndexError)
     def test_get_bad_index(self):
-        a = self.Vec2Array([(1,2), (3,4), (5,6)])
+        a = self.Seq2([(1,2), (3,4), (5,6)])
         a[4]
 
     @raises(IndexError)
     def test_set_bad_index(self):
-        a = self.Vec2Array([(1,2), (3,4), (5,6), (7,8)])
+        a = self.Seq2([(1,2), (3,4), (5,6), (7,8)])
         a[8] = self.Vec2(3,3)
 
     def test_imul_by_transform(self):
-        b = a = self.Vec2Array([(1,2), (3,4), (5,6)])
+        b = a = self.Seq2([(1,2), (3,4), (5,6)])
         a *= self.Affine.translation((5, -4))
         assert a is b
         V = self.Vec2
@@ -453,12 +453,12 @@ class Vec2ArrayBaseTestCase(object):
 
     @raises(TypeError)
     def test_imul_incompatible(self):
-        a = self.Vec2Array([(1,2), (3,4)])
+        a = self.Seq2([(1,2), (3,4)])
         a *= 2
 
     def test_mul_by_transform(self):
         import planar
-        a = self.Vec2Array([(1,2), (3,4), (5,6)])
+        a = self.Seq2([(1,2), (3,4), (5,6)])
         b = a * self.Affine.scale((2, -1))
         assert a is not b
         V = self.Vec2
@@ -466,49 +466,56 @@ class Vec2ArrayBaseTestCase(object):
 
     @raises(TypeError)
     def test_mul_incompatible(self):
-        a = self.Vec2Array([(1,2), (3,4)]) * 2
+        a = self.Seq2([(1,2), (3,4)]) * 2
 
     def test_eq(self):
-        assert (self.Vec2Array([(1,2), (3,4)]) ==
-            self.Vec2Array([self.Vec2(1,2), self.Vec2(3,4)]))
-        assert self.Vec2Array([]) == self.Vec2Array([])
-        assert not self.Vec2Array([]) == self.Vec2Array([(1,2)])
-        assert not self.Vec2Array([(3,4)]) == self.Vec2Array([(1,2)])
-        assert not self.Vec2Array([(1,2), (3,4)]) == self.Vec2Array([(1,2)])
+        assert (self.Seq2([(1,2), (3,4)]) ==
+            self.Seq2([self.Vec2(1,2), self.Vec2(3,4)]))
+        assert self.Seq2([]) == self.Seq2([])
+        assert not self.Seq2([]) == self.Seq2([(1,2)])
+        assert not self.Seq2([(3,4)]) == self.Seq2([(1,2)])
+        assert not self.Seq2([(1,2), (3,4)]) == self.Seq2([(1,2)])
+        assert not self.Seq2([(3,4)]) == [(3,4)]
+        assert not self.Seq2([(3,4)]) == None
+        assert not None == self.Seq2([(3,4)])
 
     def test_ne(self):
-        assert self.Vec2Array([]) != self.Vec2Array([(1,2)])
-        assert self.Vec2Array([(3,4)]) != self.Vec2Array([(1,2)])
-        assert self.Vec2Array([(1,2), (3,4)]) != self.Vec2Array([(1,2)])
-        assert not (self.Vec2Array([(1,2), (3,4)]) !=
-            self.Vec2Array([self.Vec2(1,2), self.Vec2(3,4)]))
-        assert not self.Vec2Array([]) != self.Vec2Array([])
+        assert self.Seq2([]) != self.Seq2([(1,2)])
+        assert self.Seq2([(3,4)]) != self.Seq2([(1,2)])
+        assert self.Seq2([(1,2), (3,4)]) != self.Seq2([(1,2)])
+        assert not (self.Seq2([(1,2), (3,4)]) !=
+            self.Seq2([self.Vec2(1,2), self.Vec2(3,4)]))
+        assert not self.Seq2([]) != self.Seq2([])
+        assert self.Seq2([(3,4)]) != [(3,4)]
+        assert self.Seq2([(3,4)]) != None
+        assert None != self.Seq2([(3,4)])
 
     def test_almost_equals(self):
         from planar import EPSILON
-        a = self.Vec2Array([(3,2), (6,0)])
+        a = self.Seq2([(3,2), (6,0)])
         assert a.almost_equals(a)
-        b = self.Vec2Array([(3 - EPSILON/2, 2), (6, EPSILON/2)])
+        b = self.Seq2([(3 - EPSILON/2, 2), (6, EPSILON/2)])
         assert a.almost_equals(b)
-        c = self.Vec2Array([(3 - EPSILON/2, 2), (6, EPSILON/2), (0,0)])
+        c = self.Seq2([(3 - EPSILON/2, 2), (6, EPSILON/2), (0,0)])
         assert not a.almost_equals(c)
         assert not b.almost_equals(c)
-        d = self.Vec2Array([(3 - EPSILON, 2), (6, EPSILON*2)])
+        d = self.Seq2([(3 - EPSILON, 2), (6, EPSILON*2)])
         assert not a.almost_equals(d)
 
     def test_copy(self):
         from copy import copy
-        a = self.Vec2Array([(2,4), (5,5), (6,7)])
+        a = self.Seq2([(2,4), (5,5), (6,7)])
         b = copy(a)
         assert a is not b
-        assert isinstance(b, self.Vec2Array)
+        assert isinstance(b, self.Seq2)
         assert_equal(tuple(a), tuple(b))
         a[0] = (0, 0)
         assert_equal(b[0], self.Vec2(2, 4))
+        assert_equal(tuple(copy(self.Seq2([]))), ())
 
     def test_copy_subclass(self):
         from copy import copy
-        class Subclass(self.Vec2Array):
+        class Subclass(self.Seq2):
             pass
 
         a = Subclass([(0,1), (1,2)])
@@ -520,9 +527,13 @@ class Vec2ArrayBaseTestCase(object):
         assert_equal(b[0], self.Vec2(0, 1))
         
 
-class PyVec2ArrayTestCase(Vec2ArrayBaseTestCase, unittest.TestCase):
-    from planar.vector import Vec2Array, Vec2
+class PySeq2TestCase(Seq2BaseTestCase, unittest.TestCase):
+    from planar.vector import Seq2, Vec2
     from planar.transform import Affine
+
+
+class CSeq2TestCase(Seq2BaseTestCase, unittest.TestCase):
+    from planar.c import Seq2, Vec2, Affine
 
 
 if __name__ == '__main__':

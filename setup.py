@@ -61,7 +61,7 @@ setup(
 			#library_dirs=library_dirs,
 			#libraries=libraries,
 			#extra_link_args=extra_link_args,
-			#extra_compile_args=compile_args,
+			extra_compile_args=[],
 			#define_macros=macros,
 		),
     ],

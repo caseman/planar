@@ -467,7 +467,7 @@ Affine_itransform(PlanarAffineObject *self, PyObject *seq)
     Py_ssize_t i;
     Py_ssize_t len;
     PyObject *point;
-    PlanarVec2ArrayObject *varray;
+    PlanarSeq2Object *varray;
     double x, y, a, b, c, d, e, f;
 
     a = self->a;
@@ -477,9 +477,9 @@ Affine_itransform(PlanarAffineObject *self, PyObject *seq)
     e = self->e;
     f = self->f;
     assert(PlanarAffine_Check(self));
-    if (PlanarVec2Array_Check(seq)) {
-	/* Optimized code path for Vec2Arrays */
-	varray = (PlanarVec2ArrayObject *)seq;
+    if (PlanarSeq2_Check(seq)) {
+	/* Optimized code path for Seq2s */
+	varray = (PlanarSeq2Object *)seq;
 	for (i = 0; i < Py_SIZE(seq); i++) {
 	    x = varray->vec[i].x;
 	    y = varray->vec[i].y;
@@ -564,10 +564,11 @@ Affine__mul__(PyObject *a, PyObject *b)
 {
     PlanarAffineObject *ta, *tb, *tr;
     PlanarVec2Object *v;
-	int a_is_affine, b_is_affine;
+    int a_is_affine, b_is_affine;
 
-	a_is_affine = PlanarAffine_Check(a);
-	b_is_affine = PlanarAffine_Check(b);
+    printf("mul!\n");
+    a_is_affine = PlanarAffine_Check(a);
+    b_is_affine = PlanarAffine_Check(b);
 
     if (a_is_affine && b_is_affine) {
         /* Affine * Affine = Affine */
