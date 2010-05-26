@@ -263,10 +263,10 @@ class Affine(tuple):
                 (sa*oa + sb*od, sa*ob + sb*oe, sa*oc + sb*of + sc,
                  sd*oa + se*od, sd*ob + se*oe, sd*oc + se*of + sf,
                  0.0, 0.0, 1.0))
-        elif hasattr(other, '_new_from_points'):
+        elif hasattr(other, 'from_points'):
             # Point/vector array
             Point = planar.Point
-            return other._new_from_points(
+            return other.from_points(
                 Point(px*sa + py*sd + sc, px*sb + py*se + sf)
                 for px, py in other)
         else:

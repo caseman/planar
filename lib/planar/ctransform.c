@@ -566,7 +566,6 @@ Affine__mul__(PyObject *a, PyObject *b)
     PlanarVec2Object *v;
     int a_is_affine, b_is_affine;
 
-    printf("mul!\n");
     a_is_affine = PlanarAffine_Check(a);
     b_is_affine = PlanarAffine_Check(b);
 

@@ -405,6 +405,20 @@ class Seq2BaseTestCase(object):
         assert_equal(tuple(a), (self.Vec2(4,5),))
         a = self.Seq2([])
         assert_equal(tuple(a), ())
+        a = self.Seq2(iter(((3,4), (5,6), (7,-8))))
+        assert_equal(tuple(a), 
+            (self.Vec2(3,4), self.Vec2(5,6), self.Vec2(7,-8)))
+
+    def test_from_points(self):
+        a = self.Seq2.from_points([(0,1), (2,3)])
+        assert_equal(tuple(a), (self.Vec2(0,1), self.Vec2(2,3)))
+        a = self.Seq2.from_points([self.Vec2(4,5)])
+        assert_equal(tuple(a), (self.Vec2(4,5),))
+        a = self.Seq2.from_points([])
+        assert_equal(tuple(a), ())
+        a = self.Seq2.from_points(iter(((3,4), (5,6), (7,-8))))
+        assert_equal(tuple(a), 
+            (self.Vec2(3,4), self.Vec2(5,6), self.Vec2(7,-8)))
 
     def test_len(self):
         a = self.Seq2([(0,1), (2,3)])
@@ -457,7 +471,6 @@ class Seq2BaseTestCase(object):
         a *= 2
 
     def test_mul_by_transform(self):
-        import planar
         a = self.Seq2([(1,2), (3,4), (5,6)])
         b = a * self.Affine.scale((2, -1))
         assert a is not b

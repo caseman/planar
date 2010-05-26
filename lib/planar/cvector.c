@@ -827,7 +827,7 @@ Seq2_alloc(PyTypeObject *type, Py_ssize_t size)
 }
 
 static PlanarSeq2Object *
-_seq2_new(PyTypeObject *type, PyObject *points)
+Seq2_new_from_points(PyTypeObject *type, PyObject *points)
 {
     PlanarSeq2Object *varray;
     Py_ssize_t size;
@@ -891,7 +891,7 @@ Seq2_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
         PyErr_SetString(PyExc_TypeError, "wrong number of arguments");
         return NULL;
     }
-    return _seq2_new(type, PyTuple_GET_ITEM(args, 0));
+    return Seq2_new_from_points(type, PyTuple_GET_ITEM(args, 0));
 }
 
 static void
@@ -953,7 +953,11 @@ Seq2_compare(PyObject *a, PyObject *b, int op)
 static PyObject *
 Seq2_getitem(PlanarSeq2Object *self, Py_ssize_t index)
 {
-    if (index >= 0 && index < Py_SIZE(self)) {
+    Py_ssize_t size = PySequence_Size((PyObject *)self);
+    if (size == -1) {
+	return NULL;
+    }
+    if (index >= 0 && index < size) {
         return (PyObject *)PlanarVec2_FromStruct(self->vec + index);
     }
     PyErr_Format(PyExc_IndexError, "index %d out of range", (int)index);
@@ -964,7 +968,11 @@ static int
 Seq2_assitem(PlanarSeq2Object *self, Py_ssize_t index, PyObject *v)
 {
     double x, y;
-    if (index >= 0 && index < Py_SIZE(self)) {
+    Py_ssize_t size = PySequence_Size((PyObject *)self);
+    if (size == -1) {
+	return -1;
+    }
+    if (index >= 0 && index < size) {
 	if (!PlanarVec2_Parse(v, &x, &y)) {
 	    if (!PyErr_Occurred()) {
 		PyErr_Format(PyExc_TypeError, 
@@ -1006,7 +1014,7 @@ Seq2_almost_equals(PlanarSeq2Object *self, PlanarSeq2Object *other)
     Py_ssize_t size, osize;
     planar_vec2_t *sv, *ov;
 
-    assert(PlanarVec2_Check(self));
+    assert(PlanarSeq2_Check(self));
     size = PySequence_Size((PyObject *)self);
     osize = PySequence_Size((PyObject *)other);
     if (Py_TYPE(self) != Py_TYPE(other) || size == -1 || osize == -1) {
@@ -1035,7 +1043,7 @@ Seq2_copy(PlanarSeq2Object *self)
     PlanarSeq2Object *varray;
     Py_ssize_t size;
     
-    assert(PlanarVec2_Check(self));
+    assert(PlanarSeq2_Check(self));
     size = PySequence_Size((PyObject *)self);
     if (size == -1) {
 	return NULL;
@@ -1048,16 +1056,11 @@ Seq2_copy(PlanarSeq2Object *self)
     return varray;
 }
 
-static PlanarSeq2Object *
-Seq2_new_from_points(PlanarSeq2Object *self, PyObject *points) 
-{
-    return _seq2_new(Py_TYPE(self), points);
-}
-
 static PyMethodDef Seq2_methods[] = {
     {"almost_equals", (PyCFunction)Seq2_almost_equals, METH_O, 
 	"Compare for approximate equality."},
-    {"_new_from_points", (PyCFunction)Seq2_new_from_points, METH_O, NULL},
+    {"from_points", (PyCFunction)Seq2_new_from_points, METH_CLASS, 
+	"Create a new 2D sequence from an iterable of points"},
     {"__copy__", (PyCFunction)Seq2_copy, METH_NOARGS, NULL}, 
     {NULL, NULL}
 };
@@ -1145,6 +1148,7 @@ Seq2__imul__(PyObject *a, PyObject *b)
 	sv->y = sv->x*tb + sv->y*te + tf;
 	++sv;
     }
+    Py_INCREF(s);
     return (PyObject *)s;
 }
 

@@ -477,7 +477,8 @@ class Seq2(object):
         self._vectors = [Vec2(*v) for v in vectors]
 
     @classmethod
-    def _new_from_points(cls, points):
+    def from_points(cls, points):
+        """Create a new 2D sequence from an iterable of points"""
         self = cls.__new__(cls)
         self._vectors = list(points)
         return self
@@ -521,7 +522,7 @@ class Seq2(object):
             or tuple(self) != tuple(other))
 
     def __copy__(self):
-        return self._new_from_points(self._vectors)
+        return self.from_points(self._vectors)
 
 
 # vim: ai ts=4 sts=4 et sw=4 tw=78

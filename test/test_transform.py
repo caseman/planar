@@ -247,22 +247,6 @@ class AffineBaseTestCase(object):
         assert_almost_equal(v.length, 5)
         assert_almost_equal(v.angle, 123)
 
-    def test_mul_vector_seq(self):
-        class SomePoints(tuple):
-            @classmethod
-            def _new_from_points(cls, points):
-                return cls(points)
-        V = self.Vec2
-        pts = SomePoints((V(0,0), V(1,1), V(-2,1)))
-        tpts = pts * self.Affine.scale(3)
-        assert isinstance(tpts, SomePoints)
-        # original sequence is unchanged
-        assert_equal(pts, SomePoints((V(0,0), V(1,1), V(-2,1))))
-        assert_equal(tpts, SomePoints((V(0,0), V(3,3), V(-6,3))))
-        rtpts = self.Affine.scale(3) * pts
-        assert_equal(pts, SomePoints((V(0,0), V(1,1), V(-2,1))))
-        assert_equal(rtpts, SomePoints((V(0,0), V(3,3), V(-6,3))))
-
     def test_itransform(self):
         V = self.Vec2
         pts = [V(4,1), V(-1,0), V(3,2)]
@@ -315,6 +299,22 @@ class PyAffineTestCase(AffineBaseTestCase, unittest.TestCase):
     from planar.transform import Affine
     from planar.vector import Vec2
     
+    def test_mul_vector_seq(self):
+        class SomePoints(tuple):
+            @classmethod
+            def from_points(cls, points):
+                return cls(points)
+        V = self.Vec2
+        pts = SomePoints((V(0,0), V(1,1), V(-2,1)))
+        tpts = pts * self.Affine.scale(3)
+        assert isinstance(tpts, SomePoints)
+        # original sequence is unchanged
+        assert_equal(pts, SomePoints((V(0,0), V(1,1), V(-2,1))))
+        assert_equal(tpts, SomePoints((V(0,0), V(3,3), V(-6,3))))
+        rtpts = self.Affine.scale(3) * pts
+        assert_equal(pts, SomePoints((V(0,0), V(1,1), V(-2,1))))
+        assert_equal(rtpts, SomePoints((V(0,0), V(3,3), V(-6,3))))
+
 
 class CAffineTestCase(AffineBaseTestCase, unittest.TestCase):
     from planar.c import Affine, Vec2
