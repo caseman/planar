@@ -396,50 +396,50 @@ class CVec2TestCase(Vec2BaseTestCase, unittest.TestCase):
     from planar.c import Vec2
 
 
-class Seq2BaseTestCase(object):
+class VectorSeqBaseTestCase(object):
 
     def test_init(self):
-        a = self.Seq2([(0,1), (2,3)])
+        a = self.VecSeq([(0,1), (2,3)])
         assert_equal(tuple(a), (self.Vec2(0,1), self.Vec2(2,3)))
-        a = self.Seq2([self.Vec2(4,5)])
+        a = self.VecSeq([self.Vec2(4,5)])
         assert_equal(tuple(a), (self.Vec2(4,5),))
-        a = self.Seq2([])
+        a = self.VecSeq([])
         assert_equal(tuple(a), ())
-        a = self.Seq2(iter(((3,4), (5,6), (7,-8))))
+        a = self.VecSeq(iter(((3,4), (5,6), (7,-8))))
         assert_equal(tuple(a), 
             (self.Vec2(3,4), self.Vec2(5,6), self.Vec2(7,-8)))
 
     def test_from_points(self):
-        a = self.Seq2.from_points([(0,1), (2,3)])
+        a = self.VecSeq.from_points([(0,1), (2,3)])
         assert_equal(tuple(a), (self.Vec2(0,1), self.Vec2(2,3)))
-        a = self.Seq2.from_points([self.Vec2(4,5)])
+        a = self.VecSeq.from_points([self.Vec2(4,5)])
         assert_equal(tuple(a), (self.Vec2(4,5),))
-        a = self.Seq2.from_points([])
+        a = self.VecSeq.from_points([])
         assert_equal(tuple(a), ())
-        a = self.Seq2.from_points(iter(((3,4), (5,6), (7,-8))))
+        a = self.VecSeq.from_points(iter(((3,4), (5,6), (7,-8))))
         assert_equal(tuple(a), 
             (self.Vec2(3,4), self.Vec2(5,6), self.Vec2(7,-8)))
 
     def test_len(self):
-        a = self.Seq2([(0,1), (2,3)])
+        a = self.VecSeq([(0,1), (2,3)])
         assert_equal(len(a), 2)
-        a = self.Seq2([])
+        a = self.VecSeq([])
         assert_equal(len(a), 0)
 
     def test_bool(self):
-        a = self.Seq2([(0,1), (2,3)])
+        a = self.VecSeq([(0,1), (2,3)])
         assert a
-        a = self.Seq2([])
+        a = self.VecSeq([])
         assert not a
 
     def test_iter(self):
-        i = iter(self.Seq2([(-1,1.5), (3, 4.1)]))
+        i = iter(self.VecSeq([(-1,1.5), (3, 4.1)]))
         assert_equal(i.next(), self.Vec2(-1, 1.5))
         assert_equal(i.next(), self.Vec2(3, 4.1))
         self.assertRaises(StopIteration, i.next)
 
     def test_get_set_item(self):
-        a = self.Seq2([(0,1), (2,3)])
+        a = self.VecSeq([(0,1), (2,3)])
         a[0] = (7,8)
         assert isinstance(a[0], self.Vec2)
         assert_equal(a[0], self.Vec2(7,8))
@@ -450,16 +450,21 @@ class Seq2BaseTestCase(object):
 
     @raises(IndexError)
     def test_get_bad_index(self):
-        a = self.Seq2([(1,2), (3,4), (5,6)])
+        a = self.VecSeq([(1,2), (3,4), (5,6)])
         a[4]
 
     @raises(IndexError)
+    def test_get_bad_neg_index(self):
+        a = self.VecSeq([(1,2), (3,4), (5,6)])
+        a[-9]
+
+    @raises(IndexError)
     def test_set_bad_index(self):
-        a = self.Seq2([(1,2), (3,4), (5,6), (7,8)])
+        a = self.VecSeq([(1,2), (3,4), (5,6), (7,8)])
         a[8] = self.Vec2(3,3)
 
     def test_imul_by_transform(self):
-        b = a = self.Seq2([(1,2), (3,4), (5,6)])
+        b = a = self.VecSeq([(1,2), (3,4), (5,6)])
         a *= self.Affine.translation((5, -4))
         assert a is b
         V = self.Vec2
@@ -467,11 +472,11 @@ class Seq2BaseTestCase(object):
 
     @raises(TypeError)
     def test_imul_incompatible(self):
-        a = self.Seq2([(1,2), (3,4)])
-        a *= 2
+        a = self.VecSeq([(1,2), (3,4)])
+        a *= None
 
     def test_mul_by_transform(self):
-        a = self.Seq2([(1,2), (3,4), (5,6)])
+        a = self.VecSeq([(1,2), (3,4), (5,6)])
         b = a * self.Affine.scale((2, -1))
         assert a is not b
         V = self.Vec2
@@ -479,56 +484,56 @@ class Seq2BaseTestCase(object):
 
     @raises(TypeError)
     def test_mul_incompatible(self):
-        a = self.Seq2([(1,2), (3,4)]) * 2
+        a = self.VecSeq([(1,2), (3,4)]) * 2
 
     def test_eq(self):
-        assert (self.Seq2([(1,2), (3,4)]) ==
-            self.Seq2([self.Vec2(1,2), self.Vec2(3,4)]))
-        assert self.Seq2([]) == self.Seq2([])
-        assert not self.Seq2([]) == self.Seq2([(1,2)])
-        assert not self.Seq2([(3,4)]) == self.Seq2([(1,2)])
-        assert not self.Seq2([(1,2), (3,4)]) == self.Seq2([(1,2)])
-        assert not self.Seq2([(3,4)]) == [(3,4)]
-        assert not self.Seq2([(3,4)]) == None
-        assert not None == self.Seq2([(3,4)])
+        assert (self.VecSeq([(1,2), (3,4)]) ==
+            self.VecSeq([self.Vec2(1,2), self.Vec2(3,4)]))
+        assert self.VecSeq([]) == self.VecSeq([])
+        assert not self.VecSeq([]) == self.VecSeq([(1,2)])
+        assert not self.VecSeq([(3,4)]) == self.VecSeq([(1,2)])
+        assert not self.VecSeq([(1,2), (3,4)]) == self.VecSeq([(1,2)])
+        assert not self.VecSeq([(3,4)]) == [(3,4)]
+        assert not self.VecSeq([(3,4)]) == None
+        assert not None == self.VecSeq([(3,4)])
 
     def test_ne(self):
-        assert self.Seq2([]) != self.Seq2([(1,2)])
-        assert self.Seq2([(3,4)]) != self.Seq2([(1,2)])
-        assert self.Seq2([(1,2), (3,4)]) != self.Seq2([(1,2)])
-        assert not (self.Seq2([(1,2), (3,4)]) !=
-            self.Seq2([self.Vec2(1,2), self.Vec2(3,4)]))
-        assert not self.Seq2([]) != self.Seq2([])
-        assert self.Seq2([(3,4)]) != [(3,4)]
-        assert self.Seq2([(3,4)]) != None
-        assert None != self.Seq2([(3,4)])
+        assert self.VecSeq([]) != self.VecSeq([(1,2)])
+        assert self.VecSeq([(3,4)]) != self.VecSeq([(1,2)])
+        assert self.VecSeq([(1,2), (3,4)]) != self.VecSeq([(1,2)])
+        assert not (self.VecSeq([(1,2), (3,4)]) !=
+            self.VecSeq([self.Vec2(1,2), self.Vec2(3,4)]))
+        assert not self.VecSeq([]) != self.VecSeq([])
+        assert self.VecSeq([(3,4)]) != [(3,4)]
+        assert self.VecSeq([(3,4)]) != None
+        assert None != self.VecSeq([(3,4)])
 
     def test_almost_equals(self):
         from planar import EPSILON
-        a = self.Seq2([(3,2), (6,0)])
+        a = self.VecSeq([(3,2), (6,0)])
         assert a.almost_equals(a)
-        b = self.Seq2([(3 - EPSILON/2, 2), (6, EPSILON/2)])
+        b = self.VecSeq([(3 - EPSILON/2, 2), (6, EPSILON/2)])
         assert a.almost_equals(b)
-        c = self.Seq2([(3 - EPSILON/2, 2), (6, EPSILON/2), (0,0)])
+        c = self.VecSeq([(3 - EPSILON/2, 2), (6, EPSILON/2), (0,0)])
         assert not a.almost_equals(c)
         assert not b.almost_equals(c)
-        d = self.Seq2([(3 - EPSILON, 2), (6, EPSILON*2)])
+        d = self.VecSeq([(3 - EPSILON, 2), (6, EPSILON*2)])
         assert not a.almost_equals(d)
 
     def test_copy(self):
         from copy import copy
-        a = self.Seq2([(2,4), (5,5), (6,7)])
+        a = self.VecSeq([(2,4), (5,5), (6,7)])
         b = copy(a)
         assert a is not b
-        assert isinstance(b, self.Seq2)
+        assert isinstance(b, self.VecSeq)
         assert_equal(tuple(a), tuple(b))
         a[0] = (0, 0)
         assert_equal(b[0], self.Vec2(2, 4))
-        assert_equal(tuple(copy(self.Seq2([]))), ())
+        assert_equal(tuple(copy(self.VecSeq([]))), ())
 
     def test_copy_subclass(self):
         from copy import copy
-        class Subclass(self.Seq2):
+        class Subclass(self.VecSeq):
             pass
 
         a = Subclass([(0,1), (1,2)])
@@ -538,15 +543,452 @@ class Seq2BaseTestCase(object):
         assert_equal(tuple(a), tuple(b))
         a[0] = (0, 0)
         assert_equal(b[0], self.Vec2(0, 1))
+
+    @raises(TypeError)
+    def test_unhashable(self):
+        hash(self.VecSeq([(3,2), (6,0)]))
         
 
-class PySeq2TestCase(Seq2BaseTestCase, unittest.TestCase):
-    from planar.vector import Seq2, Vec2
+class PySeq2TestCase(VectorSeqBaseTestCase, unittest.TestCase):
+    from planar.vector import Vec2
+    from planar.vector import Seq2 as VecSeq
     from planar.transform import Affine
 
 
-class CSeq2TestCase(Seq2BaseTestCase, unittest.TestCase):
-    from planar.c import Seq2, Vec2, Affine
+class CSeq2TestCase(VectorSeqBaseTestCase, unittest.TestCase):
+    from planar.c import Vec2, Affine
+    from planar.c import Seq2 as VecSeq
+
+
+class Vec2ArrayBaseTestCase(object):
+    
+    def test_append(self):
+        va = self.Vec2Array()
+        assert_equal(tuple(va), ())
+        va.append((3,2))
+        assert_equal(tuple(va), (self.Vec2(3,2),))
+        assert isinstance(va[0], self.Vec2)
+        va.append(self.Vec2(4,-5))
+        assert_equal(tuple(va), (self.Vec2(3,2), self.Vec2(4,-5)))
+        assert isinstance(va[1], self.Vec2)
+
+    def test_extend(self):
+        va = self.Vec2Array()
+        assert_equal(tuple(va), ())
+        va.extend([(1,2), (3,4)])
+        assert isinstance(va[0], self.Vec2)
+        assert isinstance(va[1], self.Vec2)
+        assert_equal(tuple(va), (self.Vec2(1,2), self.Vec2(3,4)))
+        va.extend(iter([(5,6), (1,2)]))
+        assert_equal(tuple(va), (self.Vec2(1,2), self.Vec2(3,4),
+            self.Vec2(5,6), self.Vec2(1,2)))
+        assert isinstance(va[2], self.Vec2)
+        assert isinstance(va[3], self.Vec2)
+
+    def test_insert(self):
+        va = self.Vec2Array([(2,3), (9,0)])
+        assert_equal(tuple(va), (self.Vec2(2,3), self.Vec2(9,0)))
+        va.insert(1, (5,6))
+        assert_equal(tuple(va), 
+            (self.Vec2(2,3), self.Vec2(5,6), self.Vec2(9,0)))
+        va.insert(0, (-1,-2))
+        assert_equal(tuple(va), 
+            (self.Vec2(-1,-2), self.Vec2(2,3), 
+             self.Vec2(5,6), self.Vec2(9,0)))
+        va.insert(100, self.Vec2(8,99))
+        assert_equal(tuple(va), 
+            (self.Vec2(-1,-2), self.Vec2(2,3), 
+             self.Vec2(5,6), self.Vec2(9,0), self.Vec2(8,99)))
+
+    def test_insert_neg_index(self):
+        va = self.Vec2Array([(2,3), (6,7)])
+        va.insert(-1, (4,5))
+        assert_equal(tuple(va), 
+            (self.Vec2(2,3), self.Vec2(4,5), self.Vec2(6,7)))
+        va.insert(-99, (-1,-2))
+        assert_equal(tuple(va), 
+            (self.Vec2(-1,-2), self.Vec2(2,3), 
+             self.Vec2(4,5), self.Vec2(6,7)))
+
+    @raises(TypeError)
+    def test_insert_bad_index(self):
+        va = self.Vec2Array([(2,3), (9,0)])
+        va.insert(None, (4,5))
+
+    def test_delitem(self):
+        va = self.Vec2Array([(2,3), (9,0)])
+        assert_equal(tuple(va), (self.Vec2(2,3), self.Vec2(9,0)))
+        del va[0]
+        assert_equal(tuple(va), (self.Vec2(9,0),))
+
+    @raises(IndexError)
+    def test_delitem_out_of_range(self):
+        va = self.Vec2Array([(2,3), (9,0)])
+        del va[2]
+
+    @raises(TypeError)
+    def test_delitem_bad_index(self):
+        va = self.Vec2Array([(2,3), (9,0)])
+        del va[None]
+
+    def test_longest(self):
+        va = self.Vec2Array()
+        assert_equal(va.longest(), None)
+        va = self.Vec2Array([(2,1)])
+        assert_equal(va.longest(), self.Vec2(2,1))
+        va.append((-4,2))
+        assert_equal(va.longest(), self.Vec2(-4,2))
+        va.append((4,1.5))
+        assert_equal(va.longest(), self.Vec2(-4,2))
+        va.insert(1, (5,-4))
+        assert_equal(va.longest(), self.Vec2(5,-4))
+
+    def test_shortest(self):
+        va = self.Vec2Array()
+        assert_equal(va.shortest(), None)
+        va = self.Vec2Array([(2,1)])
+        assert_equal(va.shortest(), self.Vec2(2,1))
+        va.append((-4,2))
+        assert_equal(va.shortest(), self.Vec2(2,1))
+        va.append((-1,0.75))
+        assert_equal(va.shortest(), self.Vec2(-1,0.75))
+        va.insert(1, (0,0))
+        assert_equal(va.shortest(), self.Vec2(0,0))
+
+    def test_normalized(self):
+        va1 = self.Vec2Array()
+        va2 = va1.normalized()
+        assert va1 is not va2
+        assert_equal(len(va2), 0)
+        va1 = self.Vec2Array([(-3,0), (0,0), (2,1), (0,0.5)])
+        va2 = va1.normalized()
+        assert va1 is not va2
+        assert_equal(tuple(va1), 
+            (self.Vec2(-3,0), self.Vec2(0,0), 
+             self.Vec2(2,1), self.Vec2(0,0.5)))
+        assert_equal(tuple(va2), 
+            (self.Vec2(-1,0), self.Vec2(0,0), 
+             self.Vec2(2,1).normalized(), self.Vec2(0,1)))
+
+    def test_normalize(self):
+        va = self.Vec2Array()
+        va.normalize()
+        assert_equal(len(va), 0)
+        va = self.Vec2Array([(-3,0), (0,0), (2,1), (0,0.5)])
+        assert_equal(va.normalize(), None)
+        assert_equal(tuple(va), 
+            (self.Vec2(-1,0), self.Vec2(0,0), 
+             self.Vec2(2,1).normalized(), self.Vec2(0,1)))
+
+    def test_clamped(self):
+        va1 = self.Vec2Array()
+        va2 = va1.clamped(1, 2)
+        assert va1 is not va2
+        assert_equal(len(va2), 0)
+        va1 = self.Vec2Array([(-3,0), (0,0), (2,1), (0,0.5)])
+        va2 = va1.clamped(min_length=1)
+        assert va1 is not va2
+        assert_equal(tuple(va1), 
+            (self.Vec2(-3,0), self.Vec2(0,0), 
+             self.Vec2(2,1), self.Vec2(0,0.5)))
+        assert_equal(tuple(va2), 
+            (self.Vec2(-3,0), self.Vec2(0,0),
+             self.Vec2(2,1), self.Vec2(0,1)))
+        va2 = va1.clamped(max_length=2)
+        assert_equal(tuple(va2), 
+            (self.Vec2(-2,0), self.Vec2(0,0),
+             self.Vec2(2,1).clamped(max_length=2), self.Vec2(0,0.5)))
+        va2 = va1.clamped(min_length=1.5, max_length=2.5)
+        assert_equal(tuple(va2), 
+            (self.Vec2(-2.5,0), self.Vec2(0,0),
+             self.Vec2(2,1), self.Vec2(0,1.5)))
+
+    @raises(ValueError)
+    def test_clamped_bad_args(self):
+        va = self.Vec2Array([(3,-1)])
+        va.clamped(2, 1)
+
+    def test_clamp(self):
+        va = self.Vec2Array()
+        assert_equal(va.clamp(1, 2), None)
+        assert_equal(len(va), 0)
+        va = self.Vec2Array([(-3,0), (0,0), (2,1), (0,0.5)])
+        va.clamp(min_length=1.25)
+        assert_equal(tuple(va), 
+            (self.Vec2(-3,0), self.Vec2(0,0),
+             self.Vec2(2,1), self.Vec2(0,1.25)))
+        va.clamp(max_length=2)
+        assert_equal(tuple(va), 
+            (self.Vec2(-2,0), self.Vec2(0,0),
+             self.Vec2(2,1).clamped(max_length=2), self.Vec2(0,1.25)))
+        va.clamp(min_length=1.5, max_length=1.75)
+        assert_equal(tuple(va), 
+            (self.Vec2(-1.75,0), self.Vec2(0,0),
+             self.Vec2(2,1).clamped(max_length=1.75), self.Vec2(0,1.5)))
+
+    @raises(ValueError)
+    def test_clamp_bad_args(self):
+        va = self.Vec2Array([(3,-1)])
+        va.clamp(2, 1)
+
+    def test_add_arrays(self):
+        va1 = self.Vec2Array([(1,2), (3,4)])
+        va2 = self.Vec2Array([(-1,-1), (1,-2)])
+        va3 = va1 + va2
+        assert va3 is not va1
+        assert va3 is not va2
+        assert_equal(tuple(va3), (self.Vec2(0,1), self.Vec2(4,2)))
+
+    def test_add_array_to_other(self):
+        class Other(self.Seq2):
+            pass
+        va = self.Vec2Array([(0,1), (2,3), (3,4)])
+        other = Other([(1,-1), (2,-2), (3,-3)])
+        result = va + other
+        assert result is not other
+        assert isinstance(result, Other)
+        assert_equal(tuple(result), 
+            (self.Vec2(1,0), self.Vec2(4,1), self.Vec2(6,1)))
+        result2 = other + va
+        assert isinstance(result2, Other)
+        assert_equal(tuple(result2), 
+            (self.Vec2(1,0), self.Vec2(4,1), self.Vec2(6,1)))
+
+    def test_add_vector_to_array(self):
+        va = self.Vec2Array([(0,1), (2,3), (3,4)]) + self.Vec2(-2,3)
+        assert isinstance(va, self.Vec2Array)
+        assert_equal(tuple(va),
+            (self.Vec2(-2,4), self.Vec2(0,6), self.Vec2(1,7)))
+        va = va + (2,-1)
+        assert_equal(tuple(va),
+            (self.Vec2(0,3), self.Vec2(2,5), self.Vec2(3,6)))
+
+    @raises(ValueError)
+    def test_add_arrays_of_different_length(self):
+        self.Vec2Array([(0,0), (0,1)]) + self.Vec2Array([(1,2)])
+
+    @raises(TypeError)
+    def test_add_incompatible(self):
+        self.Vec2Array([(0,1), (2,3), (3,4)]) + [1, 2, 3]
+
+    def test_iadd_arrays(self):
+        va = a = self.Vec2Array([(1,2), (3,4)])
+        va += self.Vec2Array([(-1,-1), (1,-2)])
+        assert va is a
+        assert_equal(tuple(va), (self.Vec2(0,1), self.Vec2(4,2)))
+
+    def test_iadd_array_to_other(self):
+        class Other(self.Seq2):
+            pass
+        va = a = self.Vec2Array([(0,1), (2,3), (3,4)])
+        va += Other([(1,-1), (2,-2), (3,-3)])
+        assert va is a
+        assert_equal(tuple(va), 
+            (self.Vec2(1,0), self.Vec2(4,1), self.Vec2(6,1)))
+
+    def test_iadd_vector_to_array(self):
+        va = a = self.Vec2Array([(0,1), (2,3), (3,4)]) 
+        va += self.Vec2(-2,3)
+        assert va is a
+        assert_equal(tuple(va),
+            (self.Vec2(-2,4), self.Vec2(0,6), self.Vec2(1,7)))
+        va += (-1,1)
+        assert va is a
+        assert_equal(tuple(va),
+            (self.Vec2(-3,5), self.Vec2(-1,7), self.Vec2(0,8)))
+
+    @raises(ValueError)
+    def test_iadd_arrays_of_different_length(self):
+        va = self.Vec2Array([(0,0), (0,1)]) 
+        va += self.Vec2Array([(1,2), (2,2), (3,2)])
+
+    @raises(TypeError)
+    def test_iadd_incompatible(self):
+        va = self.Vec2Array([(0,1), (2,3), (3,4)]) 
+        va += None
+        
+    def test_sub_arrays(self):
+        va1 = self.Vec2Array([(1,2), (3,4)])
+        va2 = self.Vec2Array([(-1,-1), (1,-2)])
+        va3 = va1 - va2
+        assert va3 is not va1
+        assert va3 is not va2
+        assert_equal(tuple(va3), (self.Vec2(2,3), self.Vec2(2,6)))
+
+    def test_sub_array_from_other(self):
+        class Other(self.Seq2):
+            pass
+        va = self.Vec2Array([(0,1), (2,3), (3,4)])
+        other = Other([(1,-1), (2,-2), (3,-3)])
+        result2 = other - va
+        assert isinstance(result2, Other)
+        assert_equal(tuple(result2), 
+            (self.Vec2(1,-2), self.Vec2(0,-5), self.Vec2(0,-7)))
+
+    @raises(TypeError)
+    def test_sub_other_from_array(self):
+        class Other(self.Seq2):
+            pass
+        self.Vec2Array([(0,1), (2,3), (3,4)]) - Other([(1,-1), (2,-2), (3,-3)])
+
+    def test_sub_vector_from_array(self):
+        va = self.Vec2Array([(0,1), (2,3), (3,4)]) - self.Vec2(-2,3)
+        assert isinstance(va, self.Vec2Array)
+        assert_equal(tuple(va),
+            (self.Vec2(2,-2), self.Vec2(4,0), self.Vec2(5,1)))
+        va = va - (2,-1)
+        assert_equal(tuple(va),
+            (self.Vec2(0,-1), self.Vec2(2,1), self.Vec2(3,2)))
+
+    @raises(TypeError)
+    def test_sub_array_from_vector(self):
+        self.Vec2(9, 2) - self.Vec2Array([(0,1), (2,3)])
+
+    @raises(ValueError)
+    def test_sub_arrays_of_different_length(self):
+        self.Vec2Array([(0,0), (0,1)]) - self.Vec2Array([(1,2)])
+
+    @raises(TypeError)
+    def test_sub_incompatible(self):
+        self.Vec2Array([(0,1), (2,3), (3,4)]) - [1, 2, 3]
+
+    def test_isub_arrays(self):
+        va = a = self.Vec2Array([(1,2), (3,4)])
+        va -= self.Vec2Array([(-1,-1), (1,-2)])
+        assert va is a
+        assert_equal(tuple(va), (self.Vec2(2,3), self.Vec2(2,6)))
+
+    @raises(TypeError)
+    def test_isub_other_from_array(self):
+        class Other(self.Seq2):
+            pass
+        va = self.Vec2Array([(0,1), (2,3), (3,4)])
+        va -= Other([(1,-1), (2,-2), (3,-3)])
+
+    def test_isub_vector_from_array(self):
+        va = a = self.Vec2Array([(0,1), (2,3), (3,4)]) 
+        va -= self.Vec2(-2,3)
+        assert va is a
+        assert_equal(tuple(va),
+            (self.Vec2(2,-2), self.Vec2(4,0), self.Vec2(5,1)))
+        va -= (-1,1)
+        assert va is a
+        assert_equal(tuple(va),
+            (self.Vec2(3,-3), self.Vec2(5,-1), self.Vec2(6,0)))
+
+    @raises(ValueError)
+    def test_isub_arrays_of_different_length(self):
+        va = self.Vec2Array([(0,0), (0,1)]) 
+        va -= self.Vec2Array([(1,2), (2,2), (3,2)])
+
+    @raises(TypeError)
+    def test_isub_incompatible(self):
+        va = self.Vec2Array([(0,1), (2,3), (3,4)]) 
+        va -= None
+        
+    def test_mul_arrays(self):
+        va1 = self.Vec2Array([(1,2), (3,4)])
+        va2 = self.Vec2Array([(-1,-1), (1,-2)])
+        va3 = va1 * va2
+        assert va3 is not va1
+        assert va3 is not va2
+        assert_equal(tuple(va3), (self.Vec2(-1,-2), self.Vec2(3,-8)))
+
+    def test_mul_array_with_other(self):
+        class Other(self.Seq2):
+            pass
+        va = self.Vec2Array([(0,1), (2,3), (3,4)])
+        other = Other([(1,-1), (2,-2), (3,-3)])
+        result = va * other
+        assert result is not other
+        assert isinstance(result, Other)
+        assert_equal(tuple(result), 
+            (self.Vec2(0,-1), self.Vec2(4,-6), self.Vec2(9,-12)))
+        result2 = other * va
+        assert isinstance(result2, Other)
+        assert_equal(tuple(result), 
+            (self.Vec2(0,-1), self.Vec2(4,-6), self.Vec2(9,-12)))
+
+    def test_mul_vector_with_array(self):
+        va = self.Vec2Array([(0,1), (2,3), (3,4)]) * self.Vec2(-2,3)
+        assert isinstance(va, self.Vec2Array)
+        assert_equal(tuple(va),
+            (self.Vec2(0,3), self.Vec2(-4,9), self.Vec2(-6,12)))
+        va = self.Vec2(-2,3) * self.Vec2Array([(0,1), (2,3), (3,4)])
+        assert isinstance(va, self.Vec2Array)
+        assert_equal(tuple(va),
+            (self.Vec2(0,3), self.Vec2(-4,9), self.Vec2(-6,12)))
+        va = va * (2,-1)
+        assert_equal(tuple(va),
+            (self.Vec2(0,-3), self.Vec2(-8,-9), self.Vec2(-12,-12)))
+
+    def test_mul_vector_with_scalar(self):
+        va = self.Vec2Array([(0,1), (2,3), (3,4)]) * 4
+        assert isinstance(va, self.Vec2Array)
+        assert_equal(tuple(va),
+            (self.Vec2(0,4), self.Vec2(8,12), self.Vec2(12, 16)))
+        va = 4 * self.Vec2Array([(0,1), (2,3), (3,4)])
+        assert isinstance(va, self.Vec2Array)
+        assert_equal(tuple(va),
+            (self.Vec2(0,4), self.Vec2(8,12), self.Vec2(12, 16)))
+
+    @raises(ValueError)
+    def test_mul_arrays_of_different_length(self):
+        self.Vec2Array([(0,0), (0,1)]) * self.Vec2Array([(1,2)])
+
+    @raises(TypeError)
+    def test_mul_incompatible(self):
+        self.Vec2Array([(0,1), (2,3), (3,4)]) * [1, 2, 3]
+
+    def test_imul_arrays(self):
+        va = a = self.Vec2Array([(1,2), (3,4)])
+        va *= self.Vec2Array([(-1,-1), (1,-2)])
+        assert va is a
+        assert_equal(tuple(va), (self.Vec2(-1,-2), self.Vec2(3,-8)))
+
+    @raises(TypeError)
+    def test_imul_array_with_other(self):
+        class Other(self.Seq2):
+            pass
+        va = self.Vec2Array([(0,1), (2,3), (3,4)])
+        va *= Other([(1,-1), (2,-2), (3,-3)])
+
+    def test_imul_vector_with_array(self):
+        va = a = self.Vec2Array([(0,1), (2,3), (3,4)]) 
+        va *= self.Vec2(-2,3)
+        assert va is a
+        assert_equal(tuple(va),
+            (self.Vec2(0,3), self.Vec2(-4,9), self.Vec2(-6,12)))
+
+    def test_imul_vector_with_scalar(self):
+        va = a = self.Vec2Array([(0,1), (2,3), (3,4)]) 
+        va *= 4
+        assert va is a
+        assert_equal(tuple(va),
+            (self.Vec2(0,4), self.Vec2(8,12), self.Vec2(12, 16)))
+
+    @raises(ValueError)
+    def test_imul_arrays_of_different_length(self):
+        va = self.Vec2Array([(0,0), (0,1)]) 
+        va *= self.Vec2Array([(1,2)])
+
+    @raises(TypeError)
+    def test_imul_incompatible(self):
+        va = self.Vec2Array([(0,1), (2,3), (3,4)]) 
+        va *= [1, 2, 3]
+
+    def test_repr_and_str(self):
+        va = self.Vec2Array([(0,1), (2,3)])
+        assert_equal(repr(va), 'Vec2Array([(0.0, 1.0), (2.0, 3.0)])')
+        assert_equal(repr(va), str(va))
+
+
+class PyVec2ArrayTestCase(
+    Vec2ArrayBaseTestCase, VectorSeqBaseTestCase, unittest.TestCase):
+    from planar.vector import Vec2Array
+    from planar.vector import Vec2Array as VecSeq
+    from planar.vector import Vec2, Seq2
+    from planar.transform import Affine
 
 
 if __name__ == '__main__':

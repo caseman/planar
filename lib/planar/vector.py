@@ -258,6 +258,10 @@ class Vec2(tuple):
         :type max_length: float
         :rtype: Vec2
         """
+        if (min_length is not None and max_length is not None 
+            and min_length > max_length):
+            raise ValueError(
+                "Vec2.clamped: expected min_length <= max_length")
         L2 = self.length2
         if min_length is not None and L2 < min_length**2:
             return self.scaled_to(min_length)
@@ -500,7 +504,7 @@ class Seq2(object):
            other.itransform(self)
            return self
         except AttributeError:
-            raise TypeError("Cannot multiple %s with %s"
+            raise TypeError("Cannot multiply %s with %s"
                 % (type(self).__name__, type(other).__name__))
 
     def almost_equals(self, other):
@@ -523,6 +527,386 @@ class Seq2(object):
 
     def __copy__(self):
         return self.from_points(self._vectors)
+
+    def __nonzero__(self):
+        return bool(self._vectors)
+
+    def __hash__(self):
+        raise TypeError("unhashable type: %s" % self.__class__.__name__)
+
+
+class Vec2Array(Seq2):
+    """Sequence of 2D vectors for batch operations"""
+
+    def __init__(self, vectors=()):
+        super(Vec2Array, self).__init__(vectors)
+
+    def append(self, vector):
+        """Append a vector to the end of the array."""
+        self._vectors.append(Vec2(*vector))
+
+    def extend(self, iterable):
+        """Append all vectors in iterable to the end of array."""
+        self._vectors.extend(Vec2(*vector) for vector in iterable)
+
+    def insert(self, index, vector):
+        """Insert a vector at the specified index."""
+        self._vectors.insert(index, Vec2(*vector))
+
+    def __delitem__(self, index):
+        del self._vectors[index]
+    
+    def longest(self):
+        """Return the vector in the array with the maximum length."""
+        longest = None
+        max_len = 0
+        for vector in self._vectors:
+            len = vector.length2
+            if len > max_len:
+                longest = vector
+                max_len = len
+        return longest
+    
+    def shortest(self):
+        """Return the vector in the array with the minimum length."""
+        shortest = None
+        if self._vectors:
+            shortest = self._vectors[0]
+            min_len = shortest.length2
+            for vector in self._vectors:
+                len = vector.length2
+                if len < min_len:
+                    shortest = vector
+                    min_len = len
+        return shortest
+
+    def normalized(self):
+        """Create a new array containing the normal vectors calculated
+        from this array.
+
+        :rtype: Vec2Array
+        """
+        return self.from_points(
+            vector.normalized() for vector in self._vectors)
+
+    def normalize(self):
+        """Normalize the vectors in the array in place"""
+        self._vectors = [vector.normalized() for vector in self._vectors]
+
+    def clamped(self, min_length=None, max_length=None):
+        """Create a new array of vectors with lengths clamped between
+        ``min_length`` and ``max_length``.
+
+        :param min_length: Minimum length of computed vectors.
+        :type min_length: float
+        :param max_length: Maximum length of computed vectors. Must
+            be >= ``min_length``.
+        :type max_length: float
+        :rtype: Vec2Array
+        """
+        return self.from_points(
+            vector.clamped(min_length, max_length) 
+            for vector in self._vectors)
+
+    def clamp(self, min_length=None, max_length=None):
+        """Clamp the length of the vectors in this array in place between
+        ``min_length`` and ``max_length``.
+
+        :param min_length: Minimum length of computed vectors.
+        :type min_length: float
+        :param max_length: Maximum length of computed vectors. Must
+            be >= ``min_length``.
+        :type max_length: float
+        """
+        self._vectors = [vector.clamped(min_length, max_length) 
+            for vector in self._vectors]
+
+    def __add__(self, other):
+        """Add this array to another vector sequence, or a single vector. When
+        a single vector is added to an array, the vector is added to each
+        element of the array. When an array is added to a sequence, each
+        vector element from self is added to other. The result will have the
+        same type as other. Note that self and other must have the same length.
+        
+        :type other: Seq2 or Vec2
+        :rtype: Seq2 (same type as other)
+        """
+        if isinstance(other, Seq2):
+            if len(self) == len(other):
+                return other.from_points(
+                    a + b for a, b in zip(self, other))
+            else:
+                raise ValueError("cannot add arrays with different lengths")
+        else:
+            try:
+                b = Vec2(*other)
+            except Exception:
+                return NotImplemented
+            return self.from_points(a + b for a in self)
+        return NotImplemented
+
+    __radd__ = __add__
+
+    def __iadd__(self, other):
+        """Add a vector or another vector sequence to this vector array
+        in place.
+        """
+        if isinstance(other, Seq2):
+            if len(self) == len(other):
+                self._vectors = [a + b for a, b in zip(self, other)]
+                return self
+            else:
+                raise ValueError("cannot add arrays with different lengths")
+        else:
+            try:
+                b = Vec2(*other)
+            except Exception:
+                return NotImplemented
+            self._vectors = [a + b for a in self]
+            return self
+
+    def __sub__(self, other):
+        """Subtract either another array or a vector from this array.
+        
+        :type other: Vec2Array or Vec2
+        :rtype: Vec2Array
+        """
+        if isinstance(other, Vec2Array):
+            if len(self) == len(other):
+                return self.from_points(
+                    a - b for a, b in zip(self, other))
+            else:
+                raise ValueError(
+                    "cannot subtract arrays with different lengths")
+        else:
+            try:
+                b = Vec2(*other)
+            except Exception:
+                return NotImplemented
+            return self.from_points(a - b for a in self)
+
+    def __rsub__(self, other):
+        """Subtract this array from another vector sequence.
+        
+        :type other: Seq2
+        :rtype: same type as other
+        """
+        if isinstance(other, Seq2):
+            if len(self) == len(other):
+                return other.from_points(
+                    b - a for a, b in zip(self, other))
+            else:
+                raise ValueError(
+                    "cannot subtract arrays with different lengths")
+        return NotImplemented
+
+    def __isub__(self, other):
+        """Subtract a vector or another vector array from this array
+        in place.
+        """
+        if isinstance(other, Vec2Array):
+            if len(self) == len(other):
+                self._vectors = [a - b for a, b in zip(self, other)]
+                return self
+            else:
+                raise ValueError(
+                    "cannot subtract arrays with different lengths")
+        else:
+            try:
+                b = Vec2(*other)
+            except Exception:
+                return NotImplemented
+            self._vectors = [a - b for a in self]
+            return self
+
+    def __mul__(self, other):
+        """Multiply this array with another vector sequence, a single vector,
+        or a scalar value.  When a scalar, or single vector value is
+        multiplied with an array, the value is multiplied with each element of
+        the array. When an array is multiplied to a sequence, each vector
+        element from self is multiplied by other. The result will have the
+        same type as other. Note that self and other must have the same length
+        
+        :type other: Seq2 or Vec2
+        :rtype: same type as other
+        """
+        if isinstance(other, Seq2):
+            if len(self) == len(other):
+                return other.from_points(
+                    a * b for a, b in zip(self, other))
+            else:
+                raise ValueError(
+                    "cannot multiply arrays with different lengths")
+        else:
+            try:
+                b = float(other)
+            except TypeError:
+                try:
+                    b = Vec2(*other)
+                except Exception:
+                    return NotImplemented
+            return self.from_points(a * b for a in self)
+
+    __rmul__ = __mul__
+
+    def __imul__(self, other):
+        """Multiply this vector array in place by another array, a single 
+        vector, a scalar value, or a transform.
+        """
+        if hasattr(other, 'itransform'):
+            # Transform in place
+            other.itransform(self)
+        elif isinstance(other, Vec2Array):
+            if len(self) == len(other):
+                self._vectors = [a * b for a, b in zip(self, other)]
+            else:
+                raise ValueError(
+                    "cannot multiply arrays with different lengths")
+        else:
+            try:
+                b = float(other)
+            except TypeError:
+                try:
+                    b = Vec2(*other)
+                except Exception:
+                    raise TypeError("Cannot multiply %s with %s"
+                        % (type(self).__name__, type(other).__name__))
+            self._vectors = [a * b for a in self]
+        return self
+
+    def __truediv__(self, other):
+        """Divide this array either by another array, a single vector,
+        or a scalar.
+        
+        :type other: Vec2Array or Vec2
+        :rtype: Vec2Array
+        """
+        if isinstance(other, Vec2Array):
+            if len(self) == len(other):
+                return self.from_points(
+                    a / b for a, b in zip(self, other))
+            else:
+                raise ValueError(
+                    "cannot divide arrays with different lengths")
+        else:
+            try:
+                b = float(other)
+            except TypeError:
+                try:
+                    b = Vec2(*other)
+                except Exception:
+                    return NotImplemented
+            return self.from_points(a / b for a in self)
+
+    def __rtruediv__(self, other):
+        """Divide another vector sequence by this vector array.
+        
+        :type other: Seq2
+        :rtype: same type as other
+        """
+        if isinstance(other, Vec2Array):
+            if len(self) == len(other):
+                return other.from_points(
+                    b / a for a, b in zip(self, other))
+            else:
+                raise ValueError("cannot divide arrays with different lengths")
+        return NotImplemented
+
+    def __itruediv__(self, other):
+        """Divide this vector array by a vector, scalar, or another vector
+        sequence in place.
+        """
+        if isinstance(other, Seq2):
+            if len(self) == len(other):
+                self._vectors = [a / b for a, b in zip(self, other)]
+                return self
+            else:
+                raise ValueError(
+                    "cannot divide arrays with different lengths")
+        else:
+            try:
+                b = float(other)
+            except TypeError:
+                try:
+                    b = Vec2(*other)
+                except Exception:
+                    return NotImplemented
+            self._vectors = [a / b for a in self]
+            return self
+
+    def __floordiv__(self, other):
+        """Divide this array either by another array, a single vector,
+        or a scalar, rounding down.
+        
+        :type other: Vec2Array or Vec2
+        :rtype: Vec2Array
+        """
+        if isinstance(other, Vec2Array):
+            if len(self) == len(other):
+                return self.from_points(
+                    a // b for a, b in zip(self, other))
+            else:
+                raise ValueError(
+                    "cannot divide arrays with different lengths")
+        else:
+            try:
+                b = float(other)
+            except TypeError:
+                try:
+                    b = Vec2(*other)
+                except Exception:
+                    return NotImplemented
+            return self.from_points(a // b for a in self)
+
+    def __rfloordiv__(self, other):
+        """Divide another vector sequence by this vector array, 
+        rounding down.
+        
+        :type other: Seq2
+        :rtype: same type as other
+        """
+        if isinstance(other, Vec2Array):
+            if len(self) == len(other):
+                return other.from_points(
+                    b // a for a, b in zip(self, other))
+            else:
+                raise ValueError("cannot divide arrays with different lengths")
+        return NotImplemented
+
+    def __ifloordiv__(self, other):
+        """Divide this vector array by a vector, scalar, or another vector
+        sequence in place, rounding down.
+        """
+        if isinstance(other, Seq2):
+            if len(self) == len(other):
+                self._vectors = [a // b for a, b in zip(self, other)]
+                return self
+            else:
+                raise ValueError(
+                    "cannot divide arrays with different lengths")
+        else:
+            try:
+                b = float(other)
+            except TypeError:
+                try:
+                    b = Vec2(*other)
+                except Exception:
+                    return NotImplemented
+            self._vectors = [a // b for a in self]
+            return self
+
+    def __pos__(self):
+        return self # XXX return a copy?
+
+    def __neg__(self):
+        """Create an array of the negation of the vectors in this array."""
+        return self.from_points(-v for v in self._vectors)
+
+    def __repr__(self):
+        return "%s([%s])" % (self.__class__.__name__,
+            ', '.join("(%s, %s)" % v for v in self._vectors))
+
+    __str__ = __repr__
 
 
 # vim: ai ts=4 sts=4 et sw=4 tw=78
