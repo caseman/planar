@@ -848,9 +848,19 @@ class Vec2ArrayBaseTestCase(object):
     def test_sub_arrays_of_different_length(self):
         self.Vec2Array([(0,0), (0,1)]) - self.Vec2Array([(1,2)])
 
+    @raises(ValueError)
+    def test_rsub_arrays_of_different_length(self):
+        class Other(self.Seq2):
+            pass
+        Other([(0,0), (0,1)]) - self.Vec2Array([(1,2)])
+
     @raises(TypeError)
     def test_sub_incompatible(self):
         self.Vec2Array([(0,1), (2,3), (3,4)]) - [1, 2, 3]
+
+    @raises(TypeError)
+    def test_rsub_incompatible(self):
+        None - self.Vec2Array([(0,1), (2,3), (3,4)])
 
     def test_isub_arrays(self):
         va = a = self.Vec2Array([(1,2), (3,4)])
@@ -906,7 +916,7 @@ class Vec2ArrayBaseTestCase(object):
             (self.Vec2(0,-1), self.Vec2(4,-6), self.Vec2(9,-12)))
         result2 = other * va
         assert isinstance(result2, Other)
-        assert_equal(tuple(result), 
+        assert_equal(tuple(result2), 
             (self.Vec2(0,-1), self.Vec2(4,-6), self.Vec2(9,-12)))
 
     def test_mul_vector_with_array(self):
@@ -976,6 +986,264 @@ class Vec2ArrayBaseTestCase(object):
     def test_imul_incompatible(self):
         va = self.Vec2Array([(0,1), (2,3), (3,4)]) 
         va *= [1, 2, 3]
+
+    def test_truediv_arrays(self):
+        va1 = self.Vec2Array([(1,2), (3,5)])
+        va2 = self.Vec2Array([(-1,-1), (1,-2)])
+        va3 = va1 / va2
+        assert va3 is not va1
+        assert va3 is not va2
+        assert_equal(tuple(va3), (self.Vec2(-1,-2), self.Vec2(3,-2.5)))
+
+    def test_truediv_other_by_array(self):
+        class Other(self.Seq2):
+            pass
+        va = self.Vec2Array([(2,1), (2,3), (3,4)])
+        other = Other([(1,-1), (2,-2), (3,-3)])
+        result = other / va
+        assert isinstance(result, Other)
+        assert_equal(tuple(result), 
+            (self.Vec2(0.5,-1), self.Vec2(1,-2/3), self.Vec2(1,-0.75)))
+
+    def test_truediv_array_by_vector(self):
+        va = self.Vec2Array([(2,1), (1,3), (3,4)]) / self.Vec2(-2,3)
+        assert isinstance(va, self.Vec2Array)
+        assert_equal(tuple(va),
+            (self.Vec2(-1,1/3), self.Vec2(-0.5,1), self.Vec2(-1.5,4/3)))
+
+    @raises(TypeError)
+    def test_truediv_vector_by_array(self):
+        self.Vec2(-2,3) / self.Vec2Array([(0,1), (2,3), (3,4)])
+
+    def test_truediv_vector_with_scalar(self):
+        va = self.Vec2Array([(0,1), (5,3), (3,4)]) / 4
+        assert isinstance(va, self.Vec2Array)
+        assert_equal(tuple(va),
+            (self.Vec2(0,0.25), self.Vec2(1.25,0.75), self.Vec2(0.75, 1)))
+
+    @raises(ValueError)
+    def test_rtruediv_arrays_of_different_length(self):
+        class Other(self.Seq2):
+            pass
+        Other([(1,2)]) / self.Vec2Array([(0,0), (0,1)])
+        
+    @raises(ValueError)
+    def test_truediv_arrays_of_different_length(self):
+        self.Vec2Array([(0,0), (0,1)]) / self.Vec2Array([(1,2)])
+
+    @raises(TypeError)
+    def test_truediv_incompatible(self):
+        self.Vec2Array([(0,1), (2,3), (3,4)]) / [1, 2, 3]
+
+    @raises(ZeroDivisionError)
+    def test_truediv_by_zero_scalar(self):
+        self.Vec2Array([(0,1), (2,3), (3,4)]) / 0
+
+    @raises(ZeroDivisionError)
+    def test_truediv_by_zero_vector(self):
+        self.Vec2Array([(0,1), (2,3), (3,4)]) / self.Vec2(-1,0)
+
+    @raises(ZeroDivisionError)
+    def test_truediv_by_zero_vector_array(self):
+        self.Vec2Array([(0,1), (2,3)]) / self.Vec2Array([(1,1), (0,3)]) 
+
+    def test_itruediv_arrays(self):
+        va = a = self.Vec2Array([(1,2), (3,4)])
+        va /= self.Vec2Array([(-1,-5), (1,-3)])
+        assert va is a
+        assert_equal(tuple(va), (self.Vec2(-1,-2/5), self.Vec2(3,-4/3)))
+
+    def test_itruediv_other_by_array(self):
+        class Other(self.Seq2):
+            pass
+        other = Other([(1,-1), (2,-2), (3,-3)])
+        other /= self.Vec2Array([(3,1), (2,3), (3,4)])
+        assert isinstance(other, Other)
+        assert_equal(tuple(other),
+            (self.Vec2(1/3, -1), self.Vec2(1,-2/3), self.Vec2(1,-0.75)))
+
+    @raises(TypeError)
+    def test_itruediv_array_by_other(self):
+        class Other(self.Seq2):
+            pass
+        va = self.Vec2Array([(0,1), (2,3), (3,4)])
+        va /= Other([(1,-1), (2,-2), (3,-3)])
+
+    def test_itruediv_array_by_vector(self):
+        va = a = self.Vec2Array([(0,1), (2,3), (3,4)]) 
+        va /= self.Vec2(-2,3)
+        assert va is a
+        assert_equal(tuple(va),
+            (self.Vec2(0,1/3), self.Vec2(-1,1), self.Vec2(-1.5,4/3)))
+
+    def test_itruediv_vector_with_scalar(self):
+        va = a = self.Vec2Array([(0,1), (2,3), (3,4)]) 
+        va /= 4
+        assert va is a
+        assert_equal(tuple(va),
+            (self.Vec2(0,0.25), self.Vec2(0.5,0.75), self.Vec2(0.75, 1)))
+
+    @raises(ValueError)
+    def test_itruediv_arrays_of_different_length(self):
+        va = self.Vec2Array([(0,0), (0,1)]) 
+        va /= self.Vec2Array([(1,2)])
+
+    @raises(TypeError)
+    def test_itruediv_incompatible(self):
+        va = self.Vec2Array([(0,1), (2,3), (3,4)]) 
+        va /= [1, 2, 3]
+
+    @raises(ZeroDivisionError)
+    def test_itruediv_by_zero_scalar(self):
+        va = self.Vec2Array([(0,1), (2,3), (3,4)]) 
+        va /= 0
+
+    @raises(ZeroDivisionError)
+    def test_itruediv_by_zero_vector(self):
+        va = self.Vec2Array([(0,1), (2,3), (3,4)]) 
+        va /= self.Vec2(-1,0)
+
+    @raises(ZeroDivisionError)
+    def test_itruediv_by_zero_vector_array(self):
+        va = self.Vec2Array([(0,1), (2,3)]) 
+        va /= self.Vec2Array([(1,1), (0,3)]) 
+
+    def test_floordiv_arrays(self):
+        va1 = self.Vec2Array([(1,2), (3,5)])
+        va2 = self.Vec2Array([(-1,-1), (1,-2)])
+        va3 = va1 // va2
+        assert va3 is not va1
+        assert va3 is not va2
+        assert_equal(tuple(va3), (self.Vec2(-1,-2), self.Vec2(3,-3)))
+
+    def test_floordiv_other_by_array(self):
+        class Other(self.Seq2):
+            pass
+        va = self.Vec2Array([(2,1), (2,3), (3,4)])
+        other = Other([(1,-1), (2,-2), (3,-3)])
+        result = other // va
+        assert isinstance(result, Other)
+        assert_equal(tuple(result), 
+            (self.Vec2(0,-1), self.Vec2(1,-1), self.Vec2(1,-1)))
+
+    def test_floordiv_array_by_vector(self):
+        va = self.Vec2Array([(2,1), (1,3), (3,4)]) // self.Vec2(-2,3)
+        assert isinstance(va, self.Vec2Array)
+        assert_equal(tuple(va),
+            (self.Vec2(-1,0), self.Vec2(-1,1), self.Vec2(-2,1)))
+
+    @raises(TypeError)
+    def test_floordiv_vector_by_array(self):
+        self.Vec2(-2,3) // self.Vec2Array([(0,1), (2,3), (3,4)])
+
+    def test_floordiv_vector_with_scalar(self):
+        va = self.Vec2Array([(0,1), (5,3), (3,4)]) // 4
+        assert isinstance(va, self.Vec2Array)
+        assert_equal(tuple(va),
+            (self.Vec2(0,0), self.Vec2(1,0), self.Vec2(0, 1)))
+
+    @raises(ValueError)
+    def test_floordiv_arrays_of_different_length(self):
+        self.Vec2Array([(0,0), (0,1)]) // self.Vec2Array([(1,2)])
+
+    @raises(ValueError)
+    def test_rfloordiv_arrays_of_different_length(self):
+        class Other(self.Seq2):
+            pass
+        Other([(1,2)]) // self.Vec2Array([(0,0), (0,1)])
+
+    @raises(TypeError)
+    def test_floordiv_incompatible(self):
+        self.Vec2Array([(0,1), (2,3), (3,4)]) // [1, 2, 3]
+
+    @raises(ZeroDivisionError)
+    def test_floordiv_by_zero_scalar(self):
+        self.Vec2Array([(0,1), (2,3), (3,4)]) // 0
+
+    @raises(ZeroDivisionError)
+    def test_floordiv_by_zero_vector(self):
+        self.Vec2Array([(0,1), (2,3), (3,4)]) // self.Vec2(-1,0)
+
+    @raises(ZeroDivisionError)
+    def test_floordiv_by_zero_vector_array(self):
+        self.Vec2Array([(0,1), (2,3)]) // self.Vec2Array([(1,1), (0,3)]) 
+
+    def test_ifloordiv_arrays(self):
+        va = a = self.Vec2Array([(1,2), (3,4)])
+        va //= self.Vec2Array([(-1,-5), (1,-3)])
+        assert va is a
+        assert_equal(tuple(va), (self.Vec2(-1,-1), self.Vec2(3,-2)))
+
+    def test_ifloordiv_other_by_array(self):
+        class Other(self.Seq2):
+            pass
+        other = Other([(1,-1), (2,-2), (3,-9)])
+        other //= self.Vec2Array([(3,1), (2,3), (3,4)])
+        assert isinstance(other, Other)
+        assert_equal(tuple(other),
+            (self.Vec2(0, -1), self.Vec2(1,-1), self.Vec2(1,-3)))
+
+    @raises(TypeError)
+    def test_ifloordiv_array_by_other(self):
+        class Other(self.Seq2):
+            pass
+        va = self.Vec2Array([(0,1), (2,3), (3,4)])
+        va //= Other([(1,-1), (2,-2), (3,-3)])
+
+    def test_ifloordiv_array_by_vector(self):
+        va = a = self.Vec2Array([(0,1), (2,3), (3,7)]) 
+        va //= self.Vec2(-2,3)
+        assert va is a
+        assert_equal(tuple(va),
+            (self.Vec2(0,0), self.Vec2(-1,1), self.Vec2(-2,2)))
+
+    def test_ifloordiv_vector_with_scalar(self):
+        va = a = self.Vec2Array([(0,1), (2,4), (3,9)]) 
+        va //= 4
+        assert va is a
+        assert_equal(tuple(va),
+            (self.Vec2(0,0), self.Vec2(0,1), self.Vec2(0,2)))
+
+    @raises(ValueError)
+    def test_ifloordiv_arrays_of_different_length(self):
+        va = self.Vec2Array([(0,0), (0,1)]) 
+        va //= self.Vec2Array([(1,2)])
+
+    @raises(TypeError)
+    def test_ifloordiv_incompatible(self):
+        va = self.Vec2Array([(0,1), (2,3), (3,4)]) 
+        va //= [1, 2, 3]
+
+    @raises(ZeroDivisionError)
+    def test_ifloordiv_by_zero_scalar(self):
+        va = self.Vec2Array([(0,1), (2,3), (3,4)]) 
+        va //= 0
+
+    @raises(ZeroDivisionError)
+    def test_ifloordiv_by_zero_vector(self):
+        va = self.Vec2Array([(0,1), (2,3), (3,4)]) 
+        va //= self.Vec2(-1,0)
+
+    @raises(ZeroDivisionError)
+    def test_ifloordiv_by_zero_vector_array(self):
+        va = self.Vec2Array([(0,1), (2,3)]) 
+        va //= self.Vec2Array([(1,1), (0,3)])
+
+    def test_neg(self):
+        a = self.Vec2Array([(0,1), (2,3), (3,4)])
+        na = -a
+        assert na is not a
+        assert_equal(tuple(na),
+            (self.Vec2(0,-1), self.Vec2(-2,-3), self.Vec2(-3,-4)))
+        assert_equal(tuple(a),
+            (self.Vec2(0,1), self.Vec2(2,3), self.Vec2(3,4)))
+
+    def test_pos(self):
+        a = self.Vec2Array([(0,1), (2,3), (3,4)])
+        pa = +a
+        assert pa is not a
+        assert_equal(tuple(pa),
+            (self.Vec2(0,1), self.Vec2(2,3), self.Vec2(3,4)))
 
     def test_repr_and_str(self):
         va = self.Vec2Array([(0,1), (2,3)])

@@ -643,7 +643,6 @@ class Vec2Array(Seq2):
             except Exception:
                 return NotImplemented
             return self.from_points(a + b for a in self)
-        return NotImplemented
 
     __radd__ = __add__
 
@@ -804,7 +803,7 @@ class Vec2Array(Seq2):
         :type other: Seq2
         :rtype: same type as other
         """
-        if isinstance(other, Vec2Array):
+        if isinstance(other, Seq2):
             if len(self) == len(other):
                 return other.from_points(
                     b / a for a, b in zip(self, other))
@@ -813,10 +812,10 @@ class Vec2Array(Seq2):
         return NotImplemented
 
     def __itruediv__(self, other):
-        """Divide this vector array by a vector, scalar, or another vector
-        sequence in place.
+        """Divide this array either by another array, a single vector,
+        or a scalar in place.
         """
-        if isinstance(other, Seq2):
+        if isinstance(other, Vec2Array):
             if len(self) == len(other):
                 self._vectors = [a / b for a, b in zip(self, other)]
                 return self
@@ -865,7 +864,7 @@ class Vec2Array(Seq2):
         :type other: Seq2
         :rtype: same type as other
         """
-        if isinstance(other, Vec2Array):
+        if isinstance(other, Seq2):
             if len(self) == len(other):
                 return other.from_points(
                     b // a for a, b in zip(self, other))
@@ -877,7 +876,7 @@ class Vec2Array(Seq2):
         """Divide this vector array by a vector, scalar, or another vector
         sequence in place, rounding down.
         """
-        if isinstance(other, Seq2):
+        if isinstance(other, Vec2Array):
             if len(self) == len(other):
                 self._vectors = [a // b for a, b in zip(self, other)]
                 return self
@@ -896,7 +895,7 @@ class Vec2Array(Seq2):
             return self
 
     def __pos__(self):
-        return self # XXX return a copy?
+        return self.from_points(self._vectors)
 
     def __neg__(self):
         """Create an array of the negation of the vectors in this array."""
