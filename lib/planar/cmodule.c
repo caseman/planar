@@ -84,10 +84,12 @@ initc(void)
 #endif
     Py_INCREF((PyObject *)&PlanarVec2Type);
     Py_INCREF((PyObject *)&PlanarSeq2Type);
+    Py_INCREF((PyObject *)&PlanarVec2ArrayType);
     Py_INCREF((PyObject *)&PlanarAffineType);
 
     INIT_TYPE(PlanarVec2Type, "Vec2");
     INIT_TYPE(PlanarSeq2Type, "Seq2");
+    INIT_TYPE(PlanarVec2ArrayType, "Vec2Array");
     INIT_TYPE(PlanarAffineType, "Affine");
 
 	PlanarTransformNotInvertibleError = PyErr_NewException(
@@ -109,6 +111,7 @@ initc(void)
 fail:
     Py_DECREF((PyObject *)&PlanarVec2Type);
     Py_DECREF((PyObject *)&PlanarSeq2Type);
+    Py_DECREF((PyObject *)&PlanarVec2ArrayType);
     Py_DECREF((PyObject *)&PlanarAffineType);
     Py_DECREF(module);
     INITERROR;

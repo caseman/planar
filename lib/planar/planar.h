@@ -77,6 +77,12 @@ typedef struct {
 } PlanarSeq2Object;
 
 typedef struct {
+    PyObject_VAR_HEAD
+    planar_vec2_t *vec;
+    Py_ssize_t allocated;
+} PlanarVec2ArrayObject;
+
+typedef struct {
     PyObject_HEAD
     union {
         PyObject *next_free;
@@ -150,6 +156,7 @@ extern double PLANAR_EPSILON2;
 
 extern PyTypeObject PlanarVec2Type;
 extern PyTypeObject PlanarSeq2Type;
+extern PyTypeObject PlanarVec2ArrayType;
 extern PyTypeObject PlanarAffineType;
 
 extern PyObject *PlanarTransformNotInvertibleError;
@@ -241,6 +248,11 @@ error:
 
 #define PlanarSeq2_Check(op) PyObject_TypeCheck(op, &PlanarSeq2Type)
 #define PlanarSeq2_CheckExact(op) (Py_TYPE(op) == &PlanarSeq2Type)
+
+/* Vec2Array utils */
+
+#define PlanarVec2Array_Check(op) PyObject_TypeCheck(op, &PlanarVec2ArrayType)
+#define PlanarVec2Array_CheckExact(op) (Py_TYPE(op) == &PlanarVec2ArrayType)
 
 /* Affine utils */
 

@@ -817,11 +817,11 @@ Seq2_alloc(PyTypeObject *type, Py_ssize_t size)
     PlanarSeq2Object *varray = 
 	(PlanarSeq2Object *)type->tp_alloc(type, size);
     if (varray == NULL) {
-	return NULL;
+		return NULL;
     }
     if (varray->vec == NULL) {
-	/* Space allocated inline */
-	varray->vec = varray->data;
+		/* Space allocated inline */
+		varray->vec = varray->data;
     }
     return varray;
 }
@@ -831,46 +831,40 @@ Seq2_new_from_points(PyTypeObject *type, PyObject *points)
 {
     PlanarSeq2Object *varray;
     Py_ssize_t size;
-    int i;
+    Py_ssize_t i;
 
     if (PlanarSeq2_Check(points)) {
-	/* Copy existing Seq2 (optimized) */
-	/* To properly handle subclasses, we do not assume 
-	   points is a var object */
-	size = PySequence_Size(points);
-	if (size == -1) {
-	    return NULL;
-	}
-	varray = Seq2_alloc(type, size);
-	if (varray == NULL) {
-	    return NULL;
-	}
-	memcpy(varray->vec, ((PlanarSeq2Object *)points)->vec, 
-	    sizeof(planar_vec2_t) * size);
+		/* Copy existing Seq2 (optimized) */
+		varray = Seq2_alloc(type, Py_SIZE(points));
+		if (varray == NULL) {
+			return NULL;
+		}
+		memcpy(varray->vec, ((PlanarSeq2Object *)points)->vec, 
+			sizeof(planar_vec2_t) * size);
     } else {
-	/* Generic iterable of points */
-	points = PySequence_Fast(points, 
-	    "expected iterable of Vec2 objects");
-	if (points == NULL) {
-	    return NULL;
-	}
-	size = PySequence_Fast_GET_SIZE(points);
-	varray = Seq2_alloc(type, size);
-	if (varray == NULL) {
-	    Py_DECREF(points);
-	    return NULL;
-	}
-	for (i = 0; i < size; ++i) {
-	    if (!PlanarVec2_Parse(PySequence_Fast_GET_ITEM(points, i), 
-		&varray->vec[i].x, &varray->vec[i].y)) {
-		PyErr_SetString(PyExc_TypeError,
-		    "expected iterable of Vec2 objects");
-		Py_DECREF(varray);
+		/* Generic iterable of points */
+		points = PySequence_Fast(points, 
+			"expected iterable of Vec2 objects");
+		if (points == NULL) {
+			return NULL;
+		}
+		size = PySequence_Fast_GET_SIZE(points);
+		varray = Seq2_alloc(type, size);
+		if (varray == NULL) {
+			Py_DECREF(points);
+			return NULL;
+		}
+		for (i = 0; i < size; ++i) {
+			if (!PlanarVec2_Parse(PySequence_Fast_GET_ITEM(points, i), 
+			&varray->vec[i].x, &varray->vec[i].y)) {
+			PyErr_SetString(PyExc_TypeError,
+				"expected iterable of Vec2 objects");
+			Py_DECREF(varray);
+			Py_DECREF(points);
+			return NULL;
+			}
+		}
 		Py_DECREF(points);
-		return NULL;
-	    }
-	}
-	Py_DECREF(points);
     }
     return varray;
 }
@@ -885,7 +879,7 @@ Seq2_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 
     if (kwargs != NULL) {
         PyErr_SetString(PyExc_TypeError, "invalid keyword argument");
-	return NULL;
+		return NULL;
     }
     if (PyTuple_GET_SIZE(args) != 1) {
         PyErr_SetString(PyExc_TypeError, "wrong number of arguments");
@@ -1206,7 +1200,7 @@ static PyNumberMethods Seq2_as_number = {
 };
 
 
-PyDoc_STRVAR(Seq2__doc__, "Fixed length vector array");
+PyDoc_STRVAR(Seq2__doc__, "Fixed length vector sequence");
 
 PyTypeObject PlanarSeq2Type = {
 	PyObject_HEAD_INIT(NULL)
@@ -1249,6 +1243,410 @@ PyTypeObject PlanarSeq2Type = {
 	0,                      /*tp_init*/
 	0,                      /*tp_alloc*/
 	(newfunc)Seq2_new,      /*tp_new*/
+	0,                      /*tp_free*/
+	0,                      /*tp_is_gc*/
+};
+
+/***************************************************************************/
+
+static PlanarVec2ArrayObject *
+Vec2Array_alloc(PyTypeObject *type, Py_ssize_t size)
+{
+    PlanarVec2ArrayObject *varray = 
+		(PlanarVec2ArrayObject *)_PyObject_NewVar(type, size);
+    if (varray == NULL) {
+		return NULL;
+    }
+    varray->vec = PyMem_Malloc(size * sizeof(planar_vec2_t));
+    if (varray->vec == NULL) {
+		Py_DECREF(varray);
+		return (PlanarVec2ArrayObject *)PyErr_NoMemory();
+    }
+	varray->allocated = size;
+    return varray;
+}
+
+static void
+Vec2Array_dealloc(PlanarVec2ArrayObject *self)
+{
+    if (self->vec != NULL) {
+		PyMem_Free(self->vec);
+		self->vec = NULL;
+    }
+    Py_TYPE(self)->tp_free(self);
+}
+
+static PlanarVec2ArrayObject *
+Vec2Array_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+{
+    PlanarVec2ArrayObject *varray;
+    PyObject *vectors;
+    Py_ssize_t size;
+    int i;
+
+    if (kwargs != NULL) {
+        PyErr_SetString(PyExc_TypeError, "invalid keyword argument");
+		return NULL;
+    }
+    if (PyTuple_GET_SIZE(args) == 0) {
+		return (PlanarVec2ArrayObject *)type->tp_alloc(type, 0);
+    } else if (PyTuple_GET_SIZE(args) == 1) {
+		return (PlanarVec2ArrayObject *)Seq2_new_from_points(
+			type, PyTuple_GET_ITEM(args, 0));
+	} else {
+        PyErr_SetString(PyExc_TypeError, "wrong number of arguments");
+        return NULL;
+	}
+}
+
+static int
+Vec2Array_resize(PlanarVec2ArrayObject *self, Py_ssize_t newsize) 
+{
+	Py_ssize_t new_allocated;
+	Py_ssize_t allocated = self->allocated;
+	void *realloc_vec;
+
+	/* Bypass realloc() when a previous overallocation is large enough
+	   to accommodate the newsize.  If the newsize falls lower than half
+	   the allocated size, then proceed with the realloc() to shrink the array.
+	*/
+	if (allocated >= newsize && newsize >= (allocated >> 1)) {
+		Py_SIZE(self) = newsize;
+		return 0;
+	}
+
+	/* Growth pattern derived from CPython list implementation
+	 * The growth pattern is:  0, 4, 8, 16, 25, 35, 46, 58, 72, 88, ...
+	 */
+	new_allocated = (newsize >> 3) + (newsize < 9 ? 3 : 6);
+
+	/* check for integer overflow */
+	if (new_allocated > PY_SIZE_MAX - newsize) {
+		PyErr_NoMemory();
+		return -1;
+	} else {
+		new_allocated += newsize;
+	}
+
+	if (newsize == 0) {
+		new_allocated = 0;
+	}
+	realloc_vec = PyMem_Realloc(
+		self->vec, new_allocated * sizeof(planar_vec2_t));
+	if (realloc_vec == NULL) {
+		PyErr_NoMemory();
+		return -1;
+	}
+	self->vec = (planar_vec2_t *)realloc_vec;
+	self->allocated = new_allocated;
+	Py_SIZE(self) = newsize;
+	return 0;
+}
+
+static PyObject *
+Vec2Array_append(PlanarVec2ArrayObject *self, PyObject *vector) 
+{
+	double x, y;
+	Py_ssize_t i = Py_SIZE(self);
+
+	if (i == PY_SSIZE_T_MAX) {
+		PyErr_SetString(PyExc_OverflowError,
+			"cannot add more objects to array");
+		return NULL;
+	}
+	if (!PlanarVec2_Parse(vector, &x, &y)) {
+		if (!PyErr_Occurred()) {
+			PyErr_Format(PyExc_TypeError, 
+				"Cannot append %.200s to %.200s",
+				vector->ob_type->tp_name, self->ob_type->tp_name);
+	    }
+		return NULL;
+	}
+	if (Vec2Array_resize(self, i + 1) == -1) {
+		return NULL;
+	}
+	self->vec[i].x = x;
+	self->vec[i].y = y;
+
+	Py_RETURN_NONE;
+}
+
+static PyObject *
+Vec2Array_insert(PlanarVec2ArrayObject *self, PyObject *args)
+{
+	double x, y;
+	PyObject *vector; 
+	Py_ssize_t where;
+	Py_ssize_t n = Py_SIZE(self);
+
+    assert(PlanarVec2Array_Check(self));
+	if (!PyArg_ParseTuple(args, "nO:insert", &where, &vector)) {
+		return NULL;
+	}
+	if (n == PY_SSIZE_T_MAX) {
+		PyErr_SetString(PyExc_OverflowError,
+			"cannot add more objects to array");
+		return NULL;
+	}
+	if (!PlanarVec2_Parse(vector, &x, &y)) {
+		if (!PyErr_Occurred()) {
+			PyErr_Format(PyExc_TypeError, 
+				"Cannot insert %.200s into %.200s",
+				vector->ob_type->tp_name, self->ob_type->tp_name);
+	    }
+		return NULL;
+	}
+	if (Vec2Array_resize(self, n + 1) == -1) {
+		return NULL;
+	}
+	if (where < 0) {
+		where += n;
+		if (where < 0) {
+			where = 0;
+		}
+	}
+	if (where > n) {
+		where = n;
+	}
+	memmove(&self->vec[where + 1], &self->vec[where], 
+		(n - where) * sizeof(planar_vec2_t));
+	self->vec[where].x = x;
+	self->vec[where].y = y;
+
+	Py_RETURN_NONE;
+}
+
+static PyObject *
+Vec2Array_extend(
+	PlanarVec2ArrayObject *self, PyObject *vectors) 
+{
+	double x, y;
+	Py_ssize_t size, j;
+	Py_ssize_t i = Py_SIZE(self);
+
+    if (PlanarSeq2_Check(vectors)) {
+		/* Concat existing Seq2 (optimized) */
+		size = Py_SIZE(vectors);
+		if (Vec2Array_resize(self, i + size) == -1) {
+			return NULL;
+		}
+		memcpy(&self->vec[i], ((PlanarSeq2Object *)vectors)->vec, 
+			sizeof(planar_vec2_t) * size);
+    } else {
+		/* Generic iterable of points */
+		vectors = PySequence_Fast(vectors, 
+			"expected iterable of Vec2 objects");
+		if (vectors == NULL) {
+			return NULL;
+		}
+		size = PySequence_Fast_GET_SIZE(vectors);
+		if (Vec2Array_resize(self, i + size) == -1) {
+			Py_DECREF(vectors);
+			return NULL;
+		}
+		for (j = 0; j < size; ++j, ++i) {
+			if (!PlanarVec2_Parse(PySequence_Fast_GET_ITEM(vectors, j), 
+				&self->vec[i].x, &self->vec[i].y)) {
+				PyErr_SetString(PyExc_TypeError,
+					"expected iterable of Vec2 objects");
+				Py_DECREF(vectors);
+				return NULL;
+			}
+		}
+		Py_DECREF(vectors);
+    }
+	Py_RETURN_NONE;
+}
+
+static PlanarVec2ArrayObject *
+Vec2Array_slice(PlanarVec2ArrayObject *self, 
+	Py_ssize_t ilow, Py_ssize_t ihigh)
+{
+	PlanarVec2ArrayObject *result;
+	Py_ssize_t len;
+
+	if (ilow < 0) {
+		ilow = 0;
+	} else if (ilow > Py_SIZE(self)) {
+		ilow = Py_SIZE(self);
+	}
+	if (ihigh < ilow) {
+		ihigh = ilow;
+	} else if (ihigh > Py_SIZE(self)) {
+		ihigh = Py_SIZE(self);
+	}
+	len = ihigh - ilow;
+
+	result = (PlanarVec2ArrayObject *)Py_TYPE(self)->tp_alloc(
+		Py_TYPE(self), len);
+	if (result == NULL) {
+		return NULL;
+	}
+	memcpy(result->vec, &self->vec[ilow], sizeof(planar_vec2_t) * len);
+	return result;
+}
+
+static int
+Vec2Array_ass_slice(PlanarVec2ArrayObject *self, 
+	Py_ssize_t ilow, Py_ssize_t ihigh, PyObject *vectors)
+{
+	Py_ssize_t n; /* # of elements in replacement array */
+	Py_ssize_t norig; /* # of elements in list getting replaced */
+	Py_ssize_t d; /* Change in size */
+	Py_ssize_t j;
+
+	if (vectors == NULL) {
+		n = 0;
+	} else if (PlanarSeq2_Check(vectors)) {
+		Py_INCREF(vectors);
+		n = Py_SIZE(vectors);
+	} else {
+		vectors = PySequence_Fast(vectors, 
+			"can only assign an iterable of vectors");
+		if (vectors == NULL) {
+			goto error;
+		}
+		n = PySequence_Fast_GET_SIZE(vectors);
+	}
+	if (ilow < 0) {
+		ilow = 0;
+	} else if (ilow > Py_SIZE(self)) {
+		ilow = Py_SIZE(self);
+	}
+	if (ihigh < ilow) {
+		ihigh = ilow;
+	} else if (ihigh > Py_SIZE(self)) {
+		ihigh = Py_SIZE(self);
+	}
+
+	norig = ihigh - ilow;
+	assert(norig >= 0);
+	d = n - norig;
+	if (Py_SIZE(self) + d == 0) {
+		Py_DECREF(vectors);
+		return Vec2Array_resize(self, 0);
+	}
+	if (d < 0) { /* Delete -d items */
+		memmove(&self->vec[ihigh + d], &self->vec[ihigh],
+			sizeof(planar_vec2_t) * (Py_SIZE(self) - ihigh));
+	}
+	if (Vec2Array_resize(self, Py_SIZE(self) + d) < 0) {
+		goto error;
+	}
+	if (d > 0) { /* Insert d items */
+		memmove(&self->vec[ihigh + d], &self->vec[ihigh],
+			sizeof(planar_vec2_t) * (Py_SIZE(self) - ihigh));
+	}
+	if (PlanarSeq2_Check(vectors)) {
+		memmove(&self->vec[ilow], &((PlanarSeq2Object *)vectors)->vec, 
+		n * sizeof(planar_vec2_t));
+	} else {
+		for (j = 0; j < n; ++j, ++ilow) {
+			if (!PlanarVec2_Parse(PySequence_Fast_GET_ITEM(vectors, j), 
+				&self->vec[ilow].x, &self->vec[ilow].y)) {
+				PyErr_SetString(PyExc_TypeError,
+					"expected iterable of Vec2 objects");
+				goto error;
+			}
+		}
+	}
+	Py_DECREF(vectors);
+	return 0;
+ error:
+	Py_XDECREF(vectors);
+	return -1;
+}
+
+static int
+Vec2Array_ass_item(PlanarVec2ArrayObject *self, Py_ssize_t i, PyObject *vector)
+{
+	double x, y;
+
+	if (i < 0 || i >= Py_SIZE(self)) {
+		PyErr_SetString(PyExc_IndexError,
+				"assignment index out of range");
+		return -1;
+	}
+	if (vector == NULL) {
+		return Vec2Array_ass_slice(self, i, i+1, vector);
+	}
+	if (!PlanarVec2_Parse(vector, &x, &y)) {
+		if (!PyErr_Occurred()) {
+			PyErr_Format(PyExc_TypeError, 
+				"Cannot assign item %.200s into %.200s",
+				vector->ob_type->tp_name, self->ob_type->tp_name);
+	    }
+		return -1;
+	}
+	self->vec[i].x = x;
+	self->vec[i].y = y;
+	return 0;
+}
+
+static PySequenceMethods Vec2Array_as_sequence = {
+	(lenfunc)Seq2_length,	/* sq_length */
+	0,		/*sq_concat*/
+	0,		/*sq_repeat*/
+	(ssizeargfunc)Seq2_getitem,                 /* sq_item */
+	(ssizessizeargfunc)Vec2Array_slice,         /* sq_slice */
+	(ssizeobjargproc)Vec2Array_ass_item,        /* sq_ass_item */
+	(ssizessizeobjargproc)Vec2Array_ass_slice,  /* sq_ass_slice */
+	0,		/* sq_contains */
+};
+
+static PyMethodDef Vec2Array_methods[] = {
+    {"append", (PyCFunction)Vec2Array_append, METH_O, 
+		"Append all vectors in iterable to the end of the array."},
+    {"insert", (PyCFunction)Vec2Array_insert, METH_VARARGS, 
+		"Insert a vector at the specified index."},
+    {"extend", (PyCFunction)Vec2Array_extend, METH_O, 
+		"Extend an array appending vectors from the given sequence."},
+    {NULL, NULL}
+};
+
+PyDoc_STRVAR(Vec2Array__doc__, "Dynamic vector array");
+
+PyTypeObject PlanarVec2ArrayType = {
+	PyObject_HEAD_INIT(NULL)
+	0,			        /*ob_size*/
+	"planar.Vec2Array",		/*tp_name*/
+	sizeof(PlanarVec2ArrayObject),	/*tp_basicsize*/
+	0,		/*tp_itemsize*/
+	/* methods */
+	(destructor)Vec2Array_dealloc, /*tp_dealloc*/
+	0,			       /*tp_print*/
+	0,                      /*tp_getattr*/
+	0,                      /*tp_setattr*/
+	0,		        /*tp_compare*/
+	0,                      /*tp_repr*/
+	&Seq2_as_number,        /*tp_as_number*/
+	&Vec2Array_as_sequence,      /*tp_as_sequence*/
+	0,	                /*tp_as_mapping*/
+	0,	                /*tp_hash*/
+	0,                      /*tp_call*/
+	0,                      /*tp_str*/
+	0,                      /*tp_getattro*/
+	0,                      /*tp_setattro*/
+	0,                      /*tp_as_buffer*/
+	Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_CHECKTYPES,     /*tp_flags*/
+	Vec2Array__doc__,       /*tp_doc*/
+	0,                      /*tp_traverse*/
+	0,                      /*tp_clear*/
+	Seq2_compare,           /*tp_richcompare*/
+	0,                      /*tp_weaklistoffset*/
+	0,                      /*tp_iter*/
+	0,                      /*tp_iternext*/
+	Vec2Array_methods,           /*tp_methods*/
+	0,                      /*tp_members*/
+	0,                      /*tp_getset*/
+	&PlanarSeq2Type,        /*tp_base*/
+	0,                      /*tp_dict*/
+	0,                      /*tp_descr_get*/
+	0,                      /*tp_descr_set*/
+	0,                      /*tp_dictoffset*/
+	0,                      /*tp_init*/
+	(allocfunc)Vec2Array_alloc,    /*tp_alloc*/
+	(newfunc)Vec2Array_new,      /*tp_new*/
 	0,                      /*tp_free*/
 	0,                      /*tp_is_gc*/
 };

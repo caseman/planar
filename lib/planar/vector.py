@@ -542,15 +542,28 @@ class Vec2Array(Seq2):
         super(Vec2Array, self).__init__(vectors)
 
     def append(self, vector):
-        """Append a vector to the end of the array."""
+        """Append a vector to the end of the array.
+        
+        :param vector: Vector to append.
+        :type vector: Vec2 or 2-number sequence.
+        """
         self._vectors.append(Vec2(*vector))
 
     def extend(self, iterable):
-        """Append all vectors in iterable to the end of array."""
+        """Append all vectors in iterable to the end of the array.
+        
+        :param iterable: Iterable object containing vectors.
+        """
         self._vectors.extend(Vec2(*vector) for vector in iterable)
 
     def insert(self, index, vector):
-        """Insert a vector at the specified index."""
+        """Insert a vector at the specified index.
+        
+        :param index: Position before-which the vector is inserted.
+        :type index: int
+        :param vector: Vector to insert.
+        :type vector: Vec2 or 2-number sequence.
+        """
         self._vectors.insert(index, Vec2(*vector))
 
     def __delitem__(self, index):
