@@ -90,6 +90,8 @@ initc(void)
     INIT_TYPE(PlanarVec2Type, "Vec2");
     INIT_TYPE(PlanarSeq2Type, "Seq2");
     INIT_TYPE(PlanarVec2ArrayType, "Vec2Array");
+	/* Override inheritance of tp_itemsize, ugly */
+	PlanarVec2ArrayType.tp_itemsize = 0;
     INIT_TYPE(PlanarAffineType, "Affine");
 
 	PlanarTransformNotInvertibleError = PyErr_NewException(
