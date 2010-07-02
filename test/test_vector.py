@@ -1259,6 +1259,13 @@ class PyVec2ArrayTestCase(
     from planar.transform import Affine
 
 
+class CVec2ArrayTestCase(
+    Vec2ArrayBaseTestCase, VectorSeqBaseTestCase, unittest.TestCase):
+    from planar.c import Vec2Array
+    from planar.c import Vec2Array as VecSeq
+    from planar.c import Vec2, Seq2, Affine
+
+
 if __name__ == '__main__':
     unittest.main()
 

@@ -528,6 +528,8 @@ class Seq2(object):
     def __copy__(self):
         return self.from_points(self._vectors)
 
+    __deepcopy__ = __copy__
+
     def __nonzero__(self):
         return bool(self._vectors)
 

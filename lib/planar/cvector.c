@@ -812,15 +812,24 @@ PyTypeObject PlanarVec2Type = {
 /***************************************************************************/
 
 static PlanarSeq2Object *
-Seq2_alloc(PyTypeObject *type, Py_ssize_t size)
+Seq2_New(PyTypeObject *type, Py_ssize_t size)
 {
     PlanarSeq2Object *varray = 
-	(PlanarSeq2Object *)type->tp_alloc(type, size);
+		(PlanarSeq2Object *)type->tp_alloc(type, size);
     if (varray == NULL) {
 		return NULL;
     }
-    if (varray->vec == NULL) {
-		/* Space allocated inline */
+	if (type->tp_itemsize == 0) {
+		/* We assume this means that the items are
+		   externally allocated */
+		varray->vec = PyMem_Malloc(size * sizeof(planar_vec2_t));
+		if (varray->vec == NULL) {
+			Py_DECREF(varray);
+			return (PlanarSeq2Object *)PyErr_NoMemory();
+		}
+		varray->allocated = size;
+    } else {
+		/* Items allocated inline */
 		varray->vec = varray->data;
     }
     return varray;
@@ -829,13 +838,13 @@ Seq2_alloc(PyTypeObject *type, Py_ssize_t size)
 static PlanarSeq2Object *
 Seq2_new_from_points(PyTypeObject *type, PyObject *points)
 {
-    PlanarSeq2Object *varray;
+	PlanarSeq2Object *varray;
     Py_ssize_t size;
     Py_ssize_t i;
 
     if (PlanarSeq2_Check(points)) {
 		/* Copy existing Seq2 (optimized) */
-		varray = Seq2_alloc(type, Py_SIZE(points));
+		varray = Seq2_New(type, Py_SIZE(points));
 		if (varray == NULL) {
 			return NULL;
 		}
@@ -849,7 +858,7 @@ Seq2_new_from_points(PyTypeObject *type, PyObject *points)
 			return NULL;
 		}
 		size = PySequence_Fast_GET_SIZE(points);
-		varray = Seq2_alloc(type, size);
+		varray = Seq2_New(type, size);
 		if (varray == NULL) {
 			Py_DECREF(points);
 			return NULL;
@@ -870,7 +879,7 @@ Seq2_new_from_points(PyTypeObject *type, PyObject *points)
 }
 
 static PlanarSeq2Object *
-Seq2_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+Seq2_pynew(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
     PlanarSeq2Object *varray;
     PyObject *vectors;
@@ -889,9 +898,14 @@ Seq2_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 }
 
 static void
-Seq2_dealloc(PyObject *self)
+Seq2_dealloc(PlanarSeq2Object *self)
 {
-    Py_TYPE(self)->tp_free(self);
+	if (self->vec != NULL && self->vec != self->data) {
+		/* Free externally allocated vector array */
+		PyMem_Free(self->vec);
+		self->vec = NULL;
+	}
+    Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
 static PyObject *
@@ -1040,11 +1054,11 @@ Seq2_copy(PlanarSeq2Object *self)
     assert(PlanarSeq2_Check(self));
     size = PySequence_Size((PyObject *)self);
     if (size == -1) {
-	return NULL;
+		return NULL;
     }
-    varray = Seq2_alloc(Py_TYPE(self), size);
+    varray = Seq2_New(Py_TYPE(self), size);
     if (varray == NULL) {
-	return NULL;
+		return NULL;
     }
     memcpy(varray->vec, self->vec, sizeof(planar_vec2_t) * size);
     return varray;
@@ -1056,6 +1070,7 @@ static PyMethodDef Seq2_methods[] = {
     {"from_points", (PyCFunction)Seq2_new_from_points, METH_CLASS, 
 	"Create a new 2D sequence from an iterable of points"},
     {"__copy__", (PyCFunction)Seq2_copy, METH_NOARGS, NULL}, 
+    {"__deepcopy__", (PyCFunction)Seq2_copy, METH_NOARGS, NULL}, 
     {NULL, NULL}
 };
 
@@ -1091,7 +1106,7 @@ Seq2__mul__(PyObject *a, PyObject *b)
     if (size == -1) {
 	return NULL;
     }
-    dst = Seq2_alloc(Py_TYPE(src), size);
+    dst = Seq2_New(Py_TYPE(src), size);
     if (dst == NULL) {
 	return NULL;
     }
@@ -1242,57 +1257,24 @@ PyTypeObject PlanarSeq2Type = {
 	0,                      /*tp_dictoffset*/
 	0,                      /*tp_init*/
 	0,                      /*tp_alloc*/
-	(newfunc)Seq2_new,      /*tp_new*/
+	(newfunc)Seq2_pynew,      /*tp_new*/
 	0,                      /*tp_free*/
 	0,                      /*tp_is_gc*/
 };
 
 /***************************************************************************/
 
-static PlanarVec2ArrayObject *
-Vec2Array_alloc(PyTypeObject *type, Py_ssize_t size)
-{
-    PlanarVec2ArrayObject *varray = 
-		(PlanarVec2ArrayObject *)_PyObject_NewVar(type, size);
-    if (varray == NULL) {
-		return NULL;
-    }
-    varray->vec = PyMem_Malloc(size * sizeof(planar_vec2_t));
-    if (varray->vec == NULL) {
-		Py_DECREF(varray);
-		return (PlanarVec2ArrayObject *)PyErr_NoMemory();
-    }
-	varray->allocated = size;
-    return varray;
-}
-
-static void
-Vec2Array_dealloc(PlanarVec2ArrayObject *self)
-{
-    if (self->vec != NULL) {
-		PyMem_Free(self->vec);
-		self->vec = NULL;
-    }
-    Py_TYPE(self)->tp_free(self);
-}
-
-static PlanarVec2ArrayObject *
+static PlanarSeq2Object *
 Vec2Array_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    PlanarVec2ArrayObject *varray;
-    PyObject *vectors;
-    Py_ssize_t size;
-    int i;
-
     if (kwargs != NULL) {
         PyErr_SetString(PyExc_TypeError, "invalid keyword argument");
 		return NULL;
     }
     if (PyTuple_GET_SIZE(args) == 0) {
-		return (PlanarVec2ArrayObject *)type->tp_alloc(type, 0);
+		return Seq2_New(type, 0);
     } else if (PyTuple_GET_SIZE(args) == 1) {
-		return (PlanarVec2ArrayObject *)Seq2_new_from_points(
-			type, PyTuple_GET_ITEM(args, 0));
+		return Seq2_new_from_points(type, PyTuple_GET_ITEM(args, 0));
 	} else {
         PyErr_SetString(PyExc_TypeError, "wrong number of arguments");
         return NULL;
@@ -1300,7 +1282,7 @@ Vec2Array_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 }
 
 static int
-Vec2Array_resize(PlanarVec2ArrayObject *self, Py_ssize_t newsize) 
+Vec2Array_resize(PlanarSeq2Object *self, Py_ssize_t newsize) 
 {
 	Py_ssize_t new_allocated;
 	Py_ssize_t allocated = self->allocated;
@@ -1344,7 +1326,7 @@ Vec2Array_resize(PlanarVec2ArrayObject *self, Py_ssize_t newsize)
 }
 
 static PyObject *
-Vec2Array_append(PlanarVec2ArrayObject *self, PyObject *vector) 
+Vec2Array_append(PlanarSeq2Object *self, PyObject *vector) 
 {
 	double x, y;
 	Py_ssize_t i = Py_SIZE(self);
@@ -1372,7 +1354,7 @@ Vec2Array_append(PlanarVec2ArrayObject *self, PyObject *vector)
 }
 
 static PyObject *
-Vec2Array_insert(PlanarVec2ArrayObject *self, PyObject *args)
+Vec2Array_insert(PlanarSeq2Object *self, PyObject *args)
 {
 	double x, y;
 	PyObject *vector; 
@@ -1417,8 +1399,7 @@ Vec2Array_insert(PlanarVec2ArrayObject *self, PyObject *args)
 }
 
 static PyObject *
-Vec2Array_extend(
-	PlanarVec2ArrayObject *self, PyObject *vectors) 
+Vec2Array_extend(PlanarSeq2Object *self, PyObject *vectors) 
 {
 	double x, y;
 	Py_ssize_t size, j;
@@ -1458,11 +1439,10 @@ Vec2Array_extend(
 	Py_RETURN_NONE;
 }
 
-static PlanarVec2ArrayObject *
-Vec2Array_slice(PlanarVec2ArrayObject *self, 
-	Py_ssize_t ilow, Py_ssize_t ihigh)
+static PlanarSeq2Object *
+Vec2Array_slice(PlanarSeq2Object *self, Py_ssize_t ilow, Py_ssize_t ihigh)
 {
-	PlanarVec2ArrayObject *result;
+	PlanarSeq2Object *result;
 	Py_ssize_t len;
 
 	if (ilow < 0) {
@@ -1477,7 +1457,7 @@ Vec2Array_slice(PlanarVec2ArrayObject *self,
 	}
 	len = ihigh - ilow;
 
-	result = (PlanarVec2ArrayObject *)Py_TYPE(self)->tp_alloc(
+	result = (PlanarSeq2Object *)Py_TYPE(self)->tp_alloc(
 		Py_TYPE(self), len);
 	if (result == NULL) {
 		return NULL;
@@ -1487,7 +1467,7 @@ Vec2Array_slice(PlanarVec2ArrayObject *self,
 }
 
 static int
-Vec2Array_ass_slice(PlanarVec2ArrayObject *self, 
+Vec2Array_ass_slice(PlanarSeq2Object *self, 
 	Py_ssize_t ilow, Py_ssize_t ihigh, PyObject *vectors)
 {
 	Py_ssize_t n; /* # of elements in replacement array */
@@ -1558,7 +1538,7 @@ Vec2Array_ass_slice(PlanarVec2ArrayObject *self,
 }
 
 static int
-Vec2Array_ass_item(PlanarVec2ArrayObject *self, Py_ssize_t i, PyObject *vector)
+Vec2Array_ass_item(PlanarSeq2Object *self, Py_ssize_t i, PyObject *vector)
 {
 	double x, y;
 
@@ -1610,10 +1590,10 @@ PyTypeObject PlanarVec2ArrayType = {
 	PyObject_HEAD_INIT(NULL)
 	0,			        /*ob_size*/
 	"planar.Vec2Array",		/*tp_name*/
-	sizeof(PlanarVec2ArrayObject),	/*tp_basicsize*/
+	sizeof(PlanarSeq2Object),	/*tp_basicsize*/
 	0,		/*tp_itemsize*/
 	/* methods */
-	(destructor)Vec2Array_dealloc, /*tp_dealloc*/
+	(destructor)Seq2_dealloc, /*tp_dealloc*/
 	0,			       /*tp_print*/
 	0,                      /*tp_getattr*/
 	0,                      /*tp_setattr*/
@@ -1645,7 +1625,7 @@ PyTypeObject PlanarVec2ArrayType = {
 	0,                      /*tp_descr_set*/
 	0,                      /*tp_dictoffset*/
 	0,                      /*tp_init*/
-	(allocfunc)Vec2Array_alloc,    /*tp_alloc*/
+	0,    /*tp_alloc*/
 	(newfunc)Vec2Array_new,      /*tp_new*/
 	0,                      /*tp_free*/
 	0,                      /*tp_is_gc*/

@@ -72,15 +72,11 @@ typedef struct {
     planar_vec2_t *vec;
     /* *vec points to the data[] array, so that it can
        be positioned differently in memory in subtypes */
-    planar_vec2_t data[1];
-    /* data[] is dynamically sized to ob_size elements */
+	union {
+		planar_vec2_t data[1]; /* Used for fixed-length types */
+		Py_ssize_t allocated; /* Used for variable-length types */
+	};
 } PlanarSeq2Object;
-
-typedef struct {
-    PyObject_VAR_HEAD
-    planar_vec2_t *vec;
-    Py_ssize_t allocated;
-} PlanarVec2ArrayObject;
 
 typedef struct {
     PyObject_HEAD
