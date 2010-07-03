@@ -819,6 +819,7 @@ Seq2_New(PyTypeObject *type, Py_ssize_t size)
     if (varray == NULL) {
 		return NULL;
     }
+	Py_SIZE(varray) = size;
 	if (type->tp_itemsize == 0) {
 		/* We assume this means that the items are
 		   externally allocated */
@@ -865,7 +866,7 @@ Seq2_new_from_points(PyTypeObject *type, PyObject *points)
 		}
 		for (i = 0; i < size; ++i) {
 			if (!PlanarVec2_Parse(PySequence_Fast_GET_ITEM(points, i), 
-			&varray->vec[i].x, &varray->vec[i].y)) {
+				&varray->vec[i].x, &varray->vec[i].y)) {
 			PyErr_SetString(PyExc_TypeError,
 				"expected iterable of Vec2 objects");
 			Py_DECREF(varray);
@@ -1574,6 +1575,52 @@ static PySequenceMethods Vec2Array_as_sequence = {
 	0,		/* sq_contains */
 };
 
+static PyObject *
+Vec2Array_longest(PlanarSeq2Object *self)
+{
+	double max_len = -1.0;
+	double L;
+	Py_ssize_t max_i = -1;
+	Py_ssize_t i;
+
+	for (i = 0; i < Py_SIZE(self); ++i) {
+		L = self->vec[i].x * self->vec[i].x + 
+			self->vec[i].y * self->vec[i].y;
+		if (L > max_len) {
+			max_len = L;
+			max_i = i;
+		}
+	}
+	if (max_i > -1) {
+		return (PyObject *)PlanarVec2_FromStruct(&self->vec[max_i]);
+	} else {
+		Py_RETURN_NONE;
+	}
+}
+
+static PyObject *
+Vec2Array_shortest(PlanarSeq2Object *self)
+{
+	double min_len = DBL_MAX;
+	double L;
+	Py_ssize_t min_i = -1;
+	Py_ssize_t i;
+
+	for (i = 0; i < Py_SIZE(self); ++i) {
+		L = self->vec[i].x * self->vec[i].x + 
+			self->vec[i].y * self->vec[i].y;
+		if (L < min_len) {
+			min_len = L;
+			min_i = i;
+		}
+	}
+	if (min_i > -1) {
+		return (PyObject *)PlanarVec2_FromStruct(&self->vec[min_i]);
+	} else {
+		Py_RETURN_NONE;
+	}
+}
+
 static PyMethodDef Vec2Array_methods[] = {
     {"append", (PyCFunction)Vec2Array_append, METH_O, 
 		"Append all vectors in iterable to the end of the array."},
@@ -1581,6 +1628,10 @@ static PyMethodDef Vec2Array_methods[] = {
 		"Insert a vector at the specified index."},
     {"extend", (PyCFunction)Vec2Array_extend, METH_O, 
 		"Extend an array appending vectors from the given sequence."},
+    {"longest", (PyCFunction)Vec2Array_longest, METH_NOARGS, 
+		"Return the vector in the array with the maximum length."},
+    {"shortest", (PyCFunction)Vec2Array_shortest, METH_NOARGS, 
+		"Return the vector in the array with the minimum length."},
     {NULL, NULL}
 };
 
