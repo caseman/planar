@@ -708,6 +708,11 @@ class Vec2ArrayBaseTestCase(object):
         va = self.Vec2Array([(3,-1)])
         va.clamped(2, 1)
 
+    @raises(ValueError)
+    def test_clamped_bad_args2(self):
+        va = self.Vec2Array([(3,-1)])
+        va.clamped(-1, 1)
+
     def test_clamp(self):
         va = self.Vec2Array()
         assert_equal(va.clamp(1, 2), None)
@@ -722,14 +727,19 @@ class Vec2ArrayBaseTestCase(object):
             (self.Vec2(-2,0), self.Vec2(0,0),
              self.Vec2(2,1).clamped(max_length=2), self.Vec2(0,1.25)))
         va.clamp(min_length=1.5, max_length=1.75)
-        assert_equal(tuple(va), 
-            (self.Vec2(-1.75,0), self.Vec2(0,0),
-             self.Vec2(2,1).clamped(max_length=1.75), self.Vec2(0,1.5)))
+        assert va.almost_equals(self.Vec2Array(
+            [self.Vec2(-1.75,0), self.Vec2(0,0),
+            self.Vec2(2,1).clamped(max_length=1.75), self.Vec2(0,1.5)]))
 
     @raises(ValueError)
     def test_clamp_bad_args(self):
         va = self.Vec2Array([(3,-1)])
         va.clamp(2, 1)
+
+    @raises(ValueError)
+    def test_clamp_bad_args2(self):
+        va = self.Vec2Array([(3,-1)])
+        va.clamp(-1, 1)
 
     def test_add_arrays(self):
         va1 = self.Vec2Array([(1,2), (3,4)])
@@ -756,7 +766,7 @@ class Vec2ArrayBaseTestCase(object):
 
     def test_add_vector_to_array(self):
         va = self.Vec2Array([(0,1), (2,3), (3,4)]) + self.Vec2(-2,3)
-        assert isinstance(va, self.Vec2Array)
+        assert isinstance(va, self.Vec2Array), repr(va)
         assert_equal(tuple(va),
             (self.Vec2(-2,4), self.Vec2(0,6), self.Vec2(1,7)))
         va = va + (2,-1)
@@ -1245,9 +1255,13 @@ class Vec2ArrayBaseTestCase(object):
         assert_equal(tuple(pa),
             (self.Vec2(0,1), self.Vec2(2,3), self.Vec2(3,4)))
 
+    def test_bool(self):
+        assert self.Vec2Array([(0,1), (2,3)])
+        assert not self.Vec2Array()
+
     def test_repr_and_str(self):
-        va = self.Vec2Array([(0,1), (2,3)])
-        assert_equal(repr(va), 'Vec2Array([(0.0, 1.0), (2.0, 3.0)])')
+        va = self.Vec2Array([(0,1.5), (2,3)])
+        assert_equal(repr(va), 'Vec2Array([(0.0, 1.5), (2.0, 3.0)])')
         assert_equal(repr(va), str(va))
 
 
@@ -1264,6 +1278,11 @@ class CVec2ArrayTestCase(
     from planar.c import Vec2Array
     from planar.c import Vec2Array as VecSeq
     from planar.c import Vec2, Seq2, Affine
+
+    def test_repr_and_str(self):
+        va = self.Vec2Array([(0,1.5), (2,3)])
+        assert_equal(repr(va), 'planar.Vec2Array([(0, 1.5), (2, 3)])')
+        assert_equal(repr(va), str(va))
 
 
 if __name__ == '__main__':

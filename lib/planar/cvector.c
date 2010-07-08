@@ -850,11 +850,10 @@ Seq2_new_from_points(PyTypeObject *type, PyObject *points)
 			return NULL;
 		}
 		memcpy(varray->vec, ((PlanarSeq2Object *)points)->vec, 
-			sizeof(planar_vec2_t) * size);
+			sizeof(planar_vec2_t) * Py_SIZE(points));
     } else {
 		/* Generic iterable of points */
-		points = PySequence_Fast(points, 
-			"expected iterable of Vec2 objects");
+		points = PySequence_Fast(points, "expected iterable of Vec2 objects");
 		if (points == NULL) {
 			return NULL;
 		}
@@ -897,6 +896,25 @@ Seq2_pynew(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     }
     return Seq2_new_from_points(type, PyTuple_GET_ITEM(args, 0));
 }
+
+/* Call the method "new_from_points(points)" on the Python object
+   specified. This is the generic API for instantiating 
+   a planar object from a sequence of points 
+*/
+static PyObject *
+call_from_points(PyObject *obj, PlanarSeq2Object *points) 
+{
+	static PyObject *from_points_str = NULL;
+
+	if (from_points_str == NULL) {
+		from_points_str = PyString_InternFromString("from_points");
+		if (from_points_str == NULL) {
+			return NULL;
+		}
+	}
+	return PyObject_CallMethodObjArgs(obj, from_points_str, points, NULL);
+}
+	
 
 static void
 Seq2_dealloc(PlanarSeq2Object *self)
@@ -1046,23 +1064,25 @@ Seq2_almost_equals(PlanarSeq2Object *self, PlanarSeq2Object *other)
     Py_RETURN_FALSE;
 }
 
-static PlanarSeq2Object *
+static PyObject *
 Seq2_copy(PlanarSeq2Object *self)
 {
+	PyObject * result;
     PlanarSeq2Object *varray;
-    Py_ssize_t size;
     
     assert(PlanarSeq2_Check(self));
-    size = PySequence_Size((PyObject *)self);
-    if (size == -1) {
-		return NULL;
-    }
-    varray = Seq2_New(Py_TYPE(self), size);
+    varray = Seq2_New(Py_TYPE(self), Py_SIZE(self));
     if (varray == NULL) {
 		return NULL;
     }
-    memcpy(varray->vec, self->vec, sizeof(planar_vec2_t) * size);
-    return varray;
+    memcpy(varray->vec, self->vec, sizeof(planar_vec2_t) * Py_SIZE(self));
+	if (PlanarVec2Array_CheckExact(self) || PlanarSeq2_CheckExact(self)) {
+		return (PyObject *)varray;
+	} else {
+		result = call_from_points((PyObject *)self, varray);
+		Py_DECREF(varray);
+		return result;
+	}
 }
 
 static PyMethodDef Seq2_methods[] = {
@@ -1087,14 +1107,15 @@ Seq2__mul__(PyObject *a, PyObject *b)
     double ta, tb, tc, td, te, tf;
 
     if (PlanarSeq2_Check(a) && PlanarAffine_Check(b)) {
-	src = (PlanarSeq2Object *)a;
-	t = (PlanarAffineObject *)b;
+		src = (PlanarSeq2Object *)a;
+		t = (PlanarAffineObject *)b;
     } else if (PlanarSeq2_Check(b) && PlanarAffine_Check(a)) {
-	src = (PlanarSeq2Object *)b;
-	t = (PlanarAffineObject *)a;
+		src = (PlanarSeq2Object *)b;
+		t = (PlanarAffineObject *)a;
     } else {
-	/* We support only transform operations */
-	RETURN_NOT_IMPLEMENTED;
+		/* We support only transform operations */
+		Py_INCREF(Py_NotImplemented);
+		return Py_NotImplemented;
     }
     ta = t->a;
     tb = t->b;
@@ -1105,19 +1126,19 @@ Seq2__mul__(PyObject *a, PyObject *b)
 
     size = PySequence_Size((PyObject *)src);
     if (size == -1) {
-	return NULL;
+		return NULL;
     }
     dst = Seq2_New(Py_TYPE(src), size);
     if (dst == NULL) {
-	return NULL;
+		return NULL;
     }
     srcv = src->vec;
     dstv = dst->vec;
     while (size--) {
-	dstv->x = srcv->x*ta + srcv->y*td + tc;
-	dstv->y = srcv->x*tb + srcv->y*te + tf;
-	++srcv;
-	++dstv;
+		dstv->x = srcv->x*ta + srcv->y*td + tc;
+		dstv->y = srcv->x*tb + srcv->y*te + tf;
+		++srcv;
+		++dstv;
     }
     return (PyObject *)dst;
 }
@@ -1132,14 +1153,14 @@ Seq2__imul__(PyObject *a, PyObject *b)
     double ta, tb, tc, td, te, tf;
 
     if (PlanarSeq2_Check(a) && PlanarAffine_Check(b)) {
-	s = (PlanarSeq2Object *)a;
-	t = (PlanarAffineObject *)b;
+		s = (PlanarSeq2Object *)a;
+		t = (PlanarAffineObject *)b;
     } else if (PlanarSeq2_Check(b) && PlanarAffine_Check(a)) {
-	s = (PlanarSeq2Object *)b;
-	t = (PlanarAffineObject *)a;
+		s = (PlanarSeq2Object *)b;
+		t = (PlanarAffineObject *)a;
     } else {
-	/* We support only transform operations */
-	RETURN_NOT_IMPLEMENTED;
+		/* We support only transform operations */
+		RETURN_NOT_IMPLEMENTED;
     }
     ta = t->a;
     tb = t->b;
@@ -1150,13 +1171,13 @@ Seq2__imul__(PyObject *a, PyObject *b)
 
     size = PySequence_Size((PyObject *)s);
     if (size == -1) {
-	return NULL;
+		return NULL;
     }
     sv = s->vec;
     while (size--) {
-	sv->x = sv->x*ta + sv->y*td + tc;
-	sv->y = sv->x*tb + sv->y*te + tf;
-	++sv;
+		sv->x = sv->x*ta + sv->y*td + tc;
+		sv->y = sv->x*tb + sv->y*te + tf;
+		++sv;
     }
     Py_INCREF(s);
     return (PyObject *)s;
@@ -1518,9 +1539,9 @@ Vec2Array_ass_slice(PlanarSeq2Object *self,
 		memmove(&self->vec[ihigh + d], &self->vec[ihigh],
 			sizeof(planar_vec2_t) * (Py_SIZE(self) - ihigh));
 	}
-	if (PlanarSeq2_Check(vectors)) {
+	if (vectors != NULL && PlanarSeq2_Check(vectors)) {
 		memmove(&self->vec[ilow], &((PlanarSeq2Object *)vectors)->vec, 
-		n * sizeof(planar_vec2_t));
+			n * sizeof(planar_vec2_t));
 	} else {
 		for (j = 0; j < n; ++j, ++ilow) {
 			if (!PlanarVec2_Parse(PySequence_Fast_GET_ITEM(vectors, j), 
@@ -1531,7 +1552,7 @@ Vec2Array_ass_slice(PlanarSeq2Object *self,
 			}
 		}
 	}
-	Py_DECREF(vectors);
+	Py_XDECREF(vectors);
 	return 0;
  error:
 	Py_XDECREF(vectors);
@@ -1621,6 +1642,140 @@ Vec2Array_shortest(PlanarSeq2Object *self)
 	}
 }
 
+
+static PyObject *
+Vec2Array_normalize(PlanarSeq2Object *self)
+{
+	double L;
+	Py_ssize_t i;
+
+	for (i = 0; i < Py_SIZE(self); ++i) {
+		L = sqrt(self->vec[i].x * self->vec[i].x + 
+			self->vec[i].y * self->vec[i].y);
+		self->vec[i].x = L > PLANAR_EPSILON ? self->vec[i].x / L : 0.0;
+		self->vec[i].y = L > PLANAR_EPSILON ? self->vec[i].y / L : 0.0;
+	}
+	Py_RETURN_NONE;
+}
+
+static PlanarSeq2Object *
+Vec2Array_normalized(PlanarSeq2Object *self)
+{
+	double L;
+	Py_ssize_t i;
+	PlanarSeq2Object *varray;
+
+	varray = Seq2_New(Py_TYPE(self), Py_SIZE(self));
+	if (varray == NULL) {
+		return NULL;
+	}
+	for (i = 0; i < Py_SIZE(self); ++i) {
+		L = sqrt(self->vec[i].x * self->vec[i].x + 
+			self->vec[i].y * self->vec[i].y);
+		varray->vec[i].x = L > PLANAR_EPSILON ? self->vec[i].x / L : 0.0;
+		varray->vec[i].y = L > PLANAR_EPSILON ? self->vec[i].y / L : 0.0;
+	}
+	return varray;
+}
+
+static PlanarSeq2Object *
+Vec2Array_clamped(PlanarSeq2Object *self, PyObject *args, PyObject *kwargs)
+{
+    double min = 0.0;
+    double max = DBL_MAX;
+	double min2, max2;
+    double L;
+	Py_ssize_t i;
+	PlanarSeq2Object *varray;
+
+    static char *kwlist[] = {"min_length", "max_length", NULL};
+
+    assert(PlanarVec2_Check(self));
+    if (!PyArg_ParseTupleAndKeywords(
+        args, kwargs, "|dd:Vec2Array.clamped", kwlist, &min, &max)) {
+        return NULL;
+    }
+	if (min < 0) {
+        PyErr_SetString(PyExc_ValueError, 
+            "Vec2Array.clamped: expected min_length >= 0");
+        return NULL;
+    }
+    if (min > max) {
+        PyErr_SetString(PyExc_ValueError, 
+            "Vec2Array.clamped: expected min_length <= max_length");
+        return NULL;
+    }
+	min2 = min*min;
+	max2 = max < DBL_MAX ? max*max : DBL_MAX;
+
+	varray = Seq2_New(Py_TYPE(self), Py_SIZE(self));
+	if (varray == NULL) {
+		return NULL;
+	}
+	for (i = 0; i < Py_SIZE(self); ++i) {
+		L = self->vec[i].x * self->vec[i].x + 
+			self->vec[i].y * self->vec[i].y;
+		if (L > max2) {
+			L = max / sqrt(L);
+			varray->vec[i].x = self->vec[i].x * L;
+			varray->vec[i].y = self->vec[i].y * L;
+		} else if (L > PLANAR_EPSILON && L < min2) {
+			L = min / sqrt(L);
+			varray->vec[i].x = self->vec[i].x * L;
+			varray->vec[i].y = self->vec[i].y * L;
+		} else {
+			varray->vec[i].x = self->vec[i].x;
+			varray->vec[i].y = self->vec[i].y;
+		}
+	}
+	return varray;
+}
+
+static PyObject *
+Vec2Array_clamp(PlanarSeq2Object *self, PyObject *args, PyObject *kwargs)
+{
+    double min = 0.0;
+    double max = DBL_MAX;
+	double min2, max2;
+    double L;
+	Py_ssize_t i;
+
+    static char *kwlist[] = {"min_length", "max_length", NULL};
+
+    assert(PlanarVec2_Check(self));
+    if (!PyArg_ParseTupleAndKeywords(
+        args, kwargs, "|dd:Vec2Array.clamped", kwlist, &min, &max)) {
+        return NULL;
+    }
+	if (min < 0) {
+        PyErr_SetString(PyExc_ValueError, 
+            "Vec2Array.clamped: expected min_length >= 0");
+        return NULL;
+    }
+    if (min > max) {
+        PyErr_SetString(PyExc_ValueError, 
+            "Vec2Array.clamped: expected min_length <= max_length");
+        return NULL;
+    }
+	min2 = min*min;
+	max2 = max < DBL_MAX ? max*max : DBL_MAX;
+
+	for (i = 0; i < Py_SIZE(self); ++i) {
+		L = self->vec[i].x * self->vec[i].x + 
+			self->vec[i].y * self->vec[i].y;
+		if (L > max2) {
+			L = max / sqrt(L);
+			self->vec[i].x = self->vec[i].x * L;
+			self->vec[i].y = self->vec[i].y * L;
+		} else if (L > PLANAR_EPSILON && L < min2) {
+			L = min / sqrt(L);
+			self->vec[i].x = self->vec[i].x * L;
+			self->vec[i].y = self->vec[i].y * L;
+		}
+	}
+	Py_RETURN_NONE;
+}
+
 static PyMethodDef Vec2Array_methods[] = {
     {"append", (PyCFunction)Vec2Array_append, METH_O, 
 		"Append all vectors in iterable to the end of the array."},
@@ -1632,7 +1787,586 @@ static PyMethodDef Vec2Array_methods[] = {
 		"Return the vector in the array with the maximum length."},
     {"shortest", (PyCFunction)Vec2Array_shortest, METH_NOARGS, 
 		"Return the vector in the array with the minimum length."},
+    {"normalize", (PyCFunction)Vec2Array_normalize, METH_NOARGS, 
+		"Normalize the vectors in the array in place."},
+    {"normalized", (PyCFunction)Vec2Array_normalized, METH_NOARGS, 
+		"Create a new array containing normalized vectors calculated "
+        "from this array."},
+    {"clamp", (PyCFunction)Vec2Array_clamp, METH_VARARGS | METH_KEYWORDS, 
+        "Clamp the length of the vectors in this array in place between "
+        "min_length and max_length."},
+    {"clamped", (PyCFunction)Vec2Array_clamped, METH_VARARGS | METH_KEYWORDS, 
+        "Create a new array of vectors with lengths clamped between "
+        "min_length and max_length."},
     {NULL, NULL}
+};
+
+/* Arithmetic Operations */
+
+/* Create the proper seq2 result object for arithmetic operations
+   given the two operands and the result sequence
+*/
+static PyObject *
+create_result_seq2(PyObject *a, PyObject *b, PlanarSeq2Object *seq)
+{
+	PyObject *result;
+
+	if (!PlanarVec2Array_Check(b) && PlanarSeq2_Check(b)) {
+		return call_from_points(b, seq);
+	} else if (!PlanarVec2Array_Check(a) && PlanarSeq2_Check(a)) {
+		return call_from_points(a, seq);
+	} else if (!PlanarVec2Array_CheckExact(b) && PlanarSeq2_Check(b)) {
+		return call_from_points(b, seq);
+	} else if (!PlanarVec2Array_CheckExact(a) && PlanarSeq2_Check(a)) {
+		return call_from_points(a, seq);
+	} else {
+		Py_INCREF(seq);
+		return (PyObject *)seq;
+	}
+}
+
+static PyObject *
+Vec2Array_add(PyObject *a, PyObject *b, PlanarSeq2Object *dst)
+{
+	Py_ssize_t size, i;
+	double x, y;
+	PlanarSeq2Object *seq2_a, *seq2_b, *varray;
+
+	assert(dst == NULL || PlanarSeq2_Check(dst));
+	if (PlanarSeq2_Check(a) && PlanarSeq2_Check(b)) {
+		size = Py_SIZE(a);
+		if (Py_SIZE(b) != size) {
+			PyErr_SetString(PyExc_ValueError,
+				"cannot add arrays with different lengths");
+			return NULL;
+		}
+		if (dst == NULL) {
+			dst = Seq2_New(&PlanarVec2ArrayType, size);
+			if (dst == NULL) {
+				return NULL;
+			}
+		} else {
+			Py_INCREF(dst);
+		}
+		seq2_a = (PlanarSeq2Object *)a;
+		seq2_b = (PlanarSeq2Object *)b;
+		for (i = 0; i < size; ++i) {
+			dst->vec[i].x = seq2_a->vec[i].x + seq2_b->vec[i].x;
+			dst->vec[i].y = seq2_a->vec[i].y + seq2_b->vec[i].y;
+		}
+		return (PyObject *)dst;
+	} else if (PlanarVec2Array_Check(a) && PlanarVec2_Parse(b, &x, &y)) {
+		varray = (PlanarSeq2Object *)a;
+	} else if (PlanarVec2Array_Check(b) && PlanarVec2_Parse(a, &x, &y)) {
+		varray = (PlanarSeq2Object *)b;
+	} else {
+        PyErr_Clear();
+        Py_INCREF(Py_NotImplemented);
+        return Py_NotImplemented;
+    }
+	
+	/* Add vector to sequence */
+	if (dst == NULL) {
+		dst = Seq2_New(&PlanarVec2ArrayType, Py_SIZE(varray));
+		if (dst == NULL) {
+			return NULL;
+		}
+	} else {
+		Py_INCREF(dst);
+	}
+	for (i = 0; i < Py_SIZE(varray); ++i) {
+		dst->vec[i].x = varray->vec[i].x + x;
+		dst->vec[i].y = varray->vec[i].y + y;
+	}
+	PyErr_Clear();
+	return (PyObject *)dst;
+}
+
+static PyObject *
+Vec2Array__add__(PyObject *a, PyObject *b)
+{
+	PyObject *varray, *result;
+
+	varray = Vec2Array_add(a, b, NULL);
+	if (varray == NULL || varray == Py_NotImplemented) {
+		return varray;
+	}
+	assert(PlanarVec2Array_Check(varray));
+	result = create_result_seq2(a, b, (PlanarSeq2Object *)varray);
+	Py_DECREF(varray);
+	return result;
+}
+
+static PyObject *
+Vec2Array__iadd__(PyObject *a, PyObject *b)
+{
+	if (PlanarVec2Array_Check(a)) {
+		return Vec2Array_add(a, b, (PlanarSeq2Object *)a);
+	} else {
+        Py_INCREF(Py_NotImplemented);
+        return Py_NotImplemented;
+	}
+}
+
+
+static PyObject *
+Vec2Array_sub(PyObject *a, PyObject *b, PlanarSeq2Object *dst)
+{
+	Py_ssize_t size, i;
+	double x, y;
+	PlanarSeq2Object *seq2_a, *seq2_b, *varray;
+
+	assert(dst == NULL || PlanarSeq2_Check(dst));
+	if (PlanarSeq2_Check(a) && PlanarVec2Array_Check(b)) {
+		size = Py_SIZE(a);
+		if (Py_SIZE(b) != size) {
+			PyErr_SetString(PyExc_ValueError,
+				"cannot subtract arrays with different lengths");
+			return NULL;
+		}
+		if (dst == NULL) {
+			dst = Seq2_New(&PlanarVec2ArrayType, size);
+			if (dst == NULL) {
+				return NULL;
+			}
+		} else {
+			Py_INCREF(dst);
+		}
+		seq2_a = (PlanarSeq2Object *)a;
+		seq2_b = (PlanarSeq2Object *)b;
+		for (i = 0; i < size; ++i) {
+			dst->vec[i].x = seq2_a->vec[i].x - seq2_b->vec[i].x;
+			dst->vec[i].y = seq2_a->vec[i].y - seq2_b->vec[i].y;
+		}
+		return (PyObject *)dst;
+	} else if (PlanarVec2Array_Check(a) && PlanarVec2_Parse(b, &x, &y)) {
+		varray = (PlanarSeq2Object *)a;
+		/* Subtract vector from sequence */
+		if (dst == NULL) {
+			dst = Seq2_New(&PlanarVec2ArrayType, Py_SIZE(varray));
+			if (dst == NULL) {
+				return NULL;
+			}
+		} else {
+			Py_INCREF(dst);
+		}
+		for (i = 0; i < Py_SIZE(varray); ++i) {
+			dst->vec[i].x = varray->vec[i].x - x;
+			dst->vec[i].y = varray->vec[i].y - y;
+		}
+		return (PyObject *)dst;
+	} else {
+        PyErr_Clear();
+        Py_INCREF(Py_NotImplemented);
+        return Py_NotImplemented;
+    }
+}
+
+static PyObject *
+Vec2Array__sub__(PyObject *a, PyObject *b)
+{
+	PyObject *varray, *result;
+
+	varray = Vec2Array_sub(a, b, NULL);
+	if (varray == NULL || varray == Py_NotImplemented) {
+		return varray;
+	}
+	assert(PlanarVec2Array_Check(varray));
+	result = create_result_seq2(a, b, (PlanarSeq2Object *)varray);
+	Py_DECREF(varray);
+	return result;
+}
+
+static PyObject *
+Vec2Array__isub__(PyObject *a, PyObject *b)
+{
+	if (PlanarVec2Array_Check(a)) {
+		return Vec2Array_sub(a, b, (PlanarSeq2Object *)a);
+	} else {
+        Py_INCREF(Py_NotImplemented);
+        return Py_NotImplemented;
+	}
+}
+
+static PyObject *
+Vec2Array_mul(PyObject *a, PyObject *b, PlanarSeq2Object *dst)
+{
+	Py_ssize_t size, i;
+	double x, y;
+	PlanarSeq2Object *seq2_a, *seq2_b, *varray;
+	PyObject *scalar;
+
+	assert(dst == NULL || PlanarSeq2_Check(dst));
+	if (PlanarSeq2_Check(a) && PlanarSeq2_Check(b)) {
+		size = Py_SIZE(a);
+		if (Py_SIZE(b) != size) {
+			PyErr_SetString(PyExc_ValueError,
+				"cannot multiply arrays with different lengths");
+			return NULL;
+		}
+		if (dst == NULL) {
+			dst = Seq2_New(&PlanarVec2ArrayType, size);
+			if (dst == NULL) {
+				return NULL;
+			}
+		} else {
+			Py_INCREF(dst);
+		}
+		seq2_a = (PlanarSeq2Object *)a;
+		seq2_b = (PlanarSeq2Object *)b;
+		for (i = 0; i < size; ++i) {
+			dst->vec[i].x = seq2_a->vec[i].x * seq2_b->vec[i].x;
+			dst->vec[i].y = seq2_a->vec[i].y * seq2_b->vec[i].y;
+		}
+		return (PyObject *)dst;
+	} else if (PlanarVec2Array_Check(a) && (scalar = PyObject_ToFloat(b))) {
+		varray = (PlanarSeq2Object *)a;
+		x = y = PyFloat_AS_DOUBLE(scalar);
+		Py_DECREF(scalar);
+	} else if (PlanarVec2Array_Check(b) && (scalar = PyObject_ToFloat(a))) {
+		varray = (PlanarSeq2Object *)b;
+		x = y = PyFloat_AS_DOUBLE(scalar);
+		Py_DECREF(scalar);
+	} else if (PlanarVec2Array_Check(a) && PlanarVec2_Parse(b, &x, &y)) {
+		varray = (PlanarSeq2Object *)a;
+	} else if (PlanarVec2Array_Check(b) && PlanarVec2_Parse(a, &x, &y)) {
+		varray = (PlanarSeq2Object *)b;
+	} else {
+        PyErr_Clear();
+        return NULL;
+    }
+	
+	/* Multiply sequence by scalar or vector */
+	if (dst == NULL) {
+		dst = Seq2_New(&PlanarVec2ArrayType, Py_SIZE(varray));
+		if (dst == NULL) {
+			return NULL;
+		}
+	} else {
+		Py_INCREF(dst);
+	}
+	for (i = 0; i < Py_SIZE(varray); ++i) {
+		dst->vec[i].x = varray->vec[i].x * x;
+		dst->vec[i].y = varray->vec[i].y * y;
+	}
+	PyErr_Clear();
+	return (PyObject *)dst;
+}
+
+static PyObject *
+Vec2Array__mul__(PyObject *a, PyObject *b)
+{
+	PyObject *varray, *result;
+
+	varray = Vec2Array_mul(a, b, NULL);
+	if (varray == NULL) {
+		if (!PyErr_Occurred()) {
+			return Seq2__mul__(a, b);
+		} else {
+			return NULL;
+		}
+	}
+	assert(PlanarVec2Array_Check(varray));
+	result = create_result_seq2(a, b, (PlanarSeq2Object *)varray);
+	Py_DECREF(varray);
+	return result;
+}
+
+static PyObject *
+Vec2Array__imul__(PyObject *a, PyObject *b)
+{
+	PyObject *varray;
+
+	if (PlanarVec2Array_Check(a) && 
+		(PlanarVec2Array_Check(b) || !PlanarSeq2_Check(b))) {
+		varray = Vec2Array_mul(a, b, (PlanarSeq2Object *)a);
+		if (varray == NULL && !PyErr_Occurred()) {
+			varray = Seq2__imul__(a, b);
+		}
+		return varray;
+	} else {
+        RETURN_NOT_IMPLEMENTED;
+	}
+}
+
+static PyObject *
+Vec2Array_div(PyObject *a, PyObject *b, PlanarSeq2Object *dst)
+{
+	Py_ssize_t size, i;
+	double x, y;
+	PlanarSeq2Object *seq2_a, *seq2_b, *varray;
+	PyObject *scalar;
+
+	assert(dst == NULL || PlanarSeq2_Check(dst));
+	if (PlanarSeq2_Check(a) && PlanarSeq2_Check(b)) {
+		size = Py_SIZE(a);
+		if (Py_SIZE(b) != size) {
+			PyErr_SetString(PyExc_ValueError,
+				"cannot divide arrays with different lengths");
+			return NULL;
+		}
+		seq2_a = (PlanarSeq2Object *)a;
+		seq2_b = (PlanarSeq2Object *)b;
+		for (i = 0; i < size; ++i) {
+			if (!seq2_b->vec[i].x || !seq2_b->vec[i].y) {
+				goto div_by_zero;
+			}
+		}
+		if (dst == NULL) {
+			dst = Seq2_New(&PlanarVec2ArrayType, size);
+			if (dst == NULL) {
+				return NULL;
+			}
+		} else {
+			Py_INCREF(dst);
+		}
+		for (i = 0; i < size; ++i) {
+			dst->vec[i].x = seq2_a->vec[i].x / seq2_b->vec[i].x;
+			dst->vec[i].y = seq2_a->vec[i].y / seq2_b->vec[i].y;
+		}
+		return (PyObject *)dst;
+	} else if (PlanarVec2Array_Check(a) && (scalar = PyObject_ToFloat(b))) {
+		varray = (PlanarSeq2Object *)a;
+		x = y = PyFloat_AS_DOUBLE(scalar);
+		Py_DECREF(scalar);
+	} else if (PlanarVec2Array_Check(a) && PlanarVec2_Parse(b, &x, &y)) {
+		varray = (PlanarSeq2Object *)a;
+	} else {
+        PyErr_Clear();
+        Py_INCREF(Py_NotImplemented);
+        return Py_NotImplemented;
+    }
+	
+	/* Multiply sequence by scalar or vector */
+	if (!x || !y) {
+		goto div_by_zero;
+	}
+	if (dst == NULL) {
+		dst = Seq2_New(&PlanarVec2ArrayType, Py_SIZE(varray));
+		if (dst == NULL) {
+			return NULL;
+		}
+	} else {
+		Py_INCREF(dst);
+	}
+	for (i = 0; i < Py_SIZE(varray); ++i) {
+		dst->vec[i].x = varray->vec[i].x / x;
+		dst->vec[i].y = varray->vec[i].y / y;
+	}
+	PyErr_Clear();
+	return (PyObject *)dst;
+
+div_by_zero:
+    PyErr_SetString(PyExc_ZeroDivisionError, "Vec2 division by zero");
+    return NULL;
+}
+
+static PyObject *
+Vec2Array__truediv__(PyObject *a, PyObject *b)
+{
+	PyObject *varray, *result;
+
+	varray = Vec2Array_div(a, b, NULL);
+	if (varray == NULL || varray == Py_NotImplemented) {
+		return varray;
+	}
+	assert(PlanarVec2Array_Check(varray));
+	result = create_result_seq2(a, b, (PlanarSeq2Object *)varray);
+	Py_DECREF(varray);
+	return result;
+}
+
+static PyObject *
+Vec2Array__itruediv__(PyObject *a, PyObject *b)
+{
+	if (PlanarVec2Array_Check(a) && 
+		(PlanarVec2Array_Check(b) || !PlanarSeq2_Check(b))) {
+		return Vec2Array_div(a, b, (PlanarSeq2Object *)a);
+	} else {
+        RETURN_NOT_IMPLEMENTED;
+	}
+}
+
+static PlanarSeq2Object *
+Vec2Array_floor(PlanarSeq2Object *varray) 
+{
+	Py_ssize_t i;
+
+	for (i = 0; i < Py_SIZE(varray); ++i) {
+		varray->vec[i].x = floor(varray->vec[i].x);
+		varray->vec[i].y = floor(varray->vec[i].y);
+	}
+	return varray;
+}
+
+static PyObject *
+Vec2Array__floordiv__(PyObject *a, PyObject *b)
+{
+	PyObject *varray, *result;
+
+	varray = Vec2Array_div(a, b, NULL);
+	if (varray == NULL || varray == Py_NotImplemented) {
+		return varray;
+	}
+	assert(PlanarVec2Array_Check(varray));
+	result = create_result_seq2(a, b, 
+		Vec2Array_floor((PlanarSeq2Object *)varray));
+	Py_DECREF(varray);
+	return result;
+}
+
+static PyObject *
+Vec2Array__ifloordiv__(PyObject *a, PyObject *b)
+{
+	PyObject *varray;
+	Py_ssize_t i;
+
+	if (PlanarVec2Array_Check(a) && 
+		(PlanarVec2Array_Check(b) || !PlanarSeq2_Check(b))) {
+		varray = Vec2Array_div(a, b, (PlanarSeq2Object *)a);
+		if (varray != NULL) {
+			Vec2Array_floor((PlanarSeq2Object *)varray);
+		}
+		return varray;
+	} else {
+        RETURN_NOT_IMPLEMENTED;
+	}
+}
+
+static PyObject *
+Vec2Array_neg(PlanarSeq2Object *self) 
+{
+	PyObject *result;
+	PlanarSeq2Object *varray;
+	Py_ssize_t i;
+
+	varray = Seq2_New(&PlanarVec2ArrayType, Py_SIZE(self));
+	if (varray == NULL) {
+		return NULL;
+	}
+	for (i = 0; i < Py_SIZE(varray); ++i) {
+		varray->vec[i].x = -self->vec[i].x;
+		varray->vec[i].y = -self->vec[i].y;
+	}
+	if (PlanarVec2Array_CheckExact(self)) {
+		return (PyObject *)varray;
+	} else {
+		result = call_from_points((PyObject *)self, varray);
+		Py_DECREF(varray);
+		return result;
+	}
+}
+
+static PyObject *
+Vec2Array__repr__(PlanarSeq2Object *self)
+{
+	PyObject *repr = NULL;
+	PyObject *parts = NULL;
+	PyObject *s = NULL;
+	PyObject *joined = NULL;
+	PyObject *sep_str = NULL;
+	PyObject *join_str = NULL;
+	PyObject *format_str = NULL;
+	PyObject *format_args = NULL;
+	Py_ssize_t i;
+	char buf[255];
+
+	parts = PyList_New(Py_SIZE(self));
+	if (parts == NULL) {
+		goto done;
+	}
+	for (i = 0; i < Py_SIZE(self); ++i) {
+		PyOS_snprintf(buf, 255, "(%lg, %lg)",
+			self->vec[i].x, self->vec[i].y);
+		s = PyUnicode_FromString(buf);
+		if (s == NULL) {
+			goto done;
+		}
+		PyList_SET_ITEM(parts, i, s);
+	}
+	s = NULL;
+	sep_str = PyUnicode_FromString(", ");
+	join_str = PyUnicode_FromString("join");
+	if (sep_str == NULL || join_str == NULL) {
+		goto done;
+	}
+	joined = PyObject_CallMethodObjArgs(sep_str, join_str, parts, NULL);
+	if (joined == NULL) {
+		goto done;
+	}
+	s = PyUnicode_FromString(Py_TYPE(self)->tp_name);
+	if (s == NULL) {
+		goto done;
+	}
+	format_str = PyUnicode_FromString("%s([%s])");
+	format_args = PyTuple_Pack(2, s, joined);
+	if (format_str == NULL || format_args == NULL) {
+		goto done;
+	}
+	repr = PyUnicode_Format(format_str, format_args);
+
+done:
+	Py_XDECREF(parts);
+	Py_XDECREF(s);
+	Py_XDECREF(joined);
+	Py_XDECREF(sep_str);
+	Py_XDECREF(join_str);
+	Py_XDECREF(format_str);
+	Py_XDECREF(format_args);
+	return repr;
+}
+
+static PyNumberMethods Vec2Array_as_number = {
+    (binaryfunc)Vec2Array__add__,       /* binaryfunc nb_add */
+    (binaryfunc)Vec2Array__sub__,       /* binaryfunc nb_subtract */
+    (binaryfunc)Vec2Array__mul__,       /* binaryfunc nb_multiply */
+#if PY_MAJOR_VERSION < 3
+    0,       /* binaryfunc nb_div */
+#endif
+    0,       /* binaryfunc nb_remainder */
+    0,       /* binaryfunc nb_divmod */
+    0,       /* ternaryfunc nb_power */
+    (unaryfunc)Vec2Array_neg,       /* unaryfunc nb_negative */
+    (unaryfunc)Seq2_copy,       /* unaryfunc nb_positive */
+    0,       /* unaryfunc nb_absolute */
+    0,       /* inquiry nb_bool */
+    0,       /* unaryfunc nb_invert */
+    0,       /* binaryfunc nb_lshift */
+    0,       /* binaryfunc nb_rshift */
+    0,       /* binaryfunc nb_and */
+    0,       /* binaryfunc nb_xor */
+    0,       /* binaryfunc nb_or */
+#if PY_MAJOR_VERSION < 3
+    0,       /* coercion nb_coerce */
+#endif
+    0,       /* unaryfunc nb_int */
+    0,       /* void *nb_reserved */
+    0,       /* unaryfunc nb_float */
+#if PY_MAJOR_VERSION < 3
+    0,       /* binaryfunc nb_oct */
+    0,       /* binaryfunc nb_hex */
+#endif
+
+    (binaryfunc)Vec2Array__iadd__,       /* binaryfunc nb_inplace_add */
+    (binaryfunc)Vec2Array__isub__,       /* binaryfunc nb_inplace_subtract */
+    (binaryfunc)Vec2Array__imul__,       /* binaryfunc nb_inplace_multiply */
+#if PY_MAJOR_VERSION < 3
+    0,       /* binaryfunc nb_inplace_divide */
+#endif
+    0,       /* binaryfunc nb_inplace_remainder */
+    0,       /* ternaryfunc nb_inplace_power */
+    0,       /* binaryfunc nb_inplace_lshift */
+    0,       /* binaryfunc nb_inplace_rshift */
+    0,       /* binaryfunc nb_inplace_and */
+    0,       /* binaryfunc nb_inplace_xor */
+    0,       /* binaryfunc nb_inplace_or */
+
+    (binaryfunc)Vec2Array__floordiv__,       /* binaryfunc nb_floor_divide */
+    (binaryfunc)Vec2Array__truediv__,       /* binaryfunc nb_true_divide */
+    (binaryfunc)Vec2Array__ifloordiv__,       /* binaryfunc nb_inplace_floor_divide */
+    (binaryfunc)Vec2Array__itruediv__,      /* binaryfunc nb_inplace_true_divide */
+
+    0,       /* unaryfunc nb_index */
 };
 
 PyDoc_STRVAR(Vec2Array__doc__, "Dynamic vector array");
@@ -1649,13 +2383,13 @@ PyTypeObject PlanarVec2ArrayType = {
 	0,                      /*tp_getattr*/
 	0,                      /*tp_setattr*/
 	0,		        /*tp_compare*/
-	0,                      /*tp_repr*/
-	&Seq2_as_number,        /*tp_as_number*/
+	(reprfunc)Vec2Array__repr__, /*tp_repr*/
+	&Vec2Array_as_number,        /*tp_as_number*/
 	&Vec2Array_as_sequence,      /*tp_as_sequence*/
 	0,	                /*tp_as_mapping*/
 	0,	                /*tp_hash*/
 	0,                      /*tp_call*/
-	0,                      /*tp_str*/
+	(reprfunc)Vec2Array__repr__, /*tp_str*/
 	0,                      /*tp_getattro*/
 	0,                      /*tp_setattro*/
 	0,                      /*tp_as_buffer*/

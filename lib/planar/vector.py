@@ -596,7 +596,7 @@ class Vec2Array(Seq2):
         return shortest
 
     def normalized(self):
-        """Create a new array containing the normal vectors calculated
+        """Create a new array containing normalized vectors calculated
         from this array.
 
         :rtype: Vec2Array
@@ -605,7 +605,7 @@ class Vec2Array(Seq2):
             vector.normalized() for vector in self._vectors)
 
     def normalize(self):
-        """Normalize the vectors in the array in place"""
+        """Normalize the vectors in the array in place."""
         self._vectors = [vector.normalized() for vector in self._vectors]
 
     def clamped(self, min_length=None, max_length=None):
@@ -619,6 +619,9 @@ class Vec2Array(Seq2):
         :type max_length: float
         :rtype: Vec2Array
         """
+        if min_length is not None and min_length < 0.0:
+            raise ValueError(
+                "Vec2Array.clamped: expected min_length >= 0")
         return self.from_points(
             vector.clamped(min_length, max_length) 
             for vector in self._vectors)
@@ -633,6 +636,9 @@ class Vec2Array(Seq2):
             be >= ``min_length``.
         :type max_length: float
         """
+        if min_length is not None and min_length < 0.0:
+            raise ValueError(
+                "Vec2Array.clamp: expected min_length >= 0")
         self._vectors = [vector.clamped(min_length, max_length) 
             for vector in self._vectors]
 
@@ -918,7 +924,7 @@ class Vec2Array(Seq2):
 
     def __repr__(self):
         return "%s([%s])" % (self.__class__.__name__,
-            ', '.join("(%s, %s)" % v for v in self._vectors))
+            ', '.join("(%r, %r)" % v for v in self._vectors))
 
     __str__ = __repr__
 
