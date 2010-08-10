@@ -378,15 +378,15 @@ Affine_new_shear(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 static PlanarAffineObject *
 Affine_new_rotation(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    PyObject *pivot_arg = NULL;
+    PyObject *anchor_arg = NULL;
     PlanarAffineObject *t;
     double angle, sa, ca, px, py;
 
-    static char *kwlist[] = {"angle", "pivot", NULL};
+    static char *kwlist[] = {"angle", "anchor", NULL};
 
     if (!PyArg_ParseTupleAndKeywords(
         args, kwargs, "d|O:Affine.shear", kwlist, 
-        &angle, &pivot_arg)) {
+        &angle, &anchor_arg)) {
         return NULL;
     }
     t = (PlanarAffineObject *)type->tp_alloc(type, 0);
@@ -401,8 +401,8 @@ Affine_new_rotation(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     t->d = -sa;
     t->e = ca;
 
-    if (pivot_arg != NULL) {
-        if (!PlanarVec2_Parse(pivot_arg, &px, &py)) {
+    if (anchor_arg != NULL) {
+        if (!PlanarVec2_Parse(anchor_arg, &px, &py)) {
             Py_DECREF(t);
             return NULL;
         }
@@ -540,7 +540,7 @@ static PyMethodDef Affine_methods[] = {
     {"rotation", (PyCFunction)Affine_new_rotation, 
         METH_CLASS | METH_VARARGS | METH_KEYWORDS, 
         "Create a rotation transform at the specified angle, "
-        "optionally about the specified pivot point."},
+        "optionally about the specified anchor point."},
     {"almost_equals", (PyCFunction)Affine_almost_equals, METH_O, 
         "Compare transforms for approximate equality."},
     {"itransform", (PyCFunction)Affine_itransform, METH_O, 

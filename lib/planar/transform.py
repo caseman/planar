@@ -133,27 +133,27 @@ class Affine(tuple):
                  0.0, 0.0, 1.0))
 
     @classmethod
-    def rotation(cls, angle, pivot=None):
+    def rotation(cls, angle, anchor=None):
         """Create a rotation transform at the specified angle,
-        optionally about the specified pivot point.
+        optionally about the specified anchor point.
 
         :param angle: Rotation angle in degrees
         :type angle: float
-        :param pivot: Point to rotate about, if omitted the
+        :param anchor: Point to rotate about, if omitted the
             rotation is about the origin.
-        :type pivot: :class:`~planar.Vec2`
+        :type anchor: :class:`~planar.Vec2`
         :rtype: Affine
         """
         angle = math.radians(angle)
         sa = math.sin(angle)
         ca = math.cos(angle)
-        if pivot is None:
+        if anchor is None:
             return tuple.__new__(cls, 
                 (ca, sa, 0.0,
                 -sa, ca, 0.0,
                  0.0, 0.0, 1.0))
         else:
-            px, py = pivot
+            px, py = anchor
             return tuple.__new__(cls,
                 (ca, sa, ca*px + sa*py - px,
                 -sa, ca, ca*py - sa*px - py,

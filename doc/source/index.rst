@@ -4,7 +4,7 @@ Planar Documentation Contents
 =============================
 
 Planar is a 2D geometry library for Python designed for use by
-games and other iteractive applications.
+games and other interactive applications.
 
 Planar was created for use by the `Grease game framework <http://www.pygamesf.org/~casey/grease/doc/>`_, but is distributed as a separate standalone library so that it can be more useful for everyone.
 
@@ -14,6 +14,7 @@ Planar was created for use by the `Grease game framework <http://www.pygamesf.or
    overview
    usage
    vectors
+   transforms
 
 Reference
 ---------
@@ -23,6 +24,8 @@ Reference
 
    planarref
    vectorref
+   vec2arrayref
+   affineref
 
 
 Indices and tables

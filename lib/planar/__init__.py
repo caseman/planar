@@ -37,13 +37,13 @@ __version__ = '.'.join(str(n) for n in __versioninfo__)
 
 try: # pragma: no cover
     # Default to C implementation
-    from planar.c import _set_epsilon, Vec2, Affine, \
+    from planar.c import _set_epsilon, Vec2, Vec2Array, Seq2, Affine, \
         TransformNotInvertibleError
 
     __implementation__ = 'C'
 except ImportError: # pragma: no cover
     # Fall-back to Python implementation
-    from planar.vector import Vec2
+    from planar.vector import Vec2, Vec2Array, Seq2
     from planar.transform import Affine
 
     class TransformNotInvertibleError(Exception):
