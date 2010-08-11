@@ -93,6 +93,10 @@ class AffineBaseTestCase(object):
         assert_equal(tuple(self.Affine.scale(1, (-10,3))), 
             tuple(self.Affine.identity()))
 
+    @raises(TypeError)
+    def test_scale_contructor_wrong_arg_types(self):
+        self.Affine.scale(1,1)
+
     def test_shear_constructor(self):
         shear = self.Affine.shear((2, 3))
         assert isinstance(shear, self.Affine)
@@ -105,6 +109,10 @@ class AffineBaseTestCase(object):
         assert_equal(tuple(shear), (1,2,0, 3,1,0, 0,0,1))
         shear = self.Affine.shear((2, 3), anchor=(-3, 2))
         assert_equal(tuple(shear), (1,2,4, 3,1,-9, 0,0,1))
+
+    @raises(TypeError)
+    def test_shear_contructor_wrong_arg_types(self):
+        self.Affine.shear(1,1)
 
     def test_rotation_constructor(self):
         rot = self.Affine.rotation(60)
@@ -121,16 +129,20 @@ class AffineBaseTestCase(object):
         seq_almost_equal(self.Affine.rotation(90), 
             (0,1,0, -1,0,0, 0,0,1))
 
-    def test_rotation_constructor_with_pivot(self):
+    def test_rotation_constructor_with_anchor(self):
         assert_equal(tuple(self.Affine.rotation(60)),
-            tuple(self.Affine.rotation(60, pivot=(0,0))))
-        rot = self.Affine.rotation(27, pivot=self.Vec2(2,-4))
+            tuple(self.Affine.rotation(60, anchor=(0,0))))
+        rot = self.Affine.rotation(27, anchor=self.Vec2(2,-4))
         r = math.radians(27)
         s, c = math.sin(r), math.cos(r)
         assert_equal(tuple(rot), 
             (c,s,c*2 + s*-4 - 2, -s,c,c*-4 - s*2 +4, 0,0,1))
         assert_equal(tuple(self.Affine.rotation(0, (-3, 2))), 
             tuple(self.Affine.identity()))
+
+    @raises(TypeError)
+    def test_rotation_contructor_wrong_arg_types(self):
+        self.Affine.rotation(1,1)
 
     def test_determinant(self):
         assert_equal(self.Affine.identity().determinant, 1)

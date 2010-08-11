@@ -323,6 +323,8 @@ Affine_new_scale(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 
     if (anchor_arg != NULL) {
         if (!PlanarVec2_Parse(anchor_arg, &ax, &ay)) {
+			PyErr_SetString(PyExc_TypeError,
+				"Expected sequence of two numbers for anchor argument"); 
             Py_DECREF(t);
             return NULL;
         }
@@ -366,6 +368,8 @@ Affine_new_shear(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 
     if (anchor_arg != NULL) {
         if (!PlanarVec2_Parse(anchor_arg, &ax, &ay)) {
+			PyErr_SetString(PyExc_TypeError,
+				"Expected sequence of two numbers for anchor argument"); 
             Py_DECREF(t);
             return NULL;
         }
@@ -403,6 +407,8 @@ Affine_new_rotation(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 
     if (anchor_arg != NULL) {
         if (!PlanarVec2_Parse(anchor_arg, &px, &py)) {
+			PyErr_SetString(PyExc_TypeError,
+				"Expected sequence of two numbers for anchor argument"); 
             Py_DECREF(t);
             return NULL;
         }
