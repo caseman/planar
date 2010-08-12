@@ -170,6 +170,16 @@ class AffineBaseTestCase(object):
         assert self.Affine.rotation(-26).is_conformal
         assert not self.Affine.shear((4, -1)).is_conformal
 
+    def test_is_orthonormal(self):
+        assert self.Affine.identity().is_orthonormal
+        assert self.Affine.translation((4, -1)).is_orthonormal
+        assert self.Affine.rotation(90).is_orthonormal
+        assert self.Affine.rotation(-26).is_orthonormal
+        assert not self.Affine.scale((2.5, 6.1)).is_orthonormal
+        assert not self.Affine.scale((.5, 2)).is_orthonormal
+        assert not self.Affine.shear((4, -1)).is_orthonormal
+
+
     def test_is_degenerate(self):
         from planar import EPSILON
         assert not self.Affine.identity().is_degenerate

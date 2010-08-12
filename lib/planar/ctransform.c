@@ -191,6 +191,23 @@ Affine_get_is_conformal(PlanarAffineObject *self)
 }
 
 static PyObject *
+Affine_get_is_orthonormal(PlanarAffineObject *self) 
+{
+    PyObject *r;
+
+    if (almost_eq(self->a * self->b + self->d * self->e, 0.0)
+		&& almost_eq(self->a * self->a + self->d * self->d, 1.0)
+		&& almost_eq(self->b * self->b + self->e * self->e, 1.0)
+	) {
+        r = Py_True;
+    } else {
+        r = Py_False;
+    }
+    Py_INCREF(r);
+    return r;
+}
+
+static PyObject *
 Affine_get_is_degenerate(PlanarAffineObject *self) 
 {
     PyObject *r;
@@ -244,6 +261,13 @@ static PyGetSetDef Affine_getset[] = {
         "True if the transform is conformal, i.e., if angles between points "
         "are preserved after applying the transform, within rounding "
         "limits. This implies that the transform has no effective shear.",
+        NULL},
+    {"is_orthonormal", (getter)Affine_get_is_orthonormal, NULL, 
+        "True if the transform is orthonormal, which means that the"
+        "transform represents a rigid motion, which has no effective scaling or"
+        "shear. Mathematically, this means that the axis vectors of the"
+        "transform matrix are perpendicular and unit-length.  Applying an"
+        "orthonormal transform to a shape always results in a congruent shape.",
         NULL},
     {"is_degenerate", (getter)Affine_get_is_degenerate, NULL, 
         "True if this transform is degenerate, which means that it "

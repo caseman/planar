@@ -206,6 +206,19 @@ class Affine(tuple):
         return abs(a*b + d*e) < planar.EPSILON
 
     @cached_property
+    def is_orthonormal(self):
+        """True if the transform is orthonormal, which means that the
+        transform represents a rigid motion, which has no effective scaling or
+        shear. Mathematically, this means that the axis vectors of the
+        transform matrix are perpendicular and unit-length.  Applying an
+        orthonormal transform to a shape always results in a congruent shape.
+        """
+        a, b, c, d, e, f, g, h, i = self
+        return (self.is_conformal 
+            and abs(1.0 - (a*a + d*d)) < planar.EPSILON
+            and abs(1.0 - (b*b + e*e)) < planar.EPSILON)
+
+    @cached_property
     def is_degenerate(self):
         """True if this transform is degenerate, which means that it will
         collapse a shape to an effective area of zero. Degenerate transforms

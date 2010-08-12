@@ -265,6 +265,12 @@ include translation, scale, and rotation in multiples of 90 degrees.
 would not change as a result of the transform being applied. This
 means that the transform effectively has zero shear.
 
+``is_orthonormal`` -- If True, applying the transform to a shape
+would result in a congruent shape with no effective scaling or shear.
+Such a transform is also called a "rigid motion" since it does
+not squash or stretch the shape. All orthonormal transforms are
+conformal, and have a determinant of 1. Thus, they are never degenerate.
+
 ``is_degenerate`` -- True if applying the transform to a shape would
 reduce its area to zero. This means that the scaling factor of the
 transform (i.e., the determinant) is effectively zero. Degenerate transforms
