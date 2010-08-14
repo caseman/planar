@@ -61,7 +61,7 @@ simplest :class:`~planar.Affine` transform, the identity transform::
 
 	>>> from planar import Affine
 	>>> ident = Affine.identity()
-	>>> print ident
+	>>> print(ident)
 	| 1.00, 0.00, 0.00|
 	| 0.00, 1.00, 0.00|
 	| 0.00, 0.00, 1.00|
@@ -81,7 +81,7 @@ Another basic transform is a simple translation::
 
 	>>> from planar import Affine
 	>>> offset = Affine.translation((5, -1))
-	>>> print offset
+	>>> print(offset)
 	| 1.00, 0.00, 5.00|
 	| 0.00, 1.00,-1.00|
 	| 0.00, 0.00, 1.00|
@@ -93,7 +93,7 @@ Another simple transform is a scale::
 
 	>>> from planar import Affine
 	>>> scale = Affine.scale(2.5)
-	>>> print scale
+	>>> print(scale)
 	| 2.50, 0.00, 0.00|
 	| 0.00, 2.50, 0.00|
 	| 0.00, 0.00, 1.00|
@@ -103,7 +103,7 @@ a different scale can be specified for each axis::
 
 	>>> from planar import Affine
 	>>> scale = Affine.scale((0.75, 2))
-	>>> print scale
+	>>> print(scale)
 	| 0.75, 0.00, 0.00|
 	| 0.00, 2.00, 0.00|
 	| 0.00, 0.00, 1.00|
@@ -116,7 +116,7 @@ scaling factor::
 
 	>>> from planar import Affine
 	>>> flip_x = Affine.scale((-1, 1))
-	>>> print flip_x
+	>>> print(flip_x)
 	|-1.00, 0.00, 0.00|
 	| 0.00, 1.00, 0.00|
 	| 0.00, 0.00, 1.00|
@@ -129,12 +129,12 @@ ways, such as applying rotation::
 
 	>>> from planar import Affine
 	>>> rot90 = Affine.rotation(90)
-	>>> print rot90
+	>>> print(rot90)
 	| 0.00, 1.00, 0.00|
 	|-1.00, 0.00, 0.00|
 	| 0.00, 0.00, 1.00|
 	>>> rot45 = Affine.rotation(45)
-	>>> print rot45
+	>>> print(rot45)
 	| 0.71, 0.71, 0.00|
 	|-0.71, 0.71, 0.00|
 	| 0.00, 0.00, 1.00|
@@ -147,42 +147,45 @@ precision is limited to 2 places in the string representation of a matrix for
 easy reading.  The ``repr()`` of a transform instance provides greater
 precision, at the cost of some readability.
 
+By default, rotation transforms are performed about the origin. You can
+specify another point to rotate around using the optional ``pivot``
+argument::
+
+	>>> from planar import Affine
+	>>> rot = Affine.rotation(45, pivot=(-3, 8))
+	>>> print(rot)
+	| 0.71, 0.71, 4.78|
+	|-0.71, 0.71, 4.46|
+	| 0.00, 0.00, 1.00|
+
+You can see that this includes a translation in the matrix values. You can
+use the pivot to rotate an object about its center, or rotate an object
+about another object.
+
 The last :class:`~planar.Affine` constructor allows the creation of shear
 transforms.  Shears can alter the angle of the X and Y axes relative to one
 another::
 
 	>>> from planar import Affine
-	>>> shear = Affine.shear(3.25)
-	>>> print shear
-	| 1.00, 3.25, 0.00|
-	| 3.25, 1.00, 0.00|
+	>>> shear = Affine.shear(30)
+	>>> print(shear)
+	| 1.00, 0.00, 0.00|
+	| 0.58, 1.00, 0.00|
 	| 0.00, 0.00, 1.00|
 
-As with scaling, shears can apply either symmetrically to both axes, as above,
-or can be specified with separate values for each axis::
+The above applies a 30 degree shear to the X-axis, and leaves the Y-axis
+unchanged. We can also create a shear for both axes::
 
 	>>> from planar import Affine
-	>>> shear = Affine.shear((2.5, -1))
-	>>> print shear
-	| 1.00, 2.50, 0.00|
+	>>> shear = Affine.shear(-45, 15)
+	>>> print(shear)
+	| 1.00, 0.27, 0.00|
 	|-1.00, 1.00, 0.00|
 	| 0.00, 0.00, 1.00|
 
 A shear transform can alter the shape of an object. For example, shearing a
 rectangle results in a parallelogram; shearing a circle results in an
 ellipse.
-
-One important point to understand is that, by default, all transform operations
-occur about the origin. This is particularly important for scale, rotation,
-and shear transforms. An optional ``anchor`` argument can be specified when
-creating these transforms to transform about another arbitrary point instead of
-the origin::
-
-	>>> from planar import Affine
-	>>> rot = Affine.rotation(45, anchor=(2, 1))
-
-A typical use for this would be to rotate or scale an object about its center
-point.
 
 The final way to construct an :class:`~planar.Affine` instance is to use the
 default constructor.  This accepts 6 floating point arguments that are
@@ -192,7 +195,7 @@ that you want to use::
 
 	>>> from planar import Affine
 	>>> affine = Affine(0.2, 0.3, 0.4, 0.5, 0.6, 0.7)
-	>>> print affine
+	>>> print(affine)
 	| 0.20, 0.30, 0.40|
 	| 0.50, 0.60, 0.70|
 	| 0.00, 0.00, 1.00|

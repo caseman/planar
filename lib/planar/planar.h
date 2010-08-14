@@ -14,9 +14,10 @@
 #define PY_PLANAR_H
 
 /* Python 2/3 compatibility */
-#ifndef PyUnicode_FromString
-#define PyUnicode_FromString(o) PyString_FromString(o)
+#if PY_MAJOR_VERSION < 3
+#define PyUnicode_InternFromString(o) PyString_InternFromString(o)
 #endif
+
 #ifndef Py_TPFLAGS_CHECKTYPES /* not in Py 3 */
 #define Py_TPFLAGS_CHECKTYPES 0
 #endif

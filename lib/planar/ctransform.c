@@ -315,28 +315,19 @@ Affine_new_translation(PyTypeObject *type, PyObject *offset)
 }
 
 static PlanarAffineObject *
-Affine_new_scale(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+Affine_new_scale(PyTypeObject *type, PyObject *scaling)
 {
-    PyObject *scaling_arg;
-    PyObject *anchor_arg = NULL;
     PlanarAffineObject *t;
-    double sx, sy, ax, ay;
+    double sx, sy;
 
-    static char *kwlist[] = {"scaling", "anchor", NULL};
-
-    if (!PyArg_ParseTupleAndKeywords(
-        args, kwargs, "O|O:Affine.scale", kwlist, 
-        &scaling_arg, &anchor_arg)) {
-        return NULL;
-    }
-    if (!PlanarVec2_Parse(scaling_arg, &sx, &sy)) {
+    if (!PlanarVec2_Parse(scaling, &sx, &sy)) {
         /* scalar arg */
-        scaling_arg = PyNumber_Float(scaling_arg);
-        if (scaling_arg == NULL) {
+        scaling = PyNumber_Float(scaling);
+        if (scaling == NULL) {
             return NULL;
         }
-        sx = sy = PyFloat_AS_DOUBLE(scaling_arg);
-        Py_DECREF(scaling_arg);
+        sx = sy = PyFloat_AS_DOUBLE(scaling);
+        Py_DECREF(scaling);
     }
     t = (PlanarAffineObject *)type->tp_alloc(type, 0);
     if (t == NULL) {
@@ -344,17 +335,6 @@ Affine_new_scale(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     }
     t->a = sx;
     t->e = sy;
-
-    if (anchor_arg != NULL) {
-        if (!PlanarVec2_Parse(anchor_arg, &ax, &ay)) {
-			PyErr_SetString(PyExc_TypeError,
-				"Expected sequence of two numbers for anchor argument"); 
-            Py_DECREF(t);
-            return NULL;
-        }
-        t->c = sx * ax - ax;
-        t->f = sy * ay - ay;
-    }
     return t;
 }
 
@@ -364,57 +344,38 @@ Affine_new_shear(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     PyObject *shearing_arg;
     PyObject *anchor_arg = NULL;
     PlanarAffineObject *t;
-    double sx, sy, ax, ay;
+    double sx, sy, ax = 0.0, ay = 0.0;
 
-    static char *kwlist[] = {"shearing", "anchor", NULL};
+    static char *kwlist[] = {"x_angle", "y_angle", NULL};
 
     if (!PyArg_ParseTupleAndKeywords(
-        args, kwargs, "O|O:Affine.shear", kwlist, 
-        &shearing_arg, &anchor_arg)) {
+        args, kwargs, "|dd:Affine.shear", kwlist, &ax, &ay)) {
         return NULL;
-    }
-    if (!PlanarVec2_Parse(shearing_arg, &sx, &sy)) {
-        /* scalar arg */
-        shearing_arg = PyNumber_Float(shearing_arg);
-        if (shearing_arg == NULL) {
-            return NULL;
-        }
-        sx = sy = PyFloat_AS_DOUBLE(shearing_arg);
-        Py_DECREF(shearing_arg);
     }
     t = (PlanarAffineObject *)type->tp_alloc(type, 0);
     if (t == NULL) {
         return NULL;
     }
+	sx = ax ? tan(radians(ax)) : 0.0;
+	sy = ay ? tan(radians(ay)) : 0.0;
     t->a = t->e = 1.0;
-    t->b = sx;
-    t->d = sy;
-
-    if (anchor_arg != NULL) {
-        if (!PlanarVec2_Parse(anchor_arg, &ax, &ay)) {
-			PyErr_SetString(PyExc_TypeError,
-				"Expected sequence of two numbers for anchor argument"); 
-            Py_DECREF(t);
-            return NULL;
-        }
-        t->c = sx * ay;
-        t->f = sy * ax;
-    }
-    return t;
+    t->b = sy;
+    t->d = sx;
+	return t;
 }
 
 static PlanarAffineObject *
 Affine_new_rotation(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    PyObject *anchor_arg = NULL;
+    PyObject *pivot_arg = NULL;
     PlanarAffineObject *t;
     double angle, sa, ca, px, py;
 
-    static char *kwlist[] = {"angle", "anchor", NULL};
+    static char *kwlist[] = {"angle", "pivot", NULL};
 
     if (!PyArg_ParseTupleAndKeywords(
         args, kwargs, "d|O:Affine.shear", kwlist, 
-        &angle, &anchor_arg)) {
+        &angle, &pivot_arg)) {
         return NULL;
     }
     t = (PlanarAffineObject *)type->tp_alloc(type, 0);
@@ -429,15 +390,15 @@ Affine_new_rotation(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     t->d = -sa;
     t->e = ca;
 
-    if (anchor_arg != NULL) {
-        if (!PlanarVec2_Parse(anchor_arg, &px, &py)) {
+    if (pivot_arg != NULL) {
+        if (!PlanarVec2_Parse(pivot_arg, &px, &py)) {
 			PyErr_SetString(PyExc_TypeError,
-				"Expected sequence of two numbers for anchor argument"); 
+				"Expected sequence of two numbers for pivot argument"); 
             Py_DECREF(t);
             return NULL;
         }
-        t->c = ca*px + sa*py - px;
-        t->f = ca*py - sa*px - py;
+        t->c = px - ca*px + sa*py;
+        t->f = py - ca*py - sa*px;
     }
     return t;
 }
@@ -560,7 +521,7 @@ static PyMethodDef Affine_methods[] = {
         METH_CLASS | METH_O, 
         "Create a translation transform from an offset vector."},
     {"scale", (PyCFunction)Affine_new_scale, 
-        METH_CLASS | METH_VARARGS | METH_KEYWORDS, 
+        METH_CLASS | METH_O, 
         "Create a scaling transform from a scalar or vector, "
         "optionally about an anchor point."},
     {"shear", (PyCFunction)Affine_new_shear, 

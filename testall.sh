@@ -24,6 +24,7 @@ nosetests3 -d -w build/lib.*3.1/planar/ --with-coverage || error=1
 
 echo
 echo -n "Doctests... "
-python3 -m doctest doc/source/*.rst && echo "passed." || error=1
+srcdir=`pwd`
+cd build/lib.*3.?/ && python3 -m doctest ${srcdir}/doc/source/*.rst && echo "passed." || error=1
 
 exit $error

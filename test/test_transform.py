@@ -83,36 +83,17 @@ class AffineBaseTestCase(object):
         assert_equal(tuple(self.Affine.scale(1)), 
             tuple(self.Affine.identity()))
 
-    def test_scale_constructor_with_anchor(self):
-        scale = self.Affine.scale(5, anchor=(0,0))
-        assert_equal(tuple(scale), (5,0,0, 0,5,0, 0,0,1))
-        scale = self.Affine.scale(5, anchor=self.Vec2(2,1))
-        assert_equal(tuple(scale), (5,0,8, 0,5,4, 0,0,1))
-        scale = self.Affine.scale((3,4), self.Vec2(-10,3))
-        assert_equal(tuple(scale), (3,0,-20, 0,4,9, 0,0,1))
-        assert_equal(tuple(self.Affine.scale(1, (-10,3))), 
-            tuple(self.Affine.identity()))
-
-    @raises(TypeError)
-    def test_scale_contructor_wrong_arg_types(self):
-        self.Affine.scale(1,1)
-
     def test_shear_constructor(self):
-        shear = self.Affine.shear((2, 3))
+        shear = self.Affine.shear(30)
         assert isinstance(shear, self.Affine)
-        assert_equal(tuple(shear), (1,2,0, 3,1,0, 0,0,1))
-        shear = self.Affine.shear(self.Vec2(-4, 2))
-        assert_equal(tuple(shear), (1,-4,0, 2,1,0, 0,0,1))
-
-    def test_shear_constructor_with_anchor(self):
-        shear = self.Affine.shear((2, 3), anchor=(0, 0))
-        assert_equal(tuple(shear), (1,2,0, 3,1,0, 0,0,1))
-        shear = self.Affine.shear((2, 3), anchor=(-3, 2))
-        assert_equal(tuple(shear), (1,2,4, 3,1,-9, 0,0,1))
-
-    @raises(TypeError)
-    def test_shear_contructor_wrong_arg_types(self):
-        self.Affine.shear(1,1)
+        sx = math.tan(math.radians(30))
+        seq_almost_equal(tuple(shear), (1,0,0, sx,1,0, 0,0,1))
+        shear = self.Affine.shear(-15, 60)
+        sx = math.tan(math.radians(-15))
+        sy = math.tan(math.radians(60))
+        seq_almost_equal(tuple(shear), (1,sy,0, sx,1,0, 0,0,1))
+        shear = self.Affine.shear(y_angle=45)
+        seq_almost_equal(tuple(shear), (1,1,0, 0,1,0, 0,0,1))
 
     def test_rotation_constructor(self):
         rot = self.Affine.rotation(60)
@@ -129,14 +110,14 @@ class AffineBaseTestCase(object):
         seq_almost_equal(self.Affine.rotation(90), 
             (0,1,0, -1,0,0, 0,0,1))
 
-    def test_rotation_constructor_with_anchor(self):
+    def test_rotation_constructor_with_pivot(self):
         assert_equal(tuple(self.Affine.rotation(60)),
-            tuple(self.Affine.rotation(60, anchor=(0,0))))
-        rot = self.Affine.rotation(27, anchor=self.Vec2(2,-4))
+            tuple(self.Affine.rotation(60, pivot=(0,0))))
+        rot = self.Affine.rotation(27, pivot=self.Vec2(2,-4))
         r = math.radians(27)
         s, c = math.sin(r), math.cos(r)
         assert_equal(tuple(rot), 
-            (c,s,c*2 + s*-4 - 2, -s,c,c*-4 - s*2 +4, 0,0,1))
+            (c,s,2 - 2*c - 4*s, -s,c,-4 - 2*s + 4*c, 0,0,1))
         assert_equal(tuple(self.Affine.rotation(0, (-3, 2))), 
             tuple(self.Affine.identity()))
 
@@ -159,7 +140,7 @@ class AffineBaseTestCase(object):
         assert self.Affine.scale((2.5, 6.1)).is_rectilinear
         assert self.Affine.translation((4, -1)).is_rectilinear
         assert self.Affine.rotation(90).is_rectilinear
-        assert not self.Affine.shear((4, -1)).is_rectilinear
+        assert not self.Affine.shear(4, -1).is_rectilinear
         assert not self.Affine.rotation(-26).is_rectilinear
 
     def test_is_conformal(self):
@@ -168,7 +149,7 @@ class AffineBaseTestCase(object):
         assert self.Affine.translation((4, -1)).is_conformal
         assert self.Affine.rotation(90).is_conformal
         assert self.Affine.rotation(-26).is_conformal
-        assert not self.Affine.shear((4, -1)).is_conformal
+        assert not self.Affine.shear(4, -1).is_conformal
 
     def test_is_orthonormal(self):
         assert self.Affine.identity().is_orthonormal
@@ -177,14 +158,13 @@ class AffineBaseTestCase(object):
         assert self.Affine.rotation(-26).is_orthonormal
         assert not self.Affine.scale((2.5, 6.1)).is_orthonormal
         assert not self.Affine.scale((.5, 2)).is_orthonormal
-        assert not self.Affine.shear((4, -1)).is_orthonormal
-
+        assert not self.Affine.shear(4, -1).is_orthonormal
 
     def test_is_degenerate(self):
         from planar import EPSILON
         assert not self.Affine.identity().is_degenerate
         assert not self.Affine.translation((2, -1)).is_degenerate
-        assert not self.Affine.shear((0, -22.5)).is_degenerate
+        assert not self.Affine.shear(0, -22.5).is_degenerate
         assert not self.Affine.rotation(88.7).is_degenerate
         assert not self.Affine.scale(0.5).is_degenerate
         assert self.Affine.scale(0).is_degenerate

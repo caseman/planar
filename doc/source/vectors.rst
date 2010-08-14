@@ -22,7 +22,7 @@ or polar coordinates::
 	>>> p.length
 	10.0
 	>>> p
-	Vec2(7.0710678118654755, 7.071067811865475)
+	Vec2(7.07107, 7.07107)
 
 .. note:: All angles in planar are represented in degrees
 	where ``0`` is parallel to the ascending x-axis, and
@@ -69,24 +69,24 @@ object::
 
 	>>> from planar import Vec2
 	>>> Vec2(2, 1) + Vec2(3, 5)
-	Vec2(5.0, 6.0)
+	Vec2(5, 6)
 	>>> Vec2(1, 0) - Vec2(1, 1)
-	Vec2(0.0, -1.0)
+	Vec2(0, -1)
 
 You can multiply or divide a vector by a scalar to scale it::
 	
 	>>> from planar import Vec2
 	>>> Vec2(1.5, 4) * 2
-	Vec2(3.0, 8.0)
+	Vec2(3, 8)
 	>>> Vec2(9, 3) / 3
-	Vec2(3.0, 1.0)
+	Vec2(3, 1)
 
 You can multiply a vector by another vector to scale it
 component-wise. This skews the vector::
 
 	>>> from planar import Vec2
 	>>> Vec2(2, 3) * Vec2(5, 3)
-	Vec2(10.0, 9.0)
+	Vec2(10, 9)
 
 There are special methods for performing the dot product
 and cross products of two vectors explicitly. These return

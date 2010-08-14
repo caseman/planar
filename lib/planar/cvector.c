@@ -907,7 +907,7 @@ call_from_points(PyObject *obj, PlanarSeq2Object *points)
 	static PyObject *from_points_str = NULL;
 
 	if (from_points_str == NULL) {
-		from_points_str = PyString_InternFromString("from_points");
+		from_points_str = PyUnicode_InternFromString("from_points");
 		if (from_points_str == NULL) {
 			return NULL;
 		}
@@ -915,7 +915,6 @@ call_from_points(PyObject *obj, PlanarSeq2Object *points)
 	return PyObject_CallMethodObjArgs(obj, from_points_str, points, NULL);
 }
 	
-
 static void
 Seq2_dealloc(PlanarSeq2Object *self)
 {
@@ -930,49 +929,50 @@ Seq2_dealloc(PlanarSeq2Object *self)
 static PyObject *
 Seq2_compare(PyObject *a, PyObject *b, int op)
 {
-    Py_ssize_t size, osize;
-    planar_vec2_t *av, *bv;
+	Py_ssize_t size, osize;
+	planar_vec2_t *av, *bv;
 
-    size = PySequence_Size(a);
-    osize = PySequence_Size(b);
-    if (size == osize && size != -1 
+	size = PySequence_Size(a);
+	osize = PySequence_Size(b);
+	if (size == osize && size != -1 
 	&& PlanarSeq2_Check(a) && Py_TYPE(a) == Py_TYPE(b)) {
 	av = ((PlanarSeq2Object *)a)->vec;
 	bv = ((PlanarSeq2Object *)b)->vec;
 	switch (op) {
-            case Py_EQ:
-		while (size--) {
-		    if (av->x != bv->x || av->y != bv->y) {
-			Py_RETURN_FALSE;
-		    }
-		    ++av;
-		    ++bv;
-		}
-                Py_RETURN_TRUE;
-            case Py_NE:
-		while (size--) {
-		    if (av->x != bv->x || av->y != bv->y) {
+		case Py_EQ:
+			while (size--) {
+				if (av->x != bv->x || av->y != bv->y) {
+				Py_RETURN_FALSE;
+				}
+				++av;
+				++bv;
+			}
 			Py_RETURN_TRUE;
-		    }
-		    ++av;
-		    ++bv;
+		case Py_NE:
+			while (size--) {
+				if (av->x != bv->x || av->y != bv->y) {
+				Py_RETURN_TRUE;
+				}
+				++av;
+				++bv;
+			}
+			Py_RETURN_FALSE;
+		default:
+			/* Only == and != are defined */
+				RETURN_NOT_IMPLEMENTED;
 		}
-                Py_RETURN_FALSE;
-            default:
-		/* Only == and != are defined */
-                RETURN_NOT_IMPLEMENTED;
-        }
-    } else {
-	switch (op) {
-            case Py_EQ:
-		Py_RETURN_FALSE;
-            case Py_NE:
-		Py_RETURN_TRUE;
-            default:
-		/* Only == and != are defined */
-                RETURN_NOT_IMPLEMENTED;
-        }
-    }
+	} else {
+		PyErr_Clear();
+		switch (op) {
+			case Py_EQ:
+				Py_RETURN_FALSE;
+			case Py_NE:
+				Py_RETURN_TRUE;
+			default:
+				/* Only == and != are defined */
+				RETURN_NOT_IMPLEMENTED;
+		}
+	}
 }
 
 /* Sequence Methods */
@@ -1004,7 +1004,7 @@ Seq2_assitem(PlanarSeq2Object *self, Py_ssize_t index, PyObject *v)
 	    if (!PyErr_Occurred()) {
 		PyErr_Format(PyExc_TypeError, 
 		    "Cannot assign %.200s into %.200s",
-		    v->ob_type->tp_name, self->ob_type->tp_name);
+		    Py_TYPE(v)->tp_name, Py_TYPE(self)->tp_name);
 	    }
 	    return -1;
 	}
@@ -1087,9 +1087,9 @@ Seq2_copy(PlanarSeq2Object *self)
 
 static PyMethodDef Seq2_methods[] = {
     {"almost_equals", (PyCFunction)Seq2_almost_equals, METH_O, 
-	"Compare for approximate equality."},
-    {"from_points", (PyCFunction)Seq2_new_from_points, METH_CLASS, 
-	"Create a new 2D sequence from an iterable of points"},
+		"Compare for approximate equality."},
+    {"from_points", (PyCFunction)Seq2_new_from_points, METH_CLASS | METH_O, 
+		"Create a new 2D sequence from an iterable of points"},
     {"__copy__", (PyCFunction)Seq2_copy, METH_NOARGS, NULL}, 
     {"__deepcopy__", (PyCFunction)Seq2_copy, METH_NOARGS, NULL}, 
     {NULL, NULL}
@@ -1240,8 +1240,7 @@ static PyNumberMethods Seq2_as_number = {
 PyDoc_STRVAR(Seq2__doc__, "Fixed length vector sequence");
 
 PyTypeObject PlanarSeq2Type = {
-	PyObject_HEAD_INIT(NULL)
-	0,			        /*ob_size*/
+    PyVarObject_HEAD_INIT(NULL, 0)
 	"planar.Seq2",		/*tp_name*/
 	sizeof(PlanarSeq2Object),	/*tp_basicsize*/
 	sizeof(planar_vec2_t),		/*tp_itemsize*/
@@ -1362,7 +1361,7 @@ Vec2Array_append(PlanarSeq2Object *self, PyObject *vector)
 		if (!PyErr_Occurred()) {
 			PyErr_Format(PyExc_TypeError, 
 				"Cannot append %.200s to %.200s",
-				vector->ob_type->tp_name, self->ob_type->tp_name);
+				Py_TYPE(vector)->tp_name, Py_TYPE(self)->tp_name);
 	    }
 		return NULL;
 	}
@@ -1396,7 +1395,7 @@ Vec2Array_insert(PlanarSeq2Object *self, PyObject *args)
 		if (!PyErr_Occurred()) {
 			PyErr_Format(PyExc_TypeError, 
 				"Cannot insert %.200s into %.200s",
-				vector->ob_type->tp_name, self->ob_type->tp_name);
+				Py_TYPE(vector)->tp_name, Py_TYPE(self)->tp_name);
 	    }
 		return NULL;
 	}
@@ -1576,7 +1575,7 @@ Vec2Array_ass_item(PlanarSeq2Object *self, Py_ssize_t i, PyObject *vector)
 		if (!PyErr_Occurred()) {
 			PyErr_Format(PyExc_TypeError, 
 				"Cannot assign item %.200s into %.200s",
-				vector->ob_type->tp_name, self->ob_type->tp_name);
+				Py_TYPE(vector)->tp_name, Py_TYPE(self)->tp_name);
 	    }
 		return -1;
 	}
@@ -2085,7 +2084,10 @@ Vec2Array__imul__(PyObject *a, PyObject *b)
 		}
 		return varray;
 	} else {
-        RETURN_NOT_IMPLEMENTED;
+		PyErr_Format(PyExc_TypeError,
+			"Can't multiply %.200s and %.200s",
+			Py_TYPE(a)->tp_name, Py_TYPE(b)->tp_name);
+		return NULL;
 	}
 }
 
@@ -2183,7 +2185,11 @@ Vec2Array__itruediv__(PyObject *a, PyObject *b)
 		(PlanarVec2Array_Check(b) || !PlanarSeq2_Check(b))) {
 		return Vec2Array_div(a, b, (PlanarSeq2Object *)a);
 	} else {
-        RETURN_NOT_IMPLEMENTED;
+		PyErr_Format(PyExc_TypeError,
+			"Can't divide %.200s and %.200s",
+			Py_TYPE(a)->tp_name, Py_TYPE(b)->tp_name);
+		return NULL;
+
 	}
 }
 
@@ -2229,7 +2235,10 @@ Vec2Array__ifloordiv__(PyObject *a, PyObject *b)
 		}
 		return varray;
 	} else {
-        RETURN_NOT_IMPLEMENTED;
+        PyErr_Format(PyExc_TypeError,
+			"Can't divide %.200s and %.200s",
+			Py_TYPE(a)->tp_name, Py_TYPE(b)->tp_name);
+		return NULL;
 	}
 }
 
@@ -2372,8 +2381,7 @@ static PyNumberMethods Vec2Array_as_number = {
 PyDoc_STRVAR(Vec2Array__doc__, "Dynamic vector array");
 
 PyTypeObject PlanarVec2ArrayType = {
-	PyObject_HEAD_INIT(NULL)
-	0,			        /*ob_size*/
+    PyVarObject_HEAD_INIT(NULL, 0)
 	"planar.Vec2Array",		/*tp_name*/
 	sizeof(PlanarSeq2Object),	/*tp_basicsize*/
 	0,		/*tp_itemsize*/

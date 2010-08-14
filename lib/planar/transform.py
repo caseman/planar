@@ -35,12 +35,12 @@ from planar.util import cached_property, assert_unorderable
 
 class Affine(tuple):
     """Two dimensional affine transform for linear mapping from 2D coordinates
-    to other 2D coordinates. parallel lines are preserved by these
+    to other 2D coordinates. Parallel lines are preserved by these
     transforms. Affine transforms can perform any combination of translations,
     scales/flips, shears, and rotations.  Class methods are provided to
-    conveniently compose tranforms from these operations.
+    conveniently compose transforms from these operations.
 
-    Internally the transform is stores as a 3x3 transformation matrix.  The
+    Internally the transform is stored as a 3x3 transformation matrix.  The
     transform may be constructed directly by specifying the first two rows of
     matrix values as 6 floats. Since the matrix is an affine transform, the
     last row is always ``(0, 0, 1)``.
@@ -80,83 +80,66 @@ class Affine(tuple):
              0.0, 0.0, 1.0))
 
     @classmethod
-    def scale(cls, scaling, anchor=None):
-        """Create a scaling transform from a scalar or vector,
-        optionally about an anchor point.
+    def scale(cls, scaling):
+        """Create a scaling transform from a scalar or vector.
 
         :param scaling: The scaling factor. A scalar value will
             scale in both dimensions equally. A vector scaling
             value scales the dimensions independently.
         :type scaling: float or :class:`~planar.Vec2`
-        :param anchor: Point to scale relative to. If omitted,
-            the scaling is with respect to the origin.
         :rtype: Affine
         """
         try:
             sx = sy = float(scaling)
         except TypeError:
             sx, sy = scaling
-        if anchor is None:
-            return tuple.__new__(cls, 
-                (sx, 0.0, 0.0,
-                 0.0, sy, 0.0,
-                 0.0, 0.0, 1.0))
-        else:
-            ax, ay = anchor
-            return tuple.__new__(cls, 
-                (sx, 0.0, sx * ax - ax,
-                 0.0, sy, sy * ay - ay,
-                 0.0, 0.0, 1.0))
+        return tuple.__new__(cls, 
+            (sx, 0.0, 0.0,
+             0.0, sy, 0.0,
+             0.0, 0.0, 1.0))
             
     @classmethod
-    def shear(cls, shearing, anchor=None):
-        """Create a shear transform from a vector,
-        optionally about an anchor point.
+    def shear(cls, x_angle=0, y_angle=0):
+        """Create a shear transform along one or both axes.
 
-        :param shearing: The x and y shearing amount.
-        :type shearing: :class:`~planar.Vec2`
-        :param anchor: Point to shear relative to. If omitted,
-            the shear is with respect to the origin.
+        :param x_angle: Angle in degrees to shear along the x-axis.
+        :type x_angle: float
+        :param y_angle: Angle in degrees to shear along the y-axis.
+        :type y_angle: float
         :rtype: Affine
         """
-        sx, sy = shearing
-        if anchor is None:
-            return tuple.__new__(cls, 
-                (1.0, sx, 0.0,
-                 sy, 1.0, 0.0,
-                 0.0, 0.0, 1.0))
-        else:
-            ax, ay = anchor
-            return tuple.__new__(cls, 
-                (1.0, sx, sx * ay,
-                 sy, 1.0, sy * ax,
-                 0.0, 0.0, 1.0))
+        sx = math.tan(math.radians(x_angle))
+        sy = math.tan(math.radians(y_angle))
+        return tuple.__new__(cls, 
+            (1.0, sy, 0.0,
+             sx, 1.0, 0.0,
+             0.0, 0.0, 1.0))
 
     @classmethod
-    def rotation(cls, angle, anchor=None):
+    def rotation(cls, angle, pivot=None):
         """Create a rotation transform at the specified angle,
-        optionally about the specified anchor point.
+        optionally about the specified pivot point.
 
         :param angle: Rotation angle in degrees
         :type angle: float
-        :param anchor: Point to rotate about, if omitted the
+        :param pivot: Point to rotate about, if omitted the
             rotation is about the origin.
-        :type anchor: :class:`~planar.Vec2`
+        :type pivot: :class:`~planar.Vec2`
         :rtype: Affine
         """
         angle = math.radians(angle)
         sa = math.sin(angle)
         ca = math.cos(angle)
-        if anchor is None:
+        if pivot is None:
             return tuple.__new__(cls, 
                 (ca, sa, 0.0,
                 -sa, ca, 0.0,
                  0.0, 0.0, 1.0))
         else:
-            px, py = anchor
+            px, py = pivot
             return tuple.__new__(cls,
-                (ca, sa, ca*px + sa*py - px,
-                -sa, ca, ca*py - sa*px - py,
+                (ca, sa, px - px*ca + py*sa,
+                -sa, ca, py - px*sa - py*ca,
                  0.0, 0.0, 1.0))
 
     def __str__(self):
