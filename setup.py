@@ -26,7 +26,7 @@ include_dirs = ['include']
 
 setup(
     name='planar',
-    version='0.1', # *** REMEMBER TO UPDATE __init__.py ***
+    version='0.2', # *** REMEMBER TO UPDATE __init__.py ***
     description='2D planar geometry library for Python.',
     long_description=read('README.txt'),
     provides=['planar'],
@@ -61,7 +61,7 @@ setup(
 			#library_dirs=library_dirs,
 			#libraries=libraries,
 			#extra_link_args=extra_link_args,
-			extra_compile_args=['-O0'],
+			extra_compile_args=[],
 			#define_macros=macros,
 		),
     ],

@@ -27,6 +27,14 @@ Reference
    vec2arrayref
    affineref
 
+Release Notes
+-------------
+
+.. toctree::
+   :maxdepth: 2
+
+   changes
+
 
 Indices and tables
 ==================

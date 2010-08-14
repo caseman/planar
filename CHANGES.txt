@@ -1,0 +1,11 @@
+
+Release 0.2 (8/14/2010)
+-----------------------
+	- Added Seq2 base type
+	- Added Vec2Array type
+	- Added Affine transform type
+	- Fix NaN bug in Vec2.length2 on Windows. Thanks to Jonathan Hartley!
+
+Release 0.1 (4/27/2010)
+-----------------------
+	- Vec2 type implemented
