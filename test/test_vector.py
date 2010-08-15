@@ -572,6 +572,15 @@ class Vec2ArrayBaseTestCase(object):
         assert_equal(tuple(va), (self.Vec2(3,2), self.Vec2(4,-5)))
         assert isinstance(va[1], self.Vec2)
 
+    def test_append_many(self):
+        va = self.Vec2Array()
+        assert_equal(tuple(va), ())
+        for i in range(10000):
+            va.append((-i, i))
+            assert_equal(len(va), i + 1)
+        for i in range(10000):
+            assert_equal(va[i], self.Vec2(-i, i))
+
     def test_extend(self):
         va = self.Vec2Array()
         assert_equal(tuple(va), ())
@@ -600,6 +609,12 @@ class Vec2ArrayBaseTestCase(object):
             (self.Vec2(-1,-2), self.Vec2(2,3), 
              self.Vec2(5,6), self.Vec2(9,0), self.Vec2(8,99)))
 
+    def test_insert_many(self):
+        va = self.Vec2Array()
+        for i in range(10000):
+            va.insert((i * 7) % (len(va) + 1), (i,-i))
+            assert_equal(len(va), i + 1)
+
     def test_insert_neg_index(self):
         va = self.Vec2Array([(2,3), (6,7)])
         va.insert(-1, (4,5))
@@ -621,6 +636,14 @@ class Vec2ArrayBaseTestCase(object):
         del va[0]
         assert_equal(tuple(va), (self.Vec2(9,0),))
 
+    def test_delitem_many(self):
+        va = self.Vec2Array()
+        for i in range(10000):
+            va.append((i,-i))
+        for i in range(10000):
+            del va[(i * 7) % len(va)]
+            assert_equal(len(va), 9999 - i)
+
     @raises(IndexError)
     def test_delitem_out_of_range(self):
         va = self.Vec2Array([(2,3), (9,0)])
@@ -630,6 +653,14 @@ class Vec2ArrayBaseTestCase(object):
     def test_delitem_bad_index(self):
         va = self.Vec2Array([(2,3), (9,0)])
         del va[None]
+
+    def test_append_insert_delete_many(self):
+        va = self.Vec2Array()
+        for i in range(10000):
+            va.append(self.Vec2(-i, -i))
+            va.insert(i * 13 % len(va), self.Vec2(i, i))
+            del va[(i * 3) % len(va)]
+            assert_equal(len(va), i + 1)
 
     def test_longest(self):
         va = self.Vec2Array()

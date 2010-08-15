@@ -1524,7 +1524,7 @@ Vec2Array_ass_slice(PlanarSeq2Object *self,
 	assert(norig >= 0);
 	d = n - norig;
 	if (Py_SIZE(self) + d == 0) {
-		Py_DECREF(vectors);
+		Py_XDECREF(vectors);
 		return Vec2Array_resize(self, 0);
 	}
 	if (d < 0) { /* Delete -d items */
