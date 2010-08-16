@@ -982,7 +982,7 @@ Seq2_getitem(PlanarSeq2Object *self, Py_ssize_t index)
 {
     Py_ssize_t size = PySequence_Size((PyObject *)self);
     if (size == -1) {
-	return NULL;
+		return NULL;
     }
     if (index >= 0 && index < size) {
         return (PyObject *)PlanarVec2_FromStruct(self->vec + index);
@@ -1000,20 +1000,20 @@ Seq2_assitem(PlanarSeq2Object *self, Py_ssize_t index, PyObject *v)
 	return -1;
     }
     if (index >= 0 && index < size) {
-	if (!PlanarVec2_Parse(v, &x, &y)) {
-	    if (!PyErr_Occurred()) {
-		PyErr_Format(PyExc_TypeError, 
-		    "Cannot assign %.200s into %.200s",
-		    Py_TYPE(v)->tp_name, Py_TYPE(self)->tp_name);
-	    }
-	    return -1;
-	}
+		if (!PlanarVec2_Parse(v, &x, &y)) {
+			if (!PyErr_Occurred()) {
+			PyErr_Format(PyExc_TypeError, 
+				"Cannot assign %.200s into %.200s",
+				Py_TYPE(v)->tp_name, Py_TYPE(self)->tp_name);
+			}
+			return -1;
+		}
         self->vec[index].x = x;
         self->vec[index].y = y;
         return 0;
     }
     PyErr_Format(PyExc_IndexError, 
-	"assignment index %d out of range", (int)index);
+		"assignment index %d out of range", (int)index);
     return -1;
 }
 
@@ -1478,8 +1478,7 @@ Vec2Array_slice(PlanarSeq2Object *self, Py_ssize_t ilow, Py_ssize_t ihigh)
 	}
 	len = ihigh - ilow;
 
-	result = (PlanarSeq2Object *)Py_TYPE(self)->tp_alloc(
-		Py_TYPE(self), len);
+	result = Seq2_New(Py_TYPE(self), len);
 	if (result == NULL) {
 		return NULL;
 	}
@@ -1495,19 +1494,21 @@ Vec2Array_ass_slice(PlanarSeq2Object *self,
 	Py_ssize_t norig; /* # of elements in list getting replaced */
 	Py_ssize_t d; /* Change in size */
 	Py_ssize_t j;
+	PlanarSeq2Object *seq;
 
 	if (vectors == NULL) {
+		seq = NULL;
 		n = 0;
 	} else if (PlanarSeq2_Check(vectors)) {
-		Py_INCREF(vectors);
-		n = Py_SIZE(vectors);
+		seq = (PlanarSeq2Object *)vectors;
+		Py_INCREF(seq);
+		n = Py_SIZE(seq);
 	} else {
-		vectors = PySequence_Fast(vectors, 
-			"can only assign an iterable of vectors");
-		if (vectors == NULL) {
+		seq = Seq2_new_from_points(&PlanarSeq2Type, vectors);
+		if (seq == NULL) {
 			goto error;
 		}
-		n = PySequence_Fast_GET_SIZE(vectors);
+		n = Py_SIZE(seq);
 	}
 	if (ilow < 0) {
 		ilow = 0;
@@ -1524,7 +1525,7 @@ Vec2Array_ass_slice(PlanarSeq2Object *self,
 	assert(norig >= 0);
 	d = n - norig;
 	if (Py_SIZE(self) + d == 0) {
-		Py_XDECREF(vectors);
+		Py_XDECREF(seq);
 		return Vec2Array_resize(self, 0);
 	}
 	if (d < 0) { /* Delete -d items */
@@ -1538,23 +1539,13 @@ Vec2Array_ass_slice(PlanarSeq2Object *self,
 		memmove(&self->vec[ihigh + d], &self->vec[ihigh],
 			sizeof(planar_vec2_t) * (Py_SIZE(self) - ihigh));
 	}
-	if (vectors != NULL && PlanarSeq2_Check(vectors)) {
-		memmove(&self->vec[ilow], &((PlanarSeq2Object *)vectors)->vec, 
-			n * sizeof(planar_vec2_t));
-	} else {
-		for (j = 0; j < n; ++j, ++ilow) {
-			if (!PlanarVec2_Parse(PySequence_Fast_GET_ITEM(vectors, j), 
-				&self->vec[ilow].x, &self->vec[ilow].y)) {
-				PyErr_SetString(PyExc_TypeError,
-					"expected iterable of Vec2 objects");
-				goto error;
-			}
-		}
+	if (seq != NULL) {
+		memmove(&self->vec[ilow], &seq->vec, n * sizeof(planar_vec2_t));
+		Py_DECREF(seq);
 	}
-	Py_XDECREF(vectors);
 	return 0;
  error:
-	Py_XDECREF(vectors);
+	Py_XDECREF(seq);
 	return -1;
 }
 
@@ -1584,15 +1575,206 @@ Vec2Array_ass_item(PlanarSeq2Object *self, Py_ssize_t i, PyObject *vector)
 	return 0;
 }
 
+static PyObject *
+Vec2Array_subscript(PlanarSeq2Object* self, PyObject* item)
+{
+	if (PyIndex_Check(item)) {
+		Py_ssize_t i;
+		i = PyNumber_AsSsize_t(item, PyExc_IndexError);
+		if (i == -1 && PyErr_Occurred()) {
+			return NULL;
+		}
+		if (i < 0) {
+			i += Py_SIZE(self);
+		}
+		return Seq2_getitem(self, i);
+	}
+	else if (PySlice_Check(item)) {
+		Py_ssize_t start, stop, step, slicelength, cur, i;
+		PlanarSeq2Object* result;
+		PyObject* it;
+		planar_vec2_t *src, *dest;
+
+		if (PySlice_GetIndicesEx((PySliceObject*)item, Py_SIZE(self),
+				 &start, &stop, &step, &slicelength) < 0) {
+			return NULL;
+		}
+
+		if (slicelength <= 0) {
+			return (PyObject *)Seq2_New(Py_TYPE(self), 0);
+		}
+		else if (step == 1) {
+			return (PyObject *)Vec2Array_slice(self, start, stop);
+		}
+		else {
+			result = Seq2_New(Py_TYPE(self), slicelength);
+			if (result == NULL) {
+				return NULL;
+			}
+
+			src = self->vec;
+			dest = result->vec;
+			for (cur = start, i = 0; i < slicelength; cur += step, ++i) {
+				dest->x = src[cur].x;
+				dest->y = src[cur].y;
+				++dest;
+			}
+
+			return (PyObject *)result;
+		}
+	}
+	else {
+		PyErr_Format(PyExc_TypeError,
+			     "list indices must be integers, not %.200s",
+			     Py_TYPE(item)->tp_name);
+		return NULL;
+	}
+}
+
+static int
+Vec2Array_ass_subscript(PlanarSeq2Object* self, 
+	PyObject* item, PyObject* value)
+{
+	if (PyIndex_Check(item)) {
+		Py_ssize_t i = PyNumber_AsSsize_t(item, PyExc_IndexError);
+		if (i == -1 && PyErr_Occurred()) {
+			return -1;
+		}
+		if (i < 0) {
+			i += Py_SIZE(self);
+		}
+		return Vec2Array_ass_item(self, i, value);
+	}
+	else if (PySlice_Check(item)) {
+		Py_ssize_t start, stop, step, slicelength;
+
+		if (PySlice_GetIndicesEx((PySliceObject*)item, Py_SIZE(self),
+				 &start, &stop, &step, &slicelength) < 0) {
+			return -1;
+		}
+
+		if (step == 1) {
+			return Vec2Array_ass_slice(self, start, stop, value);
+		}
+
+		/* Make sure s[5:2] = [..] inserts at the right place:
+		   before 5, not before 2. */
+		if ((step < 0 && start < stop) ||
+		    (step > 0 && start > stop)) {
+			stop = start;
+		}
+
+		if (value == NULL) {
+			/* delete slice */
+			size_t cur;
+			Py_ssize_t i;
+
+			if (slicelength <= 0) {
+				return 0;
+			}
+
+			if (step < 0) {
+				stop = start + 1;
+				start = stop + step*(slicelength - 1) - 1;
+				step = -step;
+			}
+
+			assert((size_t)slicelength <=
+			       PY_SIZE_MAX / sizeof(planar_vec2_t));
+
+			/* drawing pictures might help understand these for
+			   loops. Basically, we memmove the parts of the
+			   list that are *not* part of the slice: step-1
+			   items for each item that is part of the slice,
+			   and then tail end of the list that was not
+			   covered by the slice */
+			for (cur = start, i = 0; cur < (size_t)stop; cur += step, ++i) {
+				Py_ssize_t lim = step - 1;
+
+				if (cur + step >= (size_t)Py_SIZE(self)) {
+					lim = Py_SIZE(self) - cur - 1;
+				}
+
+				memmove(self->vec + cur - i,
+					self->vec + cur + 1,
+					lim * sizeof(planar_vec2_t));
+			}
+			cur = start + slicelength*step;
+			if (cur < (size_t)Py_SIZE(self)) {
+				memmove(self->vec + cur - slicelength,
+					self->vec + cur,
+					(Py_SIZE(self) - cur) * 
+					 sizeof(planar_vec2_t));
+			}
+
+			Py_SIZE(self) -= slicelength;
+			Vec2Array_resize(self, Py_SIZE(self));
+
+			return 0;
+		} else {
+			/* assign slice */
+			PyObject *ins;
+			PlanarSeq2Object *seq;
+			planar_vec2_t *seqitems, *selfitems;
+			Py_ssize_t cur, i;
+
+			if (!PlanarSeq2_Check(value)) {
+				 seq = Seq2_new_from_points(&PlanarSeq2Type, value);
+				 if (seq == NULL) {
+				 	return -1;
+				}
+			} else {
+				seq = (PlanarSeq2Object *)value;
+				Py_INCREF(seq);
+			}
+
+			if (Py_SIZE(seq) != slicelength) {
+				PyErr_Format(PyExc_ValueError,
+					"attempt to assign sequence of "
+					"size %zd to extended slice of "
+					"size %zd",
+					     Py_SIZE(seq), slicelength);
+				Py_DECREF(seq);
+				return -1;
+			}
+
+			if (!slicelength) {
+				Py_DECREF(seq);
+				return 0;
+			}
+
+			selfitems = self->vec;
+			seqitems = seq->vec;
+			for (cur = start, i = 0; i < slicelength; cur += step, ++i) {
+				selfitems[cur].x = seqitems->x;
+				selfitems[cur].y = seqitems->y;
+				++seqitems;
+			}
+			Py_DECREF(seq);
+
+			return 0;
+		}
+	} else {
+		PyErr_Format(PyExc_TypeError,
+			     "list indices must be integers, not %.200s",
+			     Py_TYPE(item)->tp_name);
+		return -1;
+	}
+}
+
+static PyMappingMethods Vec2Array_as_mapping = {
+	(lenfunc)Seq2_length,
+	(binaryfunc)Vec2Array_subscript,
+	(objobjargproc)Vec2Array_ass_subscript
+};
+
 static PySequenceMethods Vec2Array_as_sequence = {
 	(lenfunc)Seq2_length,	/* sq_length */
 	0,		/*sq_concat*/
 	0,		/*sq_repeat*/
 	(ssizeargfunc)Seq2_getitem,                 /* sq_item */
-	(ssizessizeargfunc)Vec2Array_slice,         /* sq_slice */
+	0,         /* sq_slice */
 	(ssizeobjargproc)Vec2Array_ass_item,        /* sq_ass_item */
-	(ssizessizeobjargproc)Vec2Array_ass_slice,  /* sq_ass_slice */
-	0,		/* sq_contains */
 };
 
 static PyObject *
@@ -2394,7 +2576,7 @@ PyTypeObject PlanarVec2ArrayType = {
 	(reprfunc)Vec2Array__repr__, /*tp_repr*/
 	&Vec2Array_as_number,        /*tp_as_number*/
 	&Vec2Array_as_sequence,      /*tp_as_sequence*/
-	0,	                /*tp_as_mapping*/
+	&Vec2Array_as_mapping,	     /*tp_as_mapping*/
 	0,	                /*tp_hash*/
 	0,                      /*tp_call*/
 	(reprfunc)Vec2Array__repr__, /*tp_str*/

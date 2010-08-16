@@ -543,6 +543,18 @@ class Vec2Array(Seq2):
     def __init__(self, vectors=()):
         super(Vec2Array, self).__init__(vectors)
 
+    def __getitem__(self, index):
+        if isinstance(index, slice):
+            return self.from_points(self._vectors[index])
+        else:
+            return self._vectors[index]
+
+    def __setitem__(self, index, value):
+        if isinstance(index, slice):
+            self._vectors[index] = [Vec2(*i) for i in value]
+        else:
+            self._vectors[index] = Vec2(*value)
+
     def append(self, vector):
         """Append a vector to the end of the array.
         

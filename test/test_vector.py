@@ -463,6 +463,16 @@ class VectorSeqBaseTestCase(object):
         a = self.VecSeq([(1,2), (3,4), (5,6), (7,8)])
         a[8] = self.Vec2(3,3)
 
+    @raises(TypeError)
+    def test_get_bad_index_type(self):
+        a = self.VecSeq([(0,0)])
+        a['whodat']
+
+    @raises(TypeError)
+    def test_set_bad_index_type(self):
+        a = self.VecSeq([(0,0)])
+        a['whodat'] = self.Vec2(4,5)
+
     def test_imul_by_transform(self):
         b = a = self.VecSeq([(1,2), (3,4), (5,6)])
         a *= self.Affine.translation((5, -4))
@@ -661,6 +671,114 @@ class Vec2ArrayBaseTestCase(object):
             va.insert(i * 13 % len(va), self.Vec2(i, i))
             del va[(i * 3) % len(va)]
             assert_equal(len(va), i + 1)
+
+    def test_get_front_slice(self):
+        va = self.Vec2Array([(-3,0), (0,0), (2,1), (0,0.5)])
+        vaslice = va[:2]
+        assert isinstance(vaslice, self.Vec2Array)
+        assert vaslice is not va
+        assert_equal(tuple(vaslice),
+            (self.Vec2(-3,0), self.Vec2(0,0)))
+        vaslice = va[:-1]
+        assert isinstance(vaslice, self.Vec2Array)
+        assert vaslice is not va
+        assert_equal(tuple(vaslice),
+            (self.Vec2(-3,0), self.Vec2(0,0), self.Vec2(2,1)))
+
+    def test_get_back_slice(self):
+        va = self.Vec2Array([(-3,0), (0,0), (2,1), (0,0.5)])
+        vaslice = va[2:]
+        assert isinstance(vaslice, self.Vec2Array)
+        assert vaslice is not va
+        assert_equal(tuple(vaslice),
+            (self.Vec2(2,1), self.Vec2(0,0.5)))
+    
+    def test_get_full_slice(self):
+        va = self.Vec2Array([(-3,0), (0,0), (2,1), (0,0.5)])
+        vaslice = va[:]
+        assert isinstance(vaslice, self.Vec2Array)
+        assert vaslice is not va
+        assert_equal(tuple(vaslice), tuple(va))
+    
+    def test_get_mid_slice(self):
+        va = self.Vec2Array([(-3,0), (0,0), (2,1), (0,0.5)])
+        vaslice = va[1:3]
+        assert isinstance(vaslice, self.Vec2Array)
+        assert vaslice is not va
+        assert_equal(tuple(vaslice), (self.Vec2(0,0), self.Vec2(2,1)))
+        vaslice = va[1:-2]
+        assert isinstance(vaslice, self.Vec2Array)
+        assert vaslice is not va
+        assert_equal(tuple(vaslice), (self.Vec2(0,0),))
+
+    def test_get_ext_slice(self):
+        va = self.Vec2Array([(-3,0), (0,0), (2,1), (0,0.5), (-1,-2)])
+        vaslice = va[3:1:-1]
+        assert isinstance(vaslice, self.Vec2Array)
+        assert vaslice is not va
+        assert_equal(tuple(vaslice), (self.Vec2(0,0.5), self.Vec2(2,1)))
+        vaslice = va[:-1:2]
+        assert isinstance(vaslice, self.Vec2Array)
+        assert vaslice is not va
+        assert_equal(tuple(vaslice), (self.Vec2(-3,0), self.Vec2(2,1)))
+        vaslice = va[10::50]
+        assert isinstance(vaslice, self.Vec2Array)
+        assert vaslice is not va
+        assert_equal(tuple(vaslice), ())
+
+    def test_ass_slice(self):
+        va = self.Vec2Array([(-3,0), (0,0), (2,1), (0,0.5)])
+        va[:2] = [(1,2), (3,4)]
+        assert_equal(tuple(va),
+            (self.Vec2(1,2), self.Vec2(3,4), 
+             self.Vec2(2,1), self.Vec2(0,0.5)))
+        va[1:-2] = self.Vec2Array([(8,9), (11,10), (4,5)])
+        assert_equal(tuple(va),
+            (self.Vec2(1,2), self.Vec2(8,9), self.Vec2(11,10),
+             self.Vec2(4,5), self.Vec2(2,1), self.Vec2(0,0.5)))
+        va[1:] = self.VecSeq([(0,0)])
+        assert_equal(tuple(va), (self.Vec2(1,2), self.Vec2(0,0)))
+
+    @raises(TypeError)
+    def test_ass_slice_wrong_type(self):
+        va = self.Vec2Array([(-3,0), (0,0), (2,1), (0,0.5)])
+        va[:2] = 3.14
+
+    def test_ass_ext_slice(self):
+        va = self.Vec2Array([(-3,0), (0,0), (2,1), (0,0.5), (-1,0), (4,4)])
+        va[4:2:-1] = [(1,2), (3,4)]
+        assert_equal(tuple(va),
+            (self.Vec2(-3, 0), self.Vec2(0,0), self.Vec2(2,1), 
+             self.Vec2(3,4), self.Vec2(1,2), self.Vec2(4,4)))
+        va[::2] = self.Vec2Array([(1,1), (2,2), (3,3)])
+        assert_equal(tuple(va),
+            (self.Vec2(1, 1), self.Vec2(0,0), self.Vec2(2,2), 
+             self.Vec2(3,4), self.Vec2(3,3), self.Vec2(4,4)))
+
+    @raises(ValueError)
+    def test_ass_ext_slice_wrong_size(self):
+        va = self.Vec2Array([(-3,0), (0,0), (2,1), (0,0.5), (-1,0), (4,4)])
+        va[5:2:-1] = [(1,2)]
+
+    def test_del_slice(self):
+        va = self.Vec2Array([(-3,0), (0,0), (2,1), (0,0.5)])
+        del va[-1:]
+        assert_equal(tuple(va),
+            (self.Vec2(-3, 0), self.Vec2(0,0), self.Vec2(2,1)))
+        del va[1:2]
+        assert_equal(tuple(va),
+            (self.Vec2(-3, 0), self.Vec2(2,1)))
+        del va[1:]
+        assert_equal(tuple(va), (self.Vec2(-3,0),))
+        del va[:]
+        assert_equal(tuple(va), ())
+
+    def test_del_ext_slice(self):
+        va = self.Vec2Array([(-3,0), (0,0), (2,1), (0,0.5), (-1,0), (4,4)])
+        del va[::3]
+        assert_equal(tuple(va),
+            (self.Vec2(0,0), self.Vec2(2,1), 
+             self.Vec2(-1,0), self.Vec2(4,4)))
 
     def test_longest(self):
         va = self.Vec2Array()
