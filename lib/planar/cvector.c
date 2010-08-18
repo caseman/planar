@@ -1540,7 +1540,7 @@ Vec2Array_ass_slice(PlanarSeq2Object *self,
 			sizeof(planar_vec2_t) * (Py_SIZE(self) - ihigh));
 	}
 	if (seq != NULL) {
-		memmove(&self->vec[ilow], &seq->vec, n * sizeof(planar_vec2_t));
+		memmove(&self->vec[ilow], seq->vec, n * sizeof(planar_vec2_t));
 		Py_DECREF(seq);
 	}
 	return 0;
@@ -2412,12 +2412,12 @@ Vec2Array__ifloordiv__(PyObject *a, PyObject *b)
 	if (PlanarVec2Array_Check(a) && 
 		(PlanarVec2Array_Check(b) || !PlanarSeq2_Check(b))) {
 		varray = Vec2Array_div(a, b, (PlanarSeq2Object *)a);
-		if (varray != NULL) {
+		if (varray != NULL && varray != Py_NotImplemented) {
 			Vec2Array_floor((PlanarSeq2Object *)varray);
 		}
 		return varray;
 	} else {
-        PyErr_Format(PyExc_TypeError,
+		PyErr_Format(PyExc_TypeError,
 			"Can't divide %.200s and %.200s",
 			Py_TYPE(a)->tp_name, Py_TYPE(b)->tp_name);
 		return NULL;

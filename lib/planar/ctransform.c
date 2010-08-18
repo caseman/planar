@@ -408,10 +408,11 @@ Affine_repr(PlanarAffineObject *self)
 {
     char buf[255];
     buf[0] = 0; /* paranoid */
-    PyOS_vsnprintf(buf, 255, 
+    PyOS_snprintf(buf, 255, 
         "Affine(%lg, %lg, %lg,\n"
         "       %lg, %lg, %lg)", 
-        (va_list)self->m);
+        self->m[0], self->m[1], self->m[2],
+		self->m[3], self->m[4], self->m[5]);
     return PyUnicode_FromString(buf);
 }
 
@@ -420,11 +421,12 @@ Affine_str(PlanarAffineObject *self)
 {
     char buf[255];
     buf[0] = 0; /* paranoid */
-    PyOS_vsnprintf(buf, 255, 
+    PyOS_snprintf(buf, 255, 
         "|% .2f,% .2f,% .2f|\n"
         "|% .2f,% .2f,% .2f|\n"
         "| 0.00, 0.00, 1.00|",
-        (va_list)self->m);
+        self->m[0], self->m[1], self->m[2],
+		self->m[3], self->m[4], self->m[5]);
     return PyUnicode_FromString(buf);
 }
 

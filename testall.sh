@@ -1,30 +1,30 @@
 #!/bin/bash
-# Build from scratch and run unit tests from python 2.6 and python 3.1
+# Build from scratch and run unit tests from python 2.6, 2.7 and 3.1
 # Then run doctests to verify doc examples
-# Note: requires nose
+# Note: requires nose installed in each python instance
 
 error=0
 
 rm -rf build
 
-echo "************"
-echo " Python 2.6"
-echo "************"
-echo
-python setup.py build && \
-nosetests -d -w build/lib.*2.6/planar/ --with-coverage || error=1
-
-echo
-echo "************"
-echo " Python 3.1"
-echo "************"
-echo
-python3 setup.py build && \
-nosetests3 -d -w build/lib.*3.1/planar/ --with-coverage || error=1
+for ver in 2.6 2.7 3.1; do
+	echo "************"
+	echo " Python $ver"
+	echo "************"
+	echo
+	if which python${ver}; then
+		python${ver} setup.py build && \
+		python${ver} -m nose.core \
+			-d -w build/lib.*${ver}/ --with-coverage $@ || error=1
+	else
+		echo >&2 "!!! Python ${ver} not found !!!"
+		error=1
+	fi
+done
 
 echo
 echo -n "Doctests... "
 srcdir=`pwd`
-cd build/lib.*3.?/ && python3 -m doctest ${srcdir}/doc/source/*.rst && echo "passed." || error=1
+cd build/lib.*3.?/ && python3 -m doctest ${srcdir}/doc/source/*.rst && echo "OK" || error=1
 
 exit $error
