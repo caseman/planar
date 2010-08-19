@@ -1431,7 +1431,7 @@ class CVec2ArrayTestCase(
 
     def test_repr_and_str(self):
         va = self.Vec2Array([(0,1.5), (2,3)])
-        assert_equal(repr(va), 'planar.Vec2Array([(0, 1.5), (2, 3)])')
+        assert_equal(repr(va), 'Vec2Array([(0, 1.5), (2, 3)])')
         assert_equal(repr(va), str(va))
 
 

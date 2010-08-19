@@ -2485,7 +2485,7 @@ Vec2Array__repr__(PlanarSeq2Object *self)
 	if (joined == NULL) {
 		goto done;
 	}
-	s = PyUnicode_FromString(Py_TYPE(self)->tp_name);
+	s = PyUnicode_FromString("Vec2Array");
 	if (s == NULL) {
 		goto done;
 	}

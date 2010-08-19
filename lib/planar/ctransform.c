@@ -227,13 +227,11 @@ Affine_get_column_vectors(PlanarAffineObject *self)
     PyObject *r, *v1, *v2, *v3;
 
 	r = PyTuple_New(3);
-	if (r == NULL) {
-		return NULL;
-	}
 	v1 = (PyObject *)PlanarVec2_FromDoubles(self->a, self->d);
 	v2 = (PyObject *)PlanarVec2_FromDoubles(self->b, self->e);
 	v3 = (PyObject *)PlanarVec2_FromDoubles(self->c, self->f);
-	if (v1 == NULL || v2 == NULL || v3 == NULL) {
+	if (r == NULL || v1 == NULL || v2 == NULL || v3 == NULL) {
+		Py_XDECREF(r);
 		Py_XDECREF(v1);
 		Py_XDECREF(v2);
 		Py_XDECREF(v3);
