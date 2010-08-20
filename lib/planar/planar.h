@@ -51,6 +51,32 @@
 #define degrees(d) ((d) * 180.0 / M_PI)
 #define almost_eq(a, b) (fabs((a) - (b)) < PLANAR_EPSILON)
 
+static void cos_sin_deg(double deg, double *cosout, double *sinout) 
+{
+	double rad;
+	deg = deg >= 360.0 ? fmod(deg, 360.0) : 
+		deg < 0.0 ? deg + trunc(deg * (1.0 / -360.0) + 1) * 360.0 : deg;
+	
+	/* Match quadrants exactly */
+	if (deg == 0.0) {
+		*cosout = 1.0;
+		*sinout = 0.0;
+	} else if (deg == 90.0) {
+		*cosout = 0.0;
+		*sinout = 1.0;
+	} else if (deg == 180.0) {
+		*cosout = -1.0;
+		*sinout = 0.0;
+	} else if (deg == 270.0) {
+		*cosout = 0.0;
+		*sinout = -1.0;
+	} else {
+		rad = radians(deg);
+		*cosout = cos(rad);
+		*sinout = sin(rad);
+	}
+}
+
 /***************************************************************************/
 
 /* Type definitions */

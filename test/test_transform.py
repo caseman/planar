@@ -101,14 +101,23 @@ class AffineBaseTestCase(object):
         r = math.radians(60)
         s, c = math.sin(r), math.cos(r)
         assert_equal(tuple(rot), (c,s,0, -s,c,0, 0,0,1))
-        rot = self.Affine.rotation(1743)
-        r = math.radians(1743)
+        rot = self.Affine.rotation(337)
+        r = math.radians(337)
         s, c = math.sin(r), math.cos(r)
-        assert_equal(tuple(rot), (c,s,0, -s,c,0, 0,0,1))
+        seq_almost_equal(tuple(rot), (c,s,0, -s,c,0, 0,0,1))
         assert_equal(tuple(self.Affine.rotation(0)), 
             tuple(self.Affine.identity()))
-        seq_almost_equal(self.Affine.rotation(90), 
-            (0,1,0, -1,0,0, 0,0,1))
+
+    def test_rotation_constructor_quadrants(self):
+        assert_equal(tuple(self.Affine.rotation(0)), (1,0,0, 0,1,0, 0,0,1))
+        assert_equal(tuple(self.Affine.rotation(90)), (0,1,0, -1,0,0, 0,0,1))
+        assert_equal(tuple(self.Affine.rotation(180)), (-1,0,0, 0,-1,0, 0,0,1))
+        assert_equal(tuple(self.Affine.rotation(-180)), (-1,0,0, 0,-1,0, 0,0,1))
+        assert_equal(tuple(self.Affine.rotation(270)), (0,-1,0, 1,0,0, 0,0,1))
+        assert_equal(tuple(self.Affine.rotation(-90)), (0,-1,0, 1,0,0, 0,0,1))
+        assert_equal(tuple(self.Affine.rotation(360)), (1,0,0, 0,1,0, 0,0,1))
+        assert_equal(tuple(self.Affine.rotation(450)), (0,1,0, -1,0,0, 0,0,1))
+        assert_equal(tuple(self.Affine.rotation(-450)), (0,-1,0, 1,0,0, 0,0,1))
 
     def test_rotation_constructor_with_pivot(self):
         assert_equal(tuple(self.Affine.rotation(60)),

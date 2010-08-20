@@ -35,14 +35,25 @@ class Vec2BaseTestCase(object):
         
         v2 = self.Vec2.polar(-90, 10)
         assert_almost_equal(v2.length, 10)
-        assert_almost_equal(v2.angle, -90)
-        assert_almost_equal(v2.x, 0)
-        assert_almost_equal(v2.y, -10)
+        assert_equal(v2.angle, -90)
+        assert_equal(v2.x, 0)
+        assert_equal(v2.y, -10)
 
         assert_equal(self.Vec2.polar(10, 10), 
             self.Vec2.polar(angle=10, length=10))
 
         assert_almost_equal(self.Vec2.polar(361).angle, 1)
+
+    def test_polar_quadrants(self):
+        assert_equal(tuple(self.Vec2.polar(0)), (1, 0))
+        assert_equal(tuple(self.Vec2.polar(90)), (0, 1))
+        assert_equal(tuple(self.Vec2.polar(180)), (-1, 0))
+        assert_equal(tuple(self.Vec2.polar(-180)), (-1, 0))
+        assert_equal(tuple(self.Vec2.polar(270)), (0, -1))
+        assert_equal(tuple(self.Vec2.polar(-90)), (0, -1))
+        assert_equal(tuple(self.Vec2.polar(360)), (1, 0))
+        assert_equal(tuple(self.Vec2.polar(450)), (0, 1))
+        assert_equal(tuple(self.Vec2.polar(-450)), (0, -1))
 
     @raises(TypeError)
     def test_polar_bad_angle(self):
@@ -167,6 +178,7 @@ class Vec2BaseTestCase(object):
     def test_rotated(self):
         assert_almost_equal(self.Vec2.polar(45).rotated(22).angle, 67)
         assert_almost_equal(self.Vec2.polar(70).rotated(-15).angle, 55)
+        assert_equal(self.Vec2(1, 0).rotated(90).angle, 90)
 
     def test_scaled_to(self):
         v = self.Vec2.polar(77, 50)

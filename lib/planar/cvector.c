@@ -248,9 +248,9 @@ Vec2_new_polar(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 
     v = (PlanarVec2Object *)type->tp_alloc(type, 0);
     if (v != NULL) {
-        angle = radians(angle);
-        v->x = cos(angle) * length;
-        v->y = sin(angle) * length;
+		cos_sin_deg(angle, &v->x, &v->y);
+        v->x *= length;
+        v->y *= length;
     }
     return (PyObject *)v;
 }
@@ -357,9 +357,7 @@ Vec2_rotated(PlanarVec2Object *self, PyObject *angle_arg)
     if (angle_arg == NULL) {
         return NULL;
     }
-    angle = radians(PyFloat_AS_DOUBLE(angle_arg));
-    sa = sin(angle);
-    ca = cos(angle);
+	cos_sin_deg(PyFloat_AS_DOUBLE(angle_arg), &ca, &sa);
     return Vec2_result(self, 
         self->x * ca - self->y * sa, self->x * sa + self->y * ca);
 }

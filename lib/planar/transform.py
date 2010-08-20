@@ -30,7 +30,7 @@ from __future__ import division
 
 import math
 import planar
-from planar.util import cached_property, assert_unorderable
+from planar.util import cached_property, assert_unorderable, cos_sin_deg
 
 
 class Affine(tuple):
@@ -127,9 +127,7 @@ class Affine(tuple):
         :type pivot: :class:`~planar.Vec2`
         :rtype: Affine
         """
-        angle = math.radians(angle)
-        sa = math.sin(angle)
-        ca = math.cos(angle)
+        ca, sa = cos_sin_deg(angle)
         if pivot is None:
             return tuple.__new__(cls, 
                 (ca, sa, 0.0,

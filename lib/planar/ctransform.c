@@ -380,9 +380,7 @@ Affine_new_rotation(PyTypeObject *type, PyObject *args, PyObject *kwargs)
     if (t == NULL) {
         return NULL;
     }
-    angle = radians(angle);
-    ca = cos(angle);
-    sa = sin(angle);
+	cos_sin_deg(angle, &ca, &sa);
     t->a = ca;
     t->b = sa;
     t->d = -sa;

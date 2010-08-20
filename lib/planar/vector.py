@@ -32,7 +32,7 @@ from __future__ import division
 
 import math
 import planar
-from planar.util import cached_property, assert_unorderable
+from planar.util import cached_property, assert_unorderable, cos_sin_deg
 
 
 class Vec2(tuple):
@@ -57,8 +57,8 @@ class Vec2(tuple):
         :type length: float
         :rtype: Vec2
         """
-        radians = math.radians(angle)
-        vec = tuple.__new__(cls, (math.cos(radians) * length, math.sin(radians) * length))
+        x, y = cos_sin_deg(angle)
+        vec = tuple.__new__(cls, (x * length, y * length))
         vec.__dict__['length'] = length * 1.0
         return vec
 
@@ -192,8 +192,7 @@ class Vec2(tuple):
         :rtype: Vec2
         """
         vx, vy = self
-        angle = math.radians(angle)
-        ca, sa = math.cos(angle), math.sin(angle)
+        ca, sa = cos_sin_deg(angle)
         return tuple.__new__(Vec2, (vx * ca - vy * sa, vx * sa + vy * ca))
 
     def scaled_to(self, length):
