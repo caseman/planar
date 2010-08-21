@@ -76,7 +76,6 @@ Affine_dealloc(PlanarAffineObject *self)
 static PyObject *
 Affine_compare(PlanarAffineObject *a, PlanarAffineObject *b, int op)
 {
-    int i;
     int result = 0;
 
     if (PlanarAffine_Check(a) && PlanarAffine_Check(b)) {
@@ -339,8 +338,6 @@ Affine_new_scale(PyTypeObject *type, PyObject *scaling)
 static PlanarAffineObject *
 Affine_new_shear(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    PyObject *shearing_arg;
-    PyObject *anchor_arg = NULL;
     PlanarAffineObject *t;
     double sx, sy, ax = 0.0, ay = 0.0;
 
@@ -492,7 +489,7 @@ Affine_itransform(PlanarAffineObject *self, PyObject *seq)
 		Py_DECREF(point);
 		PyErr_Format(PyExc_TypeError, 
 		    "Affine.itransform(): "
-		    "Element at position %d is not a valid vector", i);
+		    "Element at position %lu is not a valid vector", i);
 		return NULL;
 	    }
 	    Py_DECREF(point);
@@ -552,7 +549,6 @@ static PyObject *
 Affine__mul__(PyObject *a, PyObject *b)
 {
     PlanarAffineObject *ta, *tb, *tr;
-    PlanarVec2Object *v;
     int a_is_affine, b_is_affine;
 
     a_is_affine = PlanarAffine_Check(a);
@@ -713,8 +709,7 @@ Affine_subscript(PlanarAffineObject *self, PyObject *item)
             i += Affine_len((PyObject *)self);
         }
         return Affine_getitem(self, i);
-    }
-    else if (PySlice_Check(item)) {
+    } else if (PySlice_Check(item)) {
         /* We cheat a bit here by constructing a tuple from ourself and 
            slicing that, which is convenient since slicing a transform
            results in a tuple. Not the most efficient, but I don't expect
@@ -728,6 +723,10 @@ Affine_subscript(PlanarAffineObject *self, PyObject *item)
         Py_DECREF(t);
         return s;
     }
+	PyErr_Format(PyExc_TypeError,
+		 "Affine indices must be integers, not %.200s",
+		 Py_TYPE(item)->tp_name);
+	return NULL;
 }
 
 static PySequenceMethods Affine_as_sequence = {

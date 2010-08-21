@@ -48,6 +48,24 @@ class AffineBaseTestCase(object):
         for m in t:
             assert isinstance(m, float), repr(m)
 
+    def test_getitem(self):
+        t = self.Affine(1, 2, 3, 4, 5, 6)
+        assert_equal(t[0], 1)
+        assert_equal(t[1], 2)
+        assert_equal(t[2], 3)
+        assert_equal(t[3], 4)
+        assert_equal(t[4], 5)
+        assert_equal(t[5], 6)
+        assert_equal(t[6], 0)
+        assert_equal(t[7], 0)
+        assert_equal(t[8], 1)
+        assert_equal(t[-1], 1)
+
+    @raises(TypeError)
+    def test_getitem_wrong_type(self):
+        t = self.Affine(1, 2, 3, 4, 5, 6)
+        t['foobar']
+
     def test_str(self):
         assert_equal(
             str(self.Affine(1.111, 2.222, 3.333, -4.444, -5.555, 6.666)), 

@@ -350,7 +350,7 @@ Vec2_cross(PlanarVec2Object *self, PyObject *other)
 static PlanarVec2Object *
 Vec2_rotated(PlanarVec2Object *self, PyObject *angle_arg)
 {
-    double angle, sa, ca;
+    double sa, ca;
 
     assert(PlanarVec2_Check(self));
     angle_arg = PyObject_ToFloat(angle_arg);
@@ -879,11 +879,6 @@ Seq2_new_from_points(PyTypeObject *type, PyObject *points)
 static PlanarSeq2Object *
 Seq2_pynew(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    PlanarSeq2Object *varray;
-    PyObject *vectors;
-    Py_ssize_t size;
-    int i;
-
     if (kwargs != NULL) {
         PyErr_SetString(PyExc_TypeError, "invalid keyword argument");
 		return NULL;
@@ -1420,7 +1415,6 @@ Vec2Array_insert(PlanarSeq2Object *self, PyObject *args)
 static PyObject *
 Vec2Array_extend(PlanarSeq2Object *self, PyObject *vectors) 
 {
-	double x, y;
 	Py_ssize_t size, j;
 	Py_ssize_t i = Py_SIZE(self);
 
@@ -1491,7 +1485,6 @@ Vec2Array_ass_slice(PlanarSeq2Object *self,
 	Py_ssize_t n; /* # of elements in replacement array */
 	Py_ssize_t norig; /* # of elements in list getting replaced */
 	Py_ssize_t d; /* Change in size */
-	Py_ssize_t j;
 	PlanarSeq2Object *seq;
 
 	if (vectors == NULL) {
@@ -1590,7 +1583,6 @@ Vec2Array_subscript(PlanarSeq2Object* self, PyObject* item)
 	else if (PySlice_Check(item)) {
 		Py_ssize_t start, stop, step, slicelength, cur, i;
 		PlanarSeq2Object* result;
-		PyObject* it;
 		planar_vec2_t *src, *dest;
 
 		if (PySlice_GetIndicesEx((PySliceObject*)item, Py_SIZE(self),
@@ -1711,7 +1703,6 @@ Vec2Array_ass_subscript(PlanarSeq2Object* self,
 			return 0;
 		} else {
 			/* assign slice */
-			PyObject *ins;
 			PlanarSeq2Object *seq;
 			planar_vec2_t *seqitems, *selfitems;
 			Py_ssize_t cur, i;
@@ -1754,8 +1745,8 @@ Vec2Array_ass_subscript(PlanarSeq2Object* self,
 		}
 	} else {
 		PyErr_Format(PyExc_TypeError,
-			     "list indices must be integers, not %.200s",
-			     Py_TYPE(item)->tp_name);
+			 "Vec2Array indices must be integers, not %.200s",
+			 Py_TYPE(item)->tp_name);
 		return -1;
 	}
 }
@@ -1988,8 +1979,6 @@ static PyMethodDef Vec2Array_methods[] = {
 static PyObject *
 create_result_seq2(PyObject *a, PyObject *b, PlanarSeq2Object *seq)
 {
-	PyObject *result;
-
 	if (!PlanarVec2Array_Check(b) && PlanarSeq2_Check(b)) {
 		return call_from_points(b, seq);
 	} else if (!PlanarVec2Array_Check(a) && PlanarSeq2_Check(a)) {
@@ -2405,7 +2394,6 @@ static PyObject *
 Vec2Array__ifloordiv__(PyObject *a, PyObject *b)
 {
 	PyObject *varray;
-	Py_ssize_t i;
 
 	if (PlanarVec2Array_Check(a) && 
 		(PlanarVec2Array_Check(b) || !PlanarSeq2_Check(b))) {
