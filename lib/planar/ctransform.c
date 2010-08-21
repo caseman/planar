@@ -745,8 +745,7 @@ static PyMappingMethods Affine_as_mapping = {
 };
 
 PyDoc_STRVAR(Affine_doc, 
-    "Two dimensional immutable vector.\n\n"
-    "Affine(x, y)"
+    "Two dimensional immutable affine transform."
 );
 
 PyTypeObject PlanarAffineType = {
