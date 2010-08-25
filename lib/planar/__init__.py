@@ -32,7 +32,7 @@
 __all__ = ('TransformNotInvertibleError', 'set_epsilon', 
     'Vec2', 'Point', 'Affine')
 
-__versioninfo__ = (0, 2, 0)
+__versioninfo__ = (0, 2, 1)
 __version__ = '.'.join(str(n) for n in __versioninfo__)
 
 try: # pragma: no cover
