@@ -1345,6 +1345,7 @@ Vec2Array_append(PlanarSeq2Object *self, PyObject *vector)
 	double x, y;
 	Py_ssize_t i = Py_SIZE(self);
 
+    assert(PlanarVec2Array_Check(self));
 	if (i == PY_SSIZE_T_MAX) {
 		PyErr_SetString(PyExc_OverflowError,
 			"cannot add more objects to array");
@@ -1860,7 +1861,7 @@ Vec2Array_clamped(PlanarSeq2Object *self, PyObject *args, PyObject *kwargs)
 
     static char *kwlist[] = {"min_length", "max_length", NULL};
 
-    assert(PlanarVec2_Check(self));
+    assert(PlanarVec2Array_Check(self));
     if (!PyArg_ParseTupleAndKeywords(
         args, kwargs, "|dd:Vec2Array.clamped", kwlist, &min, &max)) {
         return NULL;
@@ -1912,7 +1913,7 @@ Vec2Array_clamp(PlanarSeq2Object *self, PyObject *args, PyObject *kwargs)
 
     static char *kwlist[] = {"min_length", "max_length", NULL};
 
-    assert(PlanarVec2_Check(self));
+    assert(PlanarVec2Array_Check(self));
     if (!PyArg_ParseTupleAndKeywords(
         args, kwargs, "|dd:Vec2Array.clamped", kwlist, &min, &max)) {
         return NULL;
