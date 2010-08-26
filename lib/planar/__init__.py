@@ -45,6 +45,7 @@ except ImportError: # pragma: no cover
     # Fall-back to Python implementation
     from planar.vector import Vec2, Vec2Array, Seq2
     from planar.transform import Affine
+    from planar.box import BoundingBox
 
     class TransformNotInvertibleError(Exception):
         """The transform could not be inverted"""
