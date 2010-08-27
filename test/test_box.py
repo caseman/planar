@@ -83,7 +83,6 @@ class BoundingBoxBaseTestCase(object):
     
     def test_width_height(self):
         box = self.BoundingBox([(-2, -3.5), (3, 4)])
-        print box.max_point, box.min_point
         assert_equal(box.width, 5)
         assert_equal(box.height, 7.5)
     
