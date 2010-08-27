@@ -103,13 +103,13 @@ class BoundingBox(object):
     
     @cached_property
     def is_empty(self):
-        """True if the box has zero area"""
+        """True if the box has zero area."""
         width, height = self._max - self._min
         return not width or not height
 
     @classmethod
     def from_points(cls, points):
-        """Create a bounding box that encloses all of the specified points
+        """Create a bounding box that encloses all of the specified points.
         """
         box = object.__new__(cls)
         box._init_min_max(points)

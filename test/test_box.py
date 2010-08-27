@@ -83,6 +83,7 @@ class BoundingBoxBaseTestCase(object):
     
     def test_width_height(self):
         box = self.BoundingBox([(-2, -3.5), (3, 4)])
+        print box.max_point, box.min_point
         assert_equal(box.width, 5)
         assert_equal(box.height, 7.5)
     
@@ -235,17 +236,18 @@ class BoundingBoxBaseTestCase(object):
         assert_equal(yv, (0, 2))
         assert_equal(tv, frame.center - shape2.bounding_box.center)
 
-
-
     @raises(ValueError)
     def test_fit_wrong_arg_type(self):
         self.BoundingBox([(0, 0), (40, 40)]).fit(None)
-    
 
 
 class PyBoundingBoxTestCase(BoundingBoxBaseTestCase, unittest.TestCase):
     from planar.vector import Vec2, Seq2
     from planar.box import BoundingBox
+
+
+class CBoundingBoxTestCase(BoundingBoxBaseTestCase, unittest.TestCase):
+    from planar.c import Vec2, Seq2, BoundingBox
 
 
 if __name__ == '__main__':

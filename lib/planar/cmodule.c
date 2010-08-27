@@ -86,6 +86,7 @@ initc(void)
     Py_INCREF((PyObject *)&PlanarSeq2Type);
     Py_INCREF((PyObject *)&PlanarVec2ArrayType);
     Py_INCREF((PyObject *)&PlanarAffineType);
+    Py_INCREF((PyObject *)&PlanarBBoxType);
 
     INIT_TYPE(PlanarVec2Type, "Vec2");
     INIT_TYPE(PlanarSeq2Type, "Seq2");
@@ -93,6 +94,7 @@ initc(void)
 	/* Override inheritance of tp_itemsize, ugly */
 	PlanarVec2ArrayType.tp_itemsize = 0;
     INIT_TYPE(PlanarAffineType, "Affine");
+    INIT_TYPE(PlanarBBoxType, "BoundingBox");
 
 	PlanarTransformNotInvertibleError = PyErr_NewException(
 		"planar.TransformNotInvertibleError", NULL, NULL);
@@ -115,6 +117,7 @@ fail:
     Py_DECREF((PyObject *)&PlanarSeq2Type);
     Py_DECREF((PyObject *)&PlanarVec2ArrayType);
     Py_DECREF((PyObject *)&PlanarAffineType);
+    Py_DECREF((PyObject *)&PlanarBBoxType);
     Py_DECREF(module);
     INITERROR;
 }

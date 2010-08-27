@@ -114,6 +114,14 @@ typedef struct {
     };
 } PlanarAffineObject;
 
+typedef struct {
+    PyObject_HEAD
+    union {
+        PyObject *next_free;
+        struct {planar_vec2_t min, max;};
+    };
+} PlanarBBoxObject;
+
 /***************************************************************************/
 
 /* Convert the object to a float, this is designed to
@@ -181,6 +189,7 @@ extern PyTypeObject PlanarVec2Type;
 extern PyTypeObject PlanarSeq2Type;
 extern PyTypeObject PlanarVec2ArrayType;
 extern PyTypeObject PlanarAffineType;
+extern PyTypeObject PlanarBBoxType;
 
 extern PyObject *PlanarTransformNotInvertibleError;
 
@@ -281,5 +290,10 @@ error:
 
 #define PlanarAffine_Check(op) PyObject_TypeCheck(op, &PlanarAffineType)
 #define PlanarAffine_CheckExact(op) (Py_TYPE(op) == &PlanarAffineType)
+
+/* BoundingBox utils */
+
+#define PlanarBBox_Check(op) PyObject_TypeCheck(op, &PlanarBBoxType)
+#define PlanarBBox_CheckExact(op) (Py_TYPE(op) == &PlanarBBoxType)
 
 #endif /* #ifdef PY_PLANAR_H */

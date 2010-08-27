@@ -38,7 +38,7 @@ __version__ = '.'.join(str(n) for n in __versioninfo__)
 try: # pragma: no cover
     # Default to C implementation
     from planar.c import _set_epsilon, Vec2, Vec2Array, Seq2, Affine, \
-        TransformNotInvertibleError
+        BoundingBox, TransformNotInvertibleError
 
     __implementation__ = 'C'
 except ImportError: # pragma: no cover
