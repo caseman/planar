@@ -149,8 +149,8 @@ BBox_get_min_point(PlanarBBoxObject *self) {
 static PlanarVec2Object *
 BBox_get_center(PlanarBBoxObject *self) {
     return PlanarVec2_FromDoubles(
-        (self->min.x + self->max.x) / 2.0,
-        (self->min.y + self->max.y) / 2.0);
+        (self->min.x + self->max.x) * 0.5,
+        (self->min.y + self->max.y) * 0.5);
 }
 
 static PyObject *
@@ -203,6 +203,88 @@ static PyGetSetDef BBox_getset[] = {
     {NULL}
 };
 
+/* Methods */
+
+static PlanarBBoxObject *
+BBox_new_from_points(PyTypeObject *type, PyObject *points) 
+{
+    PlanarBBoxObject *box;
+
+    assert(PyType_IsSubtype(type, &PlanarBBoxType));
+    box = (PlanarBBoxObject *)type->tp_alloc(type, 0);
+    if (box != NULL && BBox_init_from_points(box, points) == 0) {
+        return box;
+    } else {
+        return NULL;
+    }
+}
+
+static PlanarBBoxObject *
+BBox_new_from_shapes(PyTypeObject *type, PyObject *shapes) 
+{
+    PlanarBBoxObject *result, *bbox = NULL;
+    Py_ssize_t size;
+    PyObject **item;
+
+    assert(PyType_IsSubtype(type, &PlanarBBoxType));
+    result = (PlanarBBoxObject *)type->tp_alloc(type, 0);
+    shapes = PySequence_Fast(shapes, "expected iterable of bounded shapes");
+    if (result == NULL || shapes == NULL) {
+        goto error;
+    }
+    size = PySequence_Fast_GET_SIZE(shapes);
+    if (size < 1) {
+        PyErr_SetString(PyExc_ValueError,
+            "Cannot construct a BoundingBox without at least one shape");
+        goto error;
+    }
+    result->min.x = result->min.y = DBL_MAX;
+    result->max.x = result->max.y = -DBL_MAX;
+    item = PySequence_Fast_ITEMS(shapes);
+    while (size--) {
+        bbox = (PlanarBBoxObject *)PyObject_GetAttrString(*(item++), "bounding_box");
+        if (bbox == NULL) {
+            goto error;
+        }
+        if (!PlanarBBox_Check(bbox)) {
+            PyErr_SetString(PyExc_TypeError,
+                "Shape returned incompatible object "
+                "for attribute bounding_box.");
+            goto error;
+        }
+        if (bbox->min.x < result->min.x) {
+            result->min.x = bbox->min.x;
+        }
+        if (bbox->min.y < result->min.y) {
+            result->min.y = bbox->min.y;
+        }
+        if (bbox->max.x > result->max.x) {
+            result->max.x = bbox->max.x;
+        }
+        if (bbox->max.y > result->max.y) {
+            result->max.y = bbox->max.y;
+        }
+        Py_CLEAR(bbox);
+    }
+    Py_DECREF(shapes);
+    return result;
+    
+error:
+    Py_XDECREF(bbox);
+    Py_XDECREF(result);
+    Py_XDECREF(shapes);
+    return NULL;
+}
+
+static PyMethodDef BBox_methods[] = {
+    {"from_points", (PyCFunction)BBox_new_from_points, METH_CLASS | METH_O, 
+        "Create a bounding box that encloses all of the specified points."},
+    {"from_shapes", (PyCFunction)BBox_new_from_shapes, METH_CLASS | METH_O, 
+        "Creating a bounding box that completely encloses all of the "
+        "shapes provided."},
+    {NULL, NULL}
+};
+
 PyDoc_STRVAR(BBox_doc, 
     "An axis-aligned immutable rectangular shape.\n\n"
     "BoundingBox(points)"
@@ -236,9 +318,9 @@ PyTypeObject PlanarBBoxType = {
     0,                    /* tp_weaklistoffset */
     0,                    /* tp_iter */
     0,                    /* tp_iternext */
-    0, //BBox_methods,                    /* tp_methods */
+    BBox_methods,         /* tp_methods */
     0,                    /* tp_members */
-    BBox_getset,                    /* tp_getset */
+    BBox_getset,          /* tp_getset */
     0,                    /* tp_base */
     0,                    /* tp_dict */
     0,                    /* tp_descr_get */

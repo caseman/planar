@@ -147,7 +147,7 @@ class BoundingBox(object):
     
     @classmethod
     def from_center(cls, center, width, height):
-        """Create a bounding box centered at a particular point
+        """Create a bounding box centered at a particular point.
 
         :param center: Center point
         :type center: :class:`~planar.Vec2`

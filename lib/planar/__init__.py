@@ -30,7 +30,7 @@
 """2d planar geometry library for Python"""
 
 __all__ = ('TransformNotInvertibleError', 'set_epsilon', 
-    'Vec2', 'Point', 'Affine')
+    'Vec2', 'Point', 'Affine', 'BoundingBox')
 
 __versioninfo__ = (0, 2, 1)
 __version__ = '.'.join(str(n) for n in __versioninfo__)
