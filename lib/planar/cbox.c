@@ -220,6 +220,29 @@ BBox_new_from_points(PyTypeObject *type, PyObject *points)
 }
 
 static PlanarBBoxObject *
+get_bounding_box(PyObject *shape)
+{
+    PlanarBBoxObject *bbox;
+
+    static PyObject *bounding_box_str = NULL;
+    if (bounding_box_str == NULL) {
+        bounding_box_str = PyUnicode_InternFromString("bounding_box");
+		if (bounding_box_str == NULL) {
+			return NULL;
+		}
+	}
+    bbox = (PlanarBBoxObject *)PyObject_GetAttr(shape, bounding_box_str);
+    if (bbox != NULL && !PlanarBBox_Check(bbox)) {
+        PyErr_SetString(PyExc_TypeError,
+            "Shape returned incompatible object "
+            "for attribute bounding_box.");
+        Py_CLEAR(bbox);
+    }
+    return bbox;
+}
+
+
+static PlanarBBoxObject *
 BBox_new_from_shapes(PyTypeObject *type, PyObject *shapes) 
 {
     PlanarBBoxObject *result, *bbox = NULL;
@@ -242,14 +265,8 @@ BBox_new_from_shapes(PyTypeObject *type, PyObject *shapes)
     result->max.x = result->max.y = -DBL_MAX;
     item = PySequence_Fast_ITEMS(shapes);
     while (size--) {
-        bbox = (PlanarBBoxObject *)PyObject_GetAttrString(*(item++), "bounding_box");
+        bbox = get_bounding_box(*(item++));
         if (bbox == NULL) {
-            goto error;
-        }
-        if (!PlanarBBox_Check(bbox)) {
-            PyErr_SetString(PyExc_TypeError,
-                "Shape returned incompatible object "
-                "for attribute bounding_box.");
             goto error;
         }
         if (bbox->min.x < result->min.x) {
@@ -276,12 +293,167 @@ error:
     return NULL;
 }
 
+static PlanarBBoxObject *
+BBox_new_from_center(PyTypeObject *type, PyObject *args, PyObject *kwargs) 
+{
+    PlanarBBoxObject *bbox;
+    PyObject *center_arg;
+    double width, height, cx, cy;
+    static char *kwlist[] = {"center", "width", "height", NULL};
+
+    assert(PyType_IsSubtype(type, &PlanarBBoxType));
+    if (!PyArg_ParseTupleAndKeywords(args, kwargs, 
+        "Odd:BoundingBox.from_center", kwlist, 
+        &center_arg, &width, &height)) {
+        return NULL;
+    }
+    if (!PlanarVec2_Parse(center_arg, &cx, &cy)) {
+        PyErr_SetString(PyExc_TypeError,
+            "expected Vec2 for argument center");
+        return NULL;
+    }
+    width = fabs(width) * 0.5;
+    height = fabs(height) * 0.5;
+    bbox = (PlanarBBoxObject *)type->tp_alloc(type, 0);
+    if (bbox == NULL) {
+        return NULL;
+    }
+    bbox->min.x = cx - width;
+    bbox->min.y = cy - height;
+    bbox->max.x = cx + width;
+    bbox->max.y = cy + height;
+    return bbox;
+}
+
+static PlanarBBoxObject *
+BBox_inflate(PlanarBBoxObject *self, PyObject *amount)
+{
+    PlanarBBoxObject *bbox;
+    double ix, iy;
+
+    assert(PlanarBBox_Check(self));
+    if (!PlanarVec2_Parse(amount, &ix, &iy)) {
+        amount = PyObject_ToFloat(amount);
+        if (amount == NULL) {
+            PyErr_SetString(PyExc_TypeError,
+                "expected number or Vec2 for argument amount");
+            return NULL;
+        }
+        ix = iy = PyFloat_AS_DOUBLE(amount);
+        Py_DECREF(amount);
+        PyErr_Clear();
+    }
+    ix *= 0.5;
+    iy *= 0.5;
+    bbox = (PlanarBBoxObject *)PlanarBBoxType.tp_alloc(&PlanarBBoxType, 0);
+    if (bbox == NULL) {
+        return NULL;
+    }
+    bbox->min.x = self->min.x - ix;
+    bbox->min.y = self->min.y - iy;
+    bbox->max.x = self->max.x + ix;
+    bbox->max.y = self->max.y + iy;
+    return bbox;
+}
+
+static PyObject *
+BBox_contains(PlanarBBoxObject *self, PyObject *other)
+{
+    double px, py;
+    int contains;
+    PyObject *r;
+    PlanarBBoxObject *bbox;
+
+    assert(PlanarBBox_Check(self));
+    if (PlanarVec2_Parse(other, &px, &py)) {
+        /* Point in bbox */
+        contains = (px >= self->min.x && px <= self->max.x
+            && py >= self->min.y && py <= self->max.y);
+    } else {
+        bbox = get_bounding_box(other);
+        if (bbox == NULL) {
+            return NULL;
+        }
+        contains = (bbox->min.x >= self->min.x && bbox->min.x <= self->max.x
+            && bbox->min.y >= self->min.y && bbox->min.y <= self->max.y
+            && bbox->max.x >= self->min.x && bbox->max.x <= self->max.x
+            && bbox->max.y >= self->min.y && bbox->max.y <= self->max.y);
+        Py_DECREF(bbox);
+    }
+    r = contains ? Py_True : Py_False;
+    Py_INCREF(r);
+    return r;
+}
+
+static PyObject *
+BBox_fit(PlanarBBoxObject *self, PyObject *shape)
+{
+    double w_ratio, h_ratio, scale, half_width, half_height;
+    double ox, oy, cx, cy;
+    PlanarBBoxObject *bbox;
+    PlanarAffineObject *xform;
+
+    assert(PlanarBBox_Check(self));
+    cx = (self->max.x + self->min.x) * 0.5;
+    cy = (self->max.y + self->min.y) * 0.5;
+    if (PlanarBBox_Check(shape)) {
+        bbox = (PlanarBBoxObject *)shape;
+        w_ratio = (self->max.x - self->min.x) / (bbox->max.x - bbox->min.x);
+        h_ratio = (self->max.y - self->min.y) / (bbox->max.y - bbox->min.y);
+        scale = (w_ratio < h_ratio ? w_ratio : h_ratio) * 0.5;
+        half_width = (bbox->max.x - bbox->min.x) * scale;
+        half_height = (bbox->max.y - bbox->min.y) * scale;
+        bbox = (PlanarBBoxObject *)PlanarBBoxType.tp_alloc(
+            &PlanarBBoxType, 0);
+        if (bbox != NULL) {
+            bbox->min.x = cx - half_width;
+            bbox->max.x = cx + half_width;
+            bbox->min.y = cy - half_height;
+            bbox->max.y = cy + half_height;
+        }
+        return (PyObject *)bbox;
+    } else {
+        bbox = get_bounding_box(shape);
+        if (bbox == NULL) {
+            return NULL;
+        }
+        ox = cx - (bbox->max.x + bbox->min.x) * 0.5;
+        oy = cy - (bbox->max.y + bbox->min.y) * 0.5;
+        w_ratio = (self->max.x - self->min.x) / (bbox->max.x - bbox->min.x);
+        h_ratio = (self->max.y - self->min.y) / (bbox->max.y - bbox->min.y);
+        scale = w_ratio < h_ratio ? w_ratio : h_ratio;
+        Py_DECREF(bbox);
+        xform = PlanarAffine_FromDoubles(
+            scale,   0.0,  ox, 
+              0.0, scale,  oy);
+        if (xform == NULL) {
+            return NULL;
+        }
+        shape = PyNumber_Multiply(shape, (PyObject *)xform);
+        Py_DECREF(xform);
+        return shape;
+    }
+}
+
 static PyMethodDef BBox_methods[] = {
     {"from_points", (PyCFunction)BBox_new_from_points, METH_CLASS | METH_O, 
         "Create a bounding box that encloses all of the specified points."},
     {"from_shapes", (PyCFunction)BBox_new_from_shapes, METH_CLASS | METH_O, 
         "Creating a bounding box that completely encloses all of the "
         "shapes provided."},
+    {"from_center", (PyCFunction)BBox_new_from_center, 
+        METH_CLASS | METH_VARARGS | METH_KEYWORDS, 
+        "Create a bounding box centered at a particular point."},
+    {"inflate", (PyCFunction)BBox_inflate, METH_O, 
+		"Return a new box resized from this one. The new "
+        "box has its size changed by the specified amount, "
+        "but remains centered on the same point."},
+    {"contains", (PyCFunction)BBox_contains, METH_O, 
+        "Return True if the box completely contains the specified object."},
+    {"fit", (PyCFunction)BBox_fit, METH_O, 
+        "Create a new shape by translating and scaling shape so that "
+        "it fits in this bounding box. The shape is scaled evenly so that "
+        "it retains the same aspect ratio."},
     {NULL, NULL}
 };
 

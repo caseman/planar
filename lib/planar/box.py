@@ -157,8 +157,8 @@ class BoundingBox(object):
         :type height: float
         """
         cx, cy = center
-        half_w = width / 2.0
-        half_h = height / 2.0
+        half_w = width * 0.5
+        half_h = height * 0.5
         return cls.from_points([
             (cx - half_w, cy - half_h),
             (cx + half_w, cy + half_h),
@@ -178,8 +178,8 @@ class BoundingBox(object):
         """
         try:
             dx, dy = amount
-        except TypeError:
-            dx = dy = amount
+        except (TypeError, ValueError):
+            dx = dy = amount * 1.0
         dv = planar.Vec2(dx, dy) / 2.0
         return self.from_points((self._min - dv, self._max + dv))
     
@@ -190,37 +190,34 @@ class BoundingBox(object):
         :type other: :class:`~planar.Vec2` or :class:`~planar.Shape`
         """
         try:
-            box = other.bounding_box
-        except AttributeError:
             x, y = other
-            return (self._min.x <= x <= self._max.x 
-                and self._min.y <= y <= self._max.y)
-        else:
+        except (TypeError, ValueError):
+            box = other.bounding_box
             return (self._min.x <= box.min_point.x <= self._max.x 
                 and self._min.x <= box.max_point.x <= self._max.x 
                 and self._min.y <= box.min_point.y <= self._max.y
                 and self._min.y <= box.max_point.y <= self._max.y)
+        else:
+            return (self._min.x <= x <= self._max.x 
+                and self._min.y <= y <= self._max.y)
     
-    def fit(self, other):
-        """Create a new shape by translating and scaling other so that
-        it fits in this bounding box. Other is scaled evenly so that
+    def fit(self, shape):
+        """Create a new shape by translating and scaling shape so that
+        it fits in this bounding box. The shape is scaled evenly so that
         it retains the same aspect ratio.
 
-        :param other: A transformable shape with a bounding box.
+        :param shape: A transformable shape with a bounding box.
         """
-        if isinstance(other, BoundingBox):
-            scale = min(self.width / other.width, self.height / other.height)
-            return other.from_center(
-                self.center, other.width * scale, other.height * scale)
+        if isinstance(shape, BoundingBox):
+            scale = min(self.width / shape.width, self.height / shape.height)
+            return shape.from_center(
+                self.center, shape.width * scale, shape.height * scale)
         else:
-            try:
-                other_bbox = other.bounding_box
-            except AttributeError:
-                raise ValueError('Cannot fit object with no bounding box')
-            offset = planar.Affine.translation(self.center - other_bbox.center)
-            scale = planar.Affine.scale(min(self.width / other_bbox.width,
-                self.height / other_bbox.height))
-            return other * (offset * scale)
+            shape_bbox = shape.bounding_box
+            offset = planar.Affine.translation(self.center - shape_bbox.center)
+            scale = planar.Affine.scale(min(self.width / shape_bbox.width,
+                self.height / shape_bbox.height))
+            return shape * (offset * scale)
 
 
 # vim: ai ts=4 sts=4 et sw=4 tw=78

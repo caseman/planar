@@ -291,6 +291,25 @@ error:
 #define PlanarAffine_Check(op) PyObject_TypeCheck(op, &PlanarAffineType)
 #define PlanarAffine_CheckExact(op) (Py_TYPE(op) == &PlanarAffineType)
 
+static PlanarAffineObject *
+PlanarAffine_FromDoubles(
+	double a, double b, double c, double d, double e, double f) 
+{
+	PlanarAffineObject *t;
+
+	t = (PlanarAffineObject *)PlanarAffineType.tp_alloc(
+		&PlanarAffineType, 0);
+	if (t != NULL) {
+		t->a = a;
+		t->b = b;
+		t->c = c;
+		t->d = d;
+		t->e = e;
+		t->f = f;
+	}
+	return t;
+}
+
 /* BoundingBox utils */
 
 #define PlanarBBox_Check(op) PyObject_TypeCheck(op, &PlanarBBoxType)

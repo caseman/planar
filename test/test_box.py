@@ -163,7 +163,7 @@ class BoundingBoxBaseTestCase(object):
         assert_equal(box2.height, 3)
         assert_equal(box2.center, box1.center)
     
-    @raises(ValueError)
+    @raises(TypeError)
     def test_inflate_bad_arg(self):
         self.BoundingBox([(3, 1), (5, 6)]).inflate('badbad')
         
@@ -197,7 +197,7 @@ class BoundingBoxBaseTestCase(object):
         assert not box.contains(Shape(1, 5, 6, 8))
         assert not box.contains(Shape(10, 50, 15, 80))
     
-    @raises(TypeError)
+    @raises(AttributeError)
     def test_contains_wrong_type(self):
         self.BoundingBox([(2, 6), (5, 7)]).contains(None)
 
@@ -235,7 +235,7 @@ class BoundingBoxBaseTestCase(object):
         assert_equal(yv, (0, 2))
         assert_equal(tv, frame.center - shape2.bounding_box.center)
 
-    @raises(ValueError)
+    @raises(AttributeError)
     def test_fit_wrong_arg_type(self):
         self.BoundingBox([(0, 0), (40, 40)]).fit(None)
 
