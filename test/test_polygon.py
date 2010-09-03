@@ -96,7 +96,7 @@ class PolygonBaseTestCase(object):
         assert poly.is_simple
         assert poly.is_convex_known
         assert poly.is_simple_known
-        poly[0] = (-0.4, 0.6)
+        poly[0] = (0, 0.6)
         assert not poly.is_convex_known
         assert not poly.is_simple_known
         assert poly.is_convex
@@ -110,7 +110,7 @@ class PolygonBaseTestCase(object):
         assert poly.is_simple
         assert poly.is_convex_known
         assert poly.is_simple_known
-        poly[1] = (-5, -0.5)
+        poly[-1] = (1, 0)
         assert not poly.is_convex_known
         assert not poly.is_simple_known
         assert not poly.is_convex

@@ -46,7 +46,7 @@ class Polygon(planar.Seq2):
     """
 
     def __init__(self, vertices):
-        super(planar.Seq2, self).__init__(vertices)
+        super(Polygon, self).__init__(vertices)
         if len(self) < 3:
             raise ValueError("Polygon(): minimum of 3 vertices required")
         self._clear_cached_properties()
@@ -174,8 +174,42 @@ class Polygon(planar.Seq2):
         """
         return self._simple is not _unknown
 
+    def _segments_intersect(self, a, b, c, d):
+        """Return True if the line segment a->b intersects with
+        line segment c->d
+        """
+        dir1 = (b.x - a.x)*(c.y - a.y) - (c.x - a.x)*(b.y - a.y)
+        dir2 = (b.x - a.x)*(d.y - a.y) - (d.x - a.x)*(b.y - a.y)
+        if (dir1 > 0.0) != (dir2 > 0.0) or (not dir1) != (not dir2): 
+            dir1 = (d.x - c.x)*(a.y - c.y) - (a.x - c.x)*(d.y - c.y)
+            dir2 = (d.x - c.x)*(b.y - c.y) - (b.x - c.x)*(d.y - c.y)
+            return ((dir1 > 0.0) != (dir2 > 0.0) 
+                or (not dir1) != (not dir2))
+        return False
+
+    def _check_is_simple(self):
+        """Check the polygon for self-intersection and cache the result
+        """
+        segments = [(self[i - 1], self[i]) for i in range(len(self))]
+        intersects = self._segments_intersect
+        a, b = segments.pop()
+        # Ignore adjacent edges which cannot intersect
+        for c, d in segments[1:-1]:
+            if intersects(a, b, c, d):
+                self._simple = False
+                return
+        a, b = segments.pop()
+        while len(segments) > 1:
+            next = segments.pop()
+            for c, d in segments:
+                if intersects(a, b, c, d):
+                    self._simple = False
+                    return
+            a, b = next
+        self._simple = True
+
     def __setitem__(self, index, vert):
-        planar.Seq2.__setitem__(self, index, vert)
+        super(Polygon, self).__setitem__(index, vert)
         self._clear_cached_properties()
 
 
