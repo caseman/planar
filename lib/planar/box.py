@@ -32,7 +32,7 @@ from __future__ import division
 
 import math
 import planar
-from planar.util import cached_property, assert_unorderable
+from planar.util import cached_property
 
 
 class BoundingBox(object):
