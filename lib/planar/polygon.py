@@ -1,7 +1,5 @@
 #############################################################################
 # Copyright (c) 2010 by Casey Duncan
-# Portions copyright (c) 2009 The Super Effective Team 
-#                             (www.supereffective.org)
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,7 +31,7 @@ from __future__ import division
 import math
 import itertools
 import planar
-from planar.util import cached_property, assert_unorderable
+from planar.util import cached_property, assert_unorderable, cos_sin_deg
 
 class Polygon(planar.Seq2):
     """Arbitrary polygon represented as a list of vertices. 
@@ -50,6 +48,39 @@ class Polygon(planar.Seq2):
         if len(self) < 3:
             raise ValueError("Polygon(): minimum of 3 vertices required")
         self._clear_cached_properties()
+
+    @classmethod
+    def star(cls, peaks, radius1, radius2, center=(0, 0), angle=0):
+        """Create a circular pointed star polygon with the specified number
+        of peaks.
+
+        :param peaks: The number of peaks. The resulting polygon will
+            have twice this number of vertices. Must be >= 2.
+        :type peaks: int
+        :param radius1: The peak or valley vertex radius. A vertex
+            is aligned on ``angle`` with this radius.
+        :type radius1: float
+        :param radius2: The alternating vertex radius.
+        :type radius2: float
+        :param center: The center point of the polygon. If omitted,
+            the polygon will be centered on the origin.
+        :type center: Vec2
+        :param angle: The starting angle for the vertices, in degrees.
+        :type angle: float
+        """
+        if peak_count < 2:
+            raise ValueError(
+                "star polygon must have a minimum of 2 peaks")
+        cx, cy = center
+        angle_step = 180.0 / peak_count
+        verts = []
+        for i in range(peak_count):
+            x, y = cos_sin_deg(angle)
+            verts.append((x * radius1 + cx, y * radius1 + cy))
+            angle += angle_step
+            x, y = cos_sin_deg(angle)
+            verts.append((x * radius2 + cx, y * radius2 + cy))
+        return cls(verts)
 
     def _clear_cached_properties(self):
         if len(self) > 3:
@@ -155,7 +186,8 @@ class Polygon(planar.Seq2):
 
         If this is unknown then it is calculated from the vertices
         of the polygon and cached. 
-        Runtime complexity: O(n) (convex), O(n^2) (concave)
+        Runtime complexity: O(n) (convex), O(n^2) (worst case non-convex),
+        though O(nlogn) is expected in most non-convex cases
         """
         if self._simple is _unknown:
             if self._convex is _unknown:
@@ -178,16 +210,16 @@ class Polygon(planar.Seq2):
         """Return True if the line segment a->b intersects with
         line segment c->d
         """
-        dir1 = (b.x - a.x)*(c.y - a.y) - (c.x - a.x)*(b.y - a.y)
-        dir2 = (b.x - a.x)*(d.y - a.y) - (d.x - a.x)*(b.y - a.y)
+        dir1 = (b[0] - a[0])*(c[1] - a[1]) - (c[0] - a[0])*(b[1] - a[1])
+        dir2 = (b[0] - a[0])*(d[1] - a[1]) - (d[0] - a[0])*(b[1] - a[1])
         if (dir1 > 0.0) != (dir2 > 0.0) or (not dir1) != (not dir2): 
-            dir1 = (d.x - c.x)*(a.y - c.y) - (a.x - c.x)*(d.y - c.y)
-            dir2 = (d.x - c.x)*(b.y - c.y) - (b.x - c.x)*(d.y - c.y)
+            dir1 = (d[0] - c[0])*(a[1] - c[1]) - (a[0] - c[0])*(d[1] - c[1])
+            dir2 = (d[0] - c[0])*(b[1] - c[1]) - (b[0] - c[0])*(d[1] - c[1])
             return ((dir1 > 0.0) != (dir2 > 0.0) 
                 or (not dir1) != (not dir2))
         return False
 
-    def _check_is_simple(self):
+    def _check_is_simple_brute_force(self):
         """Check the polygon for self-intersection and cache the result
         """
         segments = [(self[i - 1], self[i]) for i in range(len(self))]
@@ -197,16 +229,52 @@ class Polygon(planar.Seq2):
         for c, d in segments[1:-1]:
             if intersects(a, b, c, d):
                 self._simple = False
-                return
+                return False
         a, b = segments.pop()
         while len(segments) > 1:
             next = segments.pop()
             for c, d in segments:
                 if intersects(a, b, c, d):
                     self._simple = False
-                    return
+                    return False
             a, b = next
         self._simple = True
+        return True
+
+    def _check_is_simple(self):
+        """Check the polygon for self-intersection and cache the result
+
+        We use a simplified plane sweep algorithm. Worst case, it still takes
+        O(n^2) time like a brute force intersection test, but it will typically
+        be O(nlogn) for common simple non-convex polygons. It should
+        also quickly identify self-intersecting polygons in most cases,
+        although it is slower for severely self-intersecting cases due to
+        the its startup cost.
+        """
+        intersects = self._segments_intersect
+        last_index = len(self) - 1
+        indices = range(len(self))
+        points = ([(tuple(self[i - 1]), tuple(self[i]), i) for i in indices] 
+            + [(tuple(self[i]), tuple(self[i - 1]), i) for i in indices])
+        points.sort() # lexicographical sort
+        open_segments = {}
+
+        for point in points:
+            seg_start, seg_end, index = point
+            if index not in open_segments:
+                # Segment start point
+                for open_start, open_end, open_index in open_segments.values():
+                    # ignore adjacent edges
+                    if (last_index > abs(index - open_index) > 1
+                        and intersects(seg_start, seg_end, open_start, open_end)):
+                        self._simple = False
+                        return False
+                open_segments[index] = point
+            else:
+                #Segment end point
+                del open_segments[index]
+        self._simple = True
+        return True
 
     def __setitem__(self, index, vert):
         super(Polygon, self).__setitem__(index, vert)

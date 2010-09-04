@@ -1,7 +1,5 @@
 #############################################################################
 # Copyright (c) 2010 by Casey Duncan
-# Portions copyright (c) 2009 The Super Effective Team 
-#                             (www.supereffective.org)
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
