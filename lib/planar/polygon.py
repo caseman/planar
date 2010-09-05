@@ -41,22 +41,92 @@ class Polygon(planar.Seq2):
 
     :param vertices: Iterable containing three or more :class:`~planar.Vec2` 
         objects.
+    :param is_convex: Optionally allows the polygon to be declared convex
+        or non-convex at construction time, thus saving additional time spent
+        checking the vertices to calculate this property later. Only specify
+        this value if you are certain of the convexity of the vertices
+        provided, as no additional checking will be performed. The results are
+        undefined if a non-convex polygon is declared convex or vice-versa.
+        Note that triangles are always considered convex, regardless of this
+        value.
+    :type is_convex: bool
+    :param is_simple: Optionally allows the polygon to be declared simple
+        (i.e., not self-intersecting) or non-simple at construction time,
+        which can save time calculating this property later. As with
+        ``is_convex`` above, only specify this value if you are certain of
+        this value for the vertices provided, or the results are undefined.
+        Note that convex polygons are always considered simple, regardless of
+        this value.
+    :type is_simple: bool
+
+    .. note::
+        Several operations on polygons, such as checking for containment, or
+        intersection, rely on knowing the convexity to select the appropriate
+        algorithm. So, it may be beneficial to specify these values in the
+        constructor, even if your application does not access the ``is_convex``,
+        or ``is_simple`` properties itself later. However, be cautious when 
+        specifying these values here, as incorrect values will likely
+        result in incorrect results when operating on the polygon.
+
+    .. note::
+        If the polygon is mutated, the values of ``is_convex`` and 
+        ``is_simple`` will be invalidated.
     """
 
-    def __init__(self, vertices):
+    def __init__(self, vertices, is_convex=None, is_simple=None):
         super(Polygon, self).__init__(vertices)
         if len(self) < 3:
             raise ValueError("Polygon(): minimum of 3 vertices required")
         self._clear_cached_properties()
+        if is_convex is not None and self._convex is _unknown:
+            self._convex = bool(is_convex)
+            self._simple = self._convex or _unknown
+        if is_simple is not None and self._simple is _unknown:
+            self._simple = bool(is_simple)
 
     @classmethod
-    def star(cls, peaks, radius1, radius2, center=(0, 0), angle=0):
+    def regular(cls, vertex_count, radius, center=(0, 0), angle=0):
+        """Create a regular polygon with the specified number of vertices
+        radius distance from the center point. Regular polygons are
+        always convex.
+
+        :param vertex_count: The number of vertices in the polygon.
+            Must be >= 3.
+        :type vertex_count: int
+        :param radius: distance from vertices to center point.
+        :type radius: float
+        :param center: The center point of the polygon. If omitted,
+            the polygon will be centered on the origin.
+        :type center: Vec2
+        :param angle: The starting angle for the vertices, in degrees.
+        :type angle: float
+        """
+        if vertex_count < 2:
+            raise ValueError(
+                "regular polygon must have a minimum of 3 vertices")
+        cx, cy = center
+        angle_step = 360.0 / vertex_count
+        verts = []
+        for i in range(peak_count):
+            x, y = cos_sin_deg(angle)
+            verts.append((x * radius1 + cx, y * radius1 + cy))
+            angle += angle_step
+        poly = cls(verts, is_convex=True)
+        poly._centroid = center
+        poly._max_r = radius
+        poly._max_r2 = radius * radius
+        poly._min_r = min_r = ((poly[0] + poly[1]) * 0.5 - center).length
+        poly._min_r2 = min_r * min_r
+        return poly
+
+    @classmethod
+    def star(cls, peak_count, radius1, radius2, center=(0, 0), angle=0):
         """Create a circular pointed star polygon with the specified number
         of peaks.
 
-        :param peaks: The number of peaks. The resulting polygon will
+        :param peak_count: The number of peaks. The resulting polygon will
             have twice this number of vertices. Must be >= 2.
-        :type peaks: int
+        :type peak_count: int
         :param radius1: The peak or valley vertex radius. A vertex
             is aligned on ``angle`` with this radius.
         :type radius1: float
@@ -80,7 +150,20 @@ class Polygon(planar.Seq2):
             angle += angle_step
             x, y = cos_sin_deg(angle)
             verts.append((x * radius2 + cx, y * radius2 + cy))
-        return cls(verts)
+        poly = cls(verts, is_convex=(radius1 == radius2), 
+            is_simple=((radius1 > 0.0) == (radius2 > 0.0) or None))
+        poly._centroid = center
+        poly._max_r = max_r = max(abs(radius1), abs(radius2))
+        poly._max_r2 = max_r * max_r
+        if (radius1 >= 0.0) == (radius2 >= 0.0):
+            if not poly.is_convex:
+                poly._min_r = min_r = min(abs(radius1), abs(radius2))
+                poly._min_r2 = min_r * min_r
+            else:
+                poly._min_r = min_r = (
+                    (poly[0] + poly[1]) * 0.5 - center).length
+                poly._min_r2 = min_r * min_r
+        return poly
 
     def _clear_cached_properties(self):
         if len(self) > 3:
@@ -91,6 +174,9 @@ class Polygon(planar.Seq2):
             self._simple = True
         self._degenerate = _unknown
         self._bbox = None
+        self._centroid = _unknown
+        self._max_r = self._max_r2 = _unknown
+        self._min_r = self._min_r2 = _unknown
 
     @property
     def bounding_box(self):
@@ -119,14 +205,6 @@ class Polygon(planar.Seq2):
         Mutating the polygon will invalidate the cached value.
         """
         return self._convex is not _unknown
-
-    def _iter_as_triples(self):
-        """Iterate the vertices of the polygon as triples stepping
-        forward a single vertex each step
-        """
-        for i in range(len(self) - 1):
-            yield self[i - 1], self[i], self[i + 1]
-        yield self[i], self[i + 1], self[0]
 
     def _iter_edge_vectors(self):
         """Iterate the edges of the polygon as vectors
@@ -186,8 +264,9 @@ class Polygon(planar.Seq2):
 
         If this is unknown then it is calculated from the vertices
         of the polygon and cached. 
-        Runtime complexity: O(n) (convex), O(n^2) (worst case non-convex),
-        though O(nlogn) is expected in most non-convex cases
+        Runtime complexity: O(n) convex,
+        O(nlogn) expected for most non-convex cases, 
+        O(n^2) worst case non-convex
         """
         if self._simple is _unknown:
             if self._convex is _unknown:
@@ -249,7 +328,7 @@ class Polygon(planar.Seq2):
         be O(nlogn) for common simple non-convex polygons. It should
         also quickly identify self-intersecting polygons in most cases,
         although it is slower for severely self-intersecting cases due to
-        the its startup cost.
+        its startup cost.
         """
         intersects = self._segments_intersect
         last_index = len(self) - 1
@@ -271,7 +350,7 @@ class Polygon(planar.Seq2):
                         return False
                 open_segments[index] = point
             else:
-                #Segment end point
+                # Segment end point
                 del open_segments[index]
         self._simple = True
         return True

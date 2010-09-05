@@ -879,15 +879,11 @@ Seq2_new_from_points(PyTypeObject *type, PyObject *points)
 static PlanarSeq2Object *
 Seq2_pynew(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    if (kwargs != NULL) {
-        PyErr_SetString(PyExc_TypeError, "invalid keyword argument");
-		return NULL;
-    }
-    if (PyTuple_GET_SIZE(args) != 1) {
-        PyErr_SetString(PyExc_TypeError, "wrong number of arguments");
-        return NULL;
-    }
-    return Seq2_new_from_points(type, PyTuple_GET_ITEM(args, 0));
+    if (PyTuple_GET_SIZE(args) == 0) {
+		return Seq2_New(type, 0);
+    } else {
+		return Seq2_new_from_points(type, PyTuple_GET_ITEM(args, 0));
+	}
 }
 
 /* Call the method "new_from_points(points)" on the Python object
@@ -1281,17 +1277,10 @@ PyTypeObject PlanarSeq2Type = {
 static PlanarSeq2Object *
 Vec2Array_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
-    if (kwargs != NULL) {
-        PyErr_SetString(PyExc_TypeError, "invalid keyword argument");
-		return NULL;
-    }
     if (PyTuple_GET_SIZE(args) == 0) {
 		return Seq2_New(type, 0);
-    } else if (PyTuple_GET_SIZE(args) == 1) {
+    } else {
 		return Seq2_new_from_points(type, PyTuple_GET_ITEM(args, 0));
-	} else {
-        PyErr_SetString(PyExc_TypeError, "wrong number of arguments");
-        return NULL;
 	}
 }
 

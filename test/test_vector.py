@@ -569,7 +569,21 @@ class VectorSeqBaseTestCase(object):
     @raises(TypeError)
     def test_unhashable(self):
         hash(self.VecSeq([(3,2), (6,0)]))
-        
+
+    def test_subclass_with_added_init_args(self):
+        class Subclass(self.VecSeq):
+            def __init__(self, vectors, somearg, somekwarg=None):
+                # FIXME super(Subclass, self).__init__(vectors)
+                self.somearg = somearg
+                self.somekwarg = somekwarg
+        a = Subclass([(0,1), (1,2)], 123)
+        assert isinstance(a, self.VecSeq)
+        assert_equal(a.somearg, 123)
+        assert_equal(a.somekwarg, None)
+        b = Subclass([(0,1), (1,2)], 777, somekwarg='foo')
+        assert_equal(b.somearg, 777)
+        assert_equal(b.somekwarg, 'foo')
+
 
 class PySeq2TestCase(VectorSeqBaseTestCase, unittest.TestCase):
     from planar.vector import Vec2

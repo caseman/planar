@@ -48,6 +48,29 @@ class PolygonBaseTestCase(object):
         assert_equal(len(poly), 4)
         assert not poly.is_convex_known
 
+    def test_specify_convex(self):
+        poly = self.Polygon([(-1,0), (-1,1), (0,0), (0, -1)], 
+            is_convex=True)
+        assert_equal(len(poly), 4)
+        assert poly.is_convex_known
+        assert poly.is_convex
+        assert poly.is_simple_known
+        assert poly.is_simple
+
+    def test_triangle_is_always_convex(self):
+        poly = self.Polygon([(-1,0), (1,1), (0,0)], is_convex=False)
+        assert poly.is_convex_known
+        assert poly.is_convex
+        assert poly.is_simple_known
+        assert poly.is_simple
+
+    def test_specify_simple(self):
+        poly = self.Polygon([(-1,0), (-0.5, 0.5), (-1,1), (0,0), (0, -1)], 
+            is_simple=True)
+        assert poly.is_simple_known
+        assert poly.is_simple
+        assert not poly.is_convex_known
+
     def test_is_convex(self):
         poly = self.Polygon([(-1,0), (-1,1), (0,0), (0, -1)])
         assert not poly.is_convex_known
