@@ -107,12 +107,12 @@ class Polygon(planar.Seq2):
         cx, cy = center
         angle_step = 360.0 / vertex_count
         verts = []
-        for i in range(peak_count):
+        for i in range(vertex_count):
             x, y = cos_sin_deg(angle)
-            verts.append((x * radius1 + cx, y * radius1 + cy))
+            verts.append((x * radius + cx, y * radius + cy))
             angle += angle_step
         poly = cls(verts, is_convex=True)
-        poly._centroid = center
+        poly._centroid = planar.Vec2(*center)
         poly._max_r = radius
         poly._max_r2 = radius * radius
         poly._min_r = min_r = ((poly[0] + poly[1]) * 0.5 - center).length
@@ -150,9 +150,12 @@ class Polygon(planar.Seq2):
             angle += angle_step
             x, y = cos_sin_deg(angle)
             verts.append((x * radius2 + cx, y * radius2 + cy))
+            angle += angle_step
+        is_simple = (radius1 > 0.0) == (radius2 > 0.0)
         poly = cls(verts, is_convex=(radius1 == radius2), 
-            is_simple=((radius1 > 0.0) == (radius2 > 0.0) or None))
-        poly._centroid = center
+            is_simple=is_simple or None)
+        if is_simple:
+            poly._centroid = planar.Vec2(*center)
         poly._max_r = max_r = max(abs(radius1), abs(radius2))
         poly._max_r2 = max_r * max_r
         if (radius1 >= 0.0) == (radius2 >= 0.0):
@@ -354,6 +357,46 @@ class Polygon(planar.Seq2):
                 del open_segments[index]
         self._simple = True
         return True
+
+    @property
+    def centroid(self):
+        """The geometric center point of the polygon. This point only exists 
+        for simple polygons. For non-simple polygons it is ``None``. Note
+        in concave polygons, this point lie outside of the polygon itself.
+
+        If the centroid is unknown, it is calculated from the vertices and
+        cached. If the polygon is known to be simple, this takes O(n) time. If
+        not, then the simple polygon check is also performed, which has an
+        expected complexity of O(nlogn).
+        """
+        if self._centroid is _unknown:
+            if self.is_simple:
+                # Compute the centroid using by summing the centroids
+                # of triangles made from each edge with vertex[0] weighted
+                # (positively or negatively) by each triangle's area
+                a = self[0]
+                b = self[1]
+                total_area = 0.0
+                centroid = planar.Vec2(0, 0)
+                for i in range(2, len(self)):
+                    c = self[i]
+                    area = ((b[0] - a[0]) * (c[1] - a[1]) 
+                        - (c[0] - a[0]) * (b[1] - a[1]))
+                    centroid += (a + b + c) * area
+                    total_area += area
+                    b = c
+                self._centroid = centroid / (3.0 * total_area)
+            else:
+                self._centroid = None
+        return self._centroid
+
+    @property
+    def is_centroid_known(self):
+        """True if the polygon's centroid has been pre-calculated and cached.
+
+        Mutating the polygon will invalidate the cached value.
+        """
+        return self._centroid is not _unknown
 
     def __setitem__(self, index, vert):
         super(Polygon, self).__setitem__(index, vert)
