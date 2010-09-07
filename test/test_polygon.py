@@ -252,17 +252,34 @@ class PolygonBaseTestCase(object):
 
     def test_centroid_convex(self):
         import planar
-        poly = self.Polygon([(-1, -2), (2, -1), (1, 1), (-2, 1), (-3, -1)])
+        poly = self.Polygon([(1, -2), (0, 0), (1, 0), (3, 0), (4, -2)])
         assert poly.is_convex
-        expected = self.Vec2(0, 0)
-        for v in poly:
-            expected += v
-        expected /= len(poly)
         assert not poly.is_centroid_known
-        assert_equal(poly.centroid, expected)
+        assert_equal(poly.centroid, (2, -1))
         assert isinstance(poly.centroid, planar.Vec2)
         assert poly.is_centroid_known
-        assert_equal(poly.centroid, expected) # check cached value
+        assert_equal(poly.centroid, (2, -1)) # check cached value
+
+    def test_centroid_concave(self):
+        import planar
+        poly = self.Polygon([(3,3), (1,-1), (-1,-1), (-3,3), (-1,-2), (1,-2)])
+        assert not poly.is_convex
+        assert poly.is_simple
+        assert not poly.is_centroid_known
+        print poly.centroid
+        assert_equal(poly.centroid, (0, -0.75))
+        assert isinstance(poly.centroid, planar.Vec2)
+        assert poly.is_centroid_known
+        assert_equal(poly.centroid, (0, -0.75)) # check cached value
+
+    def test_centroid_non_simple(self):
+        poly = self.Polygon([(-1,1), (0,0), (1,1), (0,1), (0,-2)])
+        assert not poly.is_centroid_known
+        assert not poly.is_simple_known
+        assert_equal(poly.centroid, None)
+        assert poly.is_centroid_known
+        assert_equal(poly.centroid, None)
+        assert not poly.is_simple
 
 
 class PyPolygonTestCase(PolygonBaseTestCase, unittest.TestCase):
