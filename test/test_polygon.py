@@ -85,6 +85,21 @@ class PolygonBaseTestCase(object):
         assert poly.is_convex_known
         assert not poly.is_convex # test cached value
 
+    def test_convex_degenerate_cases(self):
+        # Pentagram
+        poly = self.Polygon([(-1,-1), (0,1), (1,-1), (-1,0), (1,0)])
+        assert not poly.is_convex
+        # Rect with backtracking vert along edge
+        poly = self.Polygon([(0,0), (2,0), (1,0), (4,0), (4,-1), (0,-1)])
+        assert not poly.is_convex
+        # Rect with coincident edges
+        poly = self.Polygon([(0,0), (0,1), (1,1), (1,0), 
+            (0,0), (0,1), (1,1), (1,0)])
+        assert not poly.is_convex
+        # Triangle with coincident intruding edges
+        poly = self.Polygon([(-2,0), (0,2), (-0.5,1), (0,2), (2,0)])
+        assert not poly.is_convex
+
     def test_convex_is_simple(self):
         poly = self.Polygon([(-1,-1), (1,-1), (0.5,0), (0, 0)])
         assert not poly.is_simple_known
@@ -266,7 +281,6 @@ class PolygonBaseTestCase(object):
         assert not poly.is_convex
         assert poly.is_simple
         assert not poly.is_centroid_known
-        print poly.centroid
         assert_equal(poly.centroid, (0, -0.75))
         assert isinstance(poly.centroid, planar.Vec2)
         assert poly.is_centroid_known
