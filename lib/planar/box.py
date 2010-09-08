@@ -186,6 +186,7 @@ class BoundingBox(object):
 
         :param other: A point vector, or a shape with a bounding box.
         :type other: :class:`~planar.Vec2` or :class:`~planar.Shape`
+        :rtype: bool
         """
         try:
             x, y = other

@@ -175,11 +175,15 @@ class Polygon(planar.Seq2):
         else:
             self._convex = True
             self._simple = True
+            self._bary_coord_cache = None
+            if '_pnp_triangle_test' in self.__dict__:
+                # clear cached closure
+                del self.__dict__['_pnp_triangle_test']
         self._degenerate = _unknown
         self._bbox = None
         self._centroid = _unknown
-        self._max_r = self._max_r2 = _unknown
-        self._min_r = self._min_r2 = _unknown
+        self._max_r = self._max_r2 = None
+        self._min_r = self._min_r2 = None
 
     @property
     def bounding_box(self):
@@ -362,7 +366,7 @@ class Polygon(planar.Seq2):
     def centroid(self):
         """The geometric center point of the polygon. This point only exists 
         for simple polygons. For non-simple polygons it is ``None``. Note
-        in concave polygons, this point lie outside of the polygon itself.
+        in concave polygons, this point may lie outside of the polygon itself.
 
         If the centroid is unknown, it is calculated from the vertices and
         cached. If the polygon is known to be simple, this takes O(n) time. If
@@ -402,5 +406,86 @@ class Polygon(planar.Seq2):
         super(Polygon, self).__setitem__(index, vert)
         self._clear_cached_properties()
 
+    ## Point in poly methods ##
+
+    def _pnp_crossing_test(self, point):
+        """Return True if the point is in the polygon using a crossing
+        test. This is the most general point-in-poly test and will work
+        correctly with all polygons.
+
+        The general idea of this algorithm is to cast a ray from the point
+        along the +x axis, counting the number of polygon edges crossed.
+        An odd number of crossings means that the point is in the polygon.
+
+        This algorithm is based on the "crossings multiply" algorithm
+        available here:
+        http://tog.acm.org/resources/GraphicsGems/gemsiv/ptpoly_haines/ptinpoly.c
+
+        Complexity: O(n)
+        """
+        px, py = point
+        is_inside = False
+        v0_x, v0_y = self[-1]
+        v0_above = (v0_y >= py)
+        for v1_x, v1_y in self:
+            v1_above = (v1_y >= py)
+            if (v0_above != v1_above
+                and ((v1_y - py) * (v0_x - v1_x) >=
+                    (v1_x - px) * (v0_y - v1_y)) == v1_above):
+                is_inside = not is_inside
+            v0_above = v1_above
+            v0_x = v1_x
+            v0_y = v1_y
+        return is_inside
+
+    def _pnp_triangle_test(self, point):
+        """Return True if the point is in the triangle polygon using
+        barycentric coordinates. This only works with triangles,
+        of course.
+
+        More info here:
+        http://www.blackpawn.com/texts/pointinpoly/default.html
+
+        Complexity: O(1)
+        """
+        p0 = self[0]
+        v0 = self[1] - self[0]
+        v1 = self[2] - self[0]
+        dot01 = v0.dot(v1)
+        dot00 = v0.length2
+        dot11 = v1.length2
+        inv_denom = 1.0 / (dot00 * dot11 - dot01 * dot01)
+        # The above vars are cached in the closure below
+        def _pnp_triangle_test(point):
+            v2 = point - p0
+            dot02 = v0.dot(v2)
+            dot12 = v1.dot(v2)
+            u = (dot11 * dot02 - dot01 * dot12) * inv_denom
+            v = (dot00 * dot12 - dot01 * dot02) * inv_denom
+            return u > 0.0 and v > 0.0 and u + v < 1.0
+        # Store the closure in the instance as a method override
+        # which will intercept future calls
+        self._pnp_triangle_test = _pnp_triangle_test
+        return _pnp_triangle_test(point)
+    
+    def contains_point(self, point):
+        """Return True if the specified point is inside the polygon.
+
+        :param other: A point vector.
+        :type other: :class:`~planar.Vec2`
+        :rtype: bool
+        """
+        sides = len(self)
+        if sides == 3:
+            return self._pnp_triangle_test(point)
+        if self._centroid is not _unknown and sides > 4:
+            d2 = (self._centroid - point).length2
+            if self._min_r2 is not None and d2 <= self._min_r2:
+                return True
+            if self._max_r2 is not None and d2 > self._max_r2:
+                return False
+        if sides == 4 or self.bounding_box.contains(point):
+            return self._pnp_crossing_test(point)
+        return False
 
 _unknown = object()
