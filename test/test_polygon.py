@@ -169,6 +169,7 @@ class PolygonBaseTestCase(object):
     def test_regular(self):
         import planar
         poly = self.Polygon.regular(5, 1.5)
+        assert isinstance(poly, self.Polygon)
         assert_equal(len(poly), 5)
         assert poly.is_convex_known
         assert poly.is_simple_known
@@ -237,6 +238,7 @@ class PolygonBaseTestCase(object):
         import planar
         poly = self.Polygon.star(peak_count=2, radius1=1.5, radius2=3, 
             center=(-11, 3), angle=15)
+        assert isinstance(poly, self.Polygon)
         assert_equal(len(poly), 4)
         assert poly.is_convex_known
         assert poly.is_simple_known
@@ -294,6 +296,96 @@ class PolygonBaseTestCase(object):
         assert poly.is_centroid_known
         assert_equal(poly.centroid, None)
         assert not poly.is_simple
+
+    def test_contains_point_triangle(self):
+        poly = self.Polygon([(0,1), (1, -1), (-0.5,-0.5)])
+        assert poly.contains_point((0, 0))
+        assert poly.contains_point((-0.2, -0.2))
+        assert poly.contains_point(self.Vec2(0, 0.9))
+        assert poly.contains_point((0.5, -0.5))
+        assert not poly.contains_point(self.Vec2(-0.7, 0.9))
+        assert not poly.contains_point(self.Vec2(-0.4, 0))
+        assert not poly.contains_point(self.Vec2(0.4, 0.5))
+        assert not poly.contains_point((100, 0))
+        assert not poly.contains_point((-100, 0))
+        assert not poly.contains_point((0, -100))
+        assert not poly.contains_point((0, 100))
+        assert not poly.contains_point((-100, -100))
+        assert not poly.contains_point((100, -100))
+        assert not poly.contains_point((-100, 100))
+        assert not poly.contains_point((100, 100))
+
+    def test_contains_point_convex_no_centroid(self):
+        poly = self.Polygon([(1,1), (0,2), (-1,0.5), (-1,-1), (0.5,-1)])
+        assert poly.is_convex
+        assert not poly.is_centroid_known
+        assert poly.contains_point((0, 0))
+        assert poly.contains_point((0, 1))
+        assert poly.contains_point((0.5, 1))
+        assert poly.contains_point((-0.5, -0.5))
+        assert poly.contains_point(self.Vec2(-0.75, 0.5))
+        assert not poly.contains_point((-1.1, 0.5))
+        assert not poly.contains_point((1, 0))
+        assert not poly.contains_point((-1, -1))
+        assert not poly.contains_point(self.Vec2(-0.5, -10))
+        assert not poly.contains_point((100, 0))
+        assert not poly.contains_point((-100, 0))
+        assert not poly.contains_point((0, -100))
+        assert not poly.contains_point((0, 100))
+        assert not poly.contains_point((-100, -100))
+        assert not poly.contains_point((100, -100))
+        assert not poly.contains_point((-100, 100))
+        assert not poly.contains_point((100, 100))
+
+    def test_contains_point_regular(self):
+        poly = self.Polygon.regular(8, 1.5, center=(1,1), angle=22.5)
+        assert poly.is_centroid_known
+        assert poly.contains_point((1, 1))
+        assert poly.contains_point((-0.25, 1))
+        assert poly.contains_point((0, 1))
+        assert poly.contains_point((1, -0.2))
+        assert poly.contains_point((0.75, -0.38))
+        assert poly.contains_point(self.Vec2(-0.3, 1.2))
+        assert not poly.contains_point((0, 0))
+        assert not poly.contains_point((2, 2))
+        assert not poly.contains_point(self.Vec2(-0.5, -0.5))
+        assert not poly.contains_point((2.6, 1))
+        assert not poly.contains_point((0, 2.6))
+        assert not poly.contains_point((100, 0))
+        assert not poly.contains_point((-100, 0))
+        assert not poly.contains_point((0, -100))
+        assert not poly.contains_point((0, 100))
+        assert not poly.contains_point((-100, -100))
+        assert not poly.contains_point((100, -100))
+        assert not poly.contains_point((-100, 100))
+        assert not poly.contains_point((100, 100))
+
+    def test_contains_point_concave(self):
+        poly = self.Polygon([(-1,0), (-1,1), (2,1), (2,0), (1.5,-1), 
+            (1,0), (0.5,-1), (0,0), (-0.5,-1)])
+        assert not poly.is_convex
+        assert poly.is_simple
+        assert poly.contains_point((1, 0.5))
+        assert poly.contains_point((-0.5, -0.25))
+        assert poly.contains_point((0.5, -0.6))
+        assert poly.contains_point((1.5, -0.1))
+        assert poly.contains_point((-0.5, -0.999))
+        assert not poly.contains_point((0, 1.1))
+        assert not poly.contains_point((0.5, -1.1))
+        assert not poly.contains_point((0.9, 2.1))
+        assert not poly.contains_point((-0.9, -0.5))
+        assert not poly.contains_point((0, -0.1))
+        assert not poly.contains_point((0.4, -0.9))
+        assert not poly.contains_point((1, -0.1))
+        assert not poly.contains_point((1.8, -0.8))
+        assert not poly.contains_point((100, 0))
+        assert not poly.contains_point((-100, 0))
+        assert not poly.contains_point((0, -100))
+        assert not poly.contains_point((0, 100))
+        assert not poly.contains_point((-100, -100))
+        assert not poly.contains_point((100, -100))
+        assert not poly.contains_point((-100, 100))
+        assert not poly.contains_point((100, 100))
 
 
 class PyPolygonTestCase(PolygonBaseTestCase, unittest.TestCase):
