@@ -410,7 +410,7 @@ class Polygon(planar.Seq2):
 
     def _pnp_crossing_test(self, point):
         """Return True if the point is in the polygon using a crossing
-        test. This is the most general point-in-poly test and will work
+        test. This is a general point-in-poly test and will work
         correctly with all polygons.
 
         The general idea of this algorithm is to cast a ray from the point
@@ -437,6 +437,43 @@ class Polygon(planar.Seq2):
             v0_x = v1_x
             v0_y = v1_y
         return is_inside
+
+    def _pnp_winding_test(self, point):
+        """Return True if the point is in the polygon using a fast winding
+        number test. This is a general point-in-poly test and will work
+        correctly with all polygons.
+
+		Note this test returns different results from the crossing test for
+		non-simple polygons. In this test, self-overlapping sections of the
+		polygon are still considered "inside", whereas the crossing test
+		considers these regions "outside".
+
+        Algorithm derived from:
+        http://www.softsurfer.com/Archive/algorithm_0103/algorithm_0103.htm
+
+        Complexity: O(n)
+        """
+        px, py = point
+        winding_no = 0
+        v0_x, v0_y = self[-1]
+        v0_above = (v0_y > py)
+        for v1_x, v1_y in self:
+            v1_above = (v1_y > py)
+            if v0_above != v1_above:
+                if v1_above: # upward crossing
+                    if ((v1_x - v0_x) * (py - v0_y)
+                        - (px - v0_x) * (v1_y - v0_y) > 0):
+                        # point is left of edge, valid up intersect
+                        winding_no += 1
+                else:
+                    if ((v1_x - v0_x) * (py - v0_y)
+                        - (px - v0_x) * (v1_y - v0_y) < 0):
+                        # point is right of edge, valid down intersect
+                        winding_no -= 1
+            v0_above = v1_above
+            v0_x = v1_x
+            v0_y = v1_y
+        return winding_no != 0
 
     def _pnp_triangle_test(self, point):
         """Return True if the point is in the triangle polygon using
@@ -480,12 +517,12 @@ class Polygon(planar.Seq2):
             return self._pnp_triangle_test(point)
         if self._centroid is not _unknown and sides > 4:
             d2 = (self._centroid - point).length2
-            if self._min_r2 is not None and d2 <= self._min_r2:
+            if self._min_r2 is not None and d2 < self._min_r2:
                 return True
             if self._max_r2 is not None and d2 > self._max_r2:
                 return False
         if sides == 4 or self.bounding_box.contains(point):
-            return self._pnp_crossing_test(point)
+            return self._pnp_winding_test(point)
         return False
 
 _unknown = object()

@@ -326,7 +326,7 @@ class PolygonBaseTestCase(object):
         assert poly.contains_point(self.Vec2(-0.75, 0.5))
         assert not poly.contains_point((-1.1, 0.5))
         assert not poly.contains_point((1, 0))
-        assert not poly.contains_point((-1, -1))
+        assert not poly.contains_point((-1.01, -1))
         assert not poly.contains_point(self.Vec2(-0.5, -10))
         assert not poly.contains_point((100, 0))
         assert not poly.contains_point((-100, 0))
@@ -370,6 +370,7 @@ class PolygonBaseTestCase(object):
         assert poly.contains_point((0.5, -0.6))
         assert poly.contains_point((1.5, -0.1))
         assert poly.contains_point((-0.5, -0.999))
+        assert poly.contains_point((0.5, 0))
         assert not poly.contains_point((0, 1.1))
         assert not poly.contains_point((0.5, -1.1))
         assert not poly.contains_point((0.9, 2.1))
@@ -378,6 +379,35 @@ class PolygonBaseTestCase(object):
         assert not poly.contains_point((0.4, -0.9))
         assert not poly.contains_point((1, -0.1))
         assert not poly.contains_point((1.8, -0.8))
+        assert not poly.contains_point((100, 0))
+        assert not poly.contains_point((-100, 0))
+        assert not poly.contains_point((0, -100))
+        assert not poly.contains_point((0, 100))
+        assert not poly.contains_point((-100, -100))
+        assert not poly.contains_point((100, -100))
+        assert not poly.contains_point((-100, 100))
+        assert not poly.contains_point((100, 100))
+
+    def test_contains_point_non_simple(self):
+        poly = self.Polygon([(2,-2), (-2,-2), (-2,2), (0,2), (0,-1), 
+            (1,-1), (1,0), (-1,0), (-1,1), (2,1)])
+        assert not poly.is_convex
+        assert not poly.is_simple
+        assert poly.contains_point((0.5, 0.5))
+        assert poly.contains_point((1.5, 0.5))
+        assert poly.contains_point((1.5, -1.5))
+        assert poly.contains_point((-1, -1))
+        assert poly.contains_point((-1.5, 0.5))
+        assert poly.contains_point((-0.5, 1.5))
+        assert poly.contains_point((-0.5, 0.5)) # self-overlap
+        assert not poly.contains_point((1, 1.5))
+        assert not poly.contains_point((1.5, 1.5))
+        assert not poly.contains_point((2.1, 0))
+        assert not poly.contains_point((-2.1, 0))
+        assert not poly.contains_point((0, -2.1))
+        assert not poly.contains_point((0, 2.1))
+        assert not poly.contains_point((0.5, 2.1))
+        assert not poly.contains_point((0.5, -0.5)) # hole
         assert not poly.contains_point((100, 0))
         assert not poly.contains_point((-100, 0))
         assert not poly.contains_point((0, -100))
