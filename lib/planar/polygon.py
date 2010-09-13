@@ -28,8 +28,10 @@
 
 from __future__ import division
 
+import sys
 import math
 import itertools
+import bisect
 import planar
 from planar.util import cached_property, assert_unorderable, cos_sin_deg
 
@@ -69,18 +71,20 @@ class Polygon(planar.Seq2):
         result in incorrect results when operating on the polygon.
 
     .. note::
-        If the polygon is mutated, the values of ``is_convex`` and 
+        If the polygon is mutated, the cached values of ``is_convex`` and 
         ``is_simple`` will be invalidated.
     """
 
     def __init__(self, vertices, is_convex=None, is_simple=None):
-        super(Polygon, self).__init__(vertices)
+        #super(Polygon, self).__init__(vertices)
         if len(self) < 3:
             raise ValueError("Polygon(): minimum of 3 vertices required")
         self._clear_cached_properties()
         if is_convex is not None and self._convex is _unknown:
             self._convex = bool(is_convex)
             self._simple = self._convex or _unknown
+            if self._convex and len(self) > 3:
+                self._split_y_polylines()
         if is_simple is not None and self._simple is _unknown:
             self._simple = bool(is_simple)
 
@@ -172,6 +176,7 @@ class Polygon(planar.Seq2):
         if len(self) > 3:
             self._convex = _unknown
             self._simple = _unknown
+            self._y_polylines = None
         else:
             self._convex = True
             self._simple = True
@@ -264,6 +269,55 @@ class Polygon(planar.Seq2):
             self._convex = False
         self._simple = self._convex or _unknown
         self._degenerate = is_null or not angle_sign
+        if self._convex:
+            self._split_y_polylines()
+    
+    def _split_y_polylines(self):
+        """Split the polygon into left and right y-monotone polylines.
+        This optimizes operations on y-monotone polygons.
+        """
+        min_y = max_y = self[0].y
+        min_x = max_x = self[0].x
+        min_i = max_i = left_i = right_i = 0
+        for i, vert in enumerate(self):
+            if vert.y < min_y:
+                min_y = vert.y
+                min_i = i
+            if vert.y > max_y:
+                max_y = vert.y
+                max_i = i
+            if vert.x < min_x:
+                min_x = vert.x
+                left_i = i
+            if vert.x > max_x:
+                max_x = vert.x
+                right_i = i
+        if not (min_x <= self[min_i].x < max_x 
+            or min_x < self[max_i].x <= max_x):
+            # special case where left and right branches are not
+            # easily discerned. 
+            # Use a containment test for a definitive answer
+            # since only points on the left edges of the polygon
+            # are considered "inside"
+            if not self.contains_point(self[min_i]):
+                # Simple left/right test was wrong
+                left_i = right_i
+
+        verts_yx = [(y, x) for x, y in self]
+        if min_i < max_i:
+            pl1 = verts_yx[min_i:max_i+1]
+            pl2 = verts_yx[max_i:] + verts_yx[:min_i+1]
+        else:
+            pl1 = verts_yx[max_i:min_i+1]
+            pl2 = verts_yx[min_i:] + verts_yx[:max_i+1]
+        if pl1[0][0] > pl1[-1][0]:
+            pl1.reverse()
+        if pl2[0][0] > pl2[-1][0]:
+            pl2.reverse()
+        if min_i <= left_i < max_i or min_i >= left_i > max_i:
+            self._y_polylines = pl1, pl2
+        else:
+            self._y_polylines = pl2, pl1
 
     @property
     def is_simple(self):
@@ -443,10 +497,10 @@ class Polygon(planar.Seq2):
         number test. This is a general point-in-poly test and will work
         correctly with all polygons.
 
-		Note this test returns different results from the crossing test for
-		non-simple polygons. In this test, self-overlapping sections of the
-		polygon are still considered "inside", whereas the crossing test
-		considers these regions "outside".
+        Note this test returns different results from the crossing test for
+        non-simple polygons. In this test, self-overlapping sections of the
+        polygon are still considered "inside", whereas the crossing test
+        considers these regions "outside".
 
         Algorithm derived from:
         http://www.softsurfer.com/Archive/algorithm_0103/algorithm_0103.htm
@@ -474,6 +528,31 @@ class Polygon(planar.Seq2):
             v0_x = v1_x
             v0_y = v1_y
         return winding_no != 0
+    
+    def _pnp_y_monotone_test(self, point):
+        """Return True if the point is in the polygon using a
+        binary search of the polygon's 2 y-monotone edge polylines.
+        This algorithm works only with convex or simple y-montone
+        polygons.
+
+        Complexity: O(log n)
+        """
+        px, py = point
+        pt_y_tuple = (py,)
+        lpline, rpline = self._y_polylines
+        i = bisect.bisect_right(lpline, pt_y_tuple)
+        if i == 0 or i == len(lpline):
+            return False # Point above or below
+        v0_y, v0_x = lpline[i-1]
+        v1_y, v1_x = lpline[i]
+        if ((v1_x - v0_x) * (py - v0_y)
+            - (px - v0_x) * (v1_y - v0_y) > 0):
+            return False # Point too far left
+        i = bisect.bisect_right(rpline, pt_y_tuple)
+        v0_y, v0_x = rpline[i-1]
+        v1_y, v1_x = rpline[i]
+        return ((v1_x - v0_x) * (py - v0_y)
+            - (px - v0_x) * (v1_y - v0_y) > 0)
 
     def _pnp_triangle_test(self, point):
         """Return True if the point is in the triangle polygon using
@@ -508,8 +587,18 @@ class Polygon(planar.Seq2):
     def contains_point(self, point):
         """Return True if the specified point is inside the polygon.
 
-        :param other: A point vector.
-        :type other: :class:`~planar.Vec2`
+        This test can use various strategies depending on the
+        classification of the polygon, i.e., triangular, radial, 
+        y-monotone, convex, or other. 
+
+        The runtime complexity will depend on the polygon:
+
+        Triangle or best-case radial: O(1)
+        y-monotone, convex: O(log n)
+        other: O(n)
+
+        :param point: A point vector.
+        :type point: :class:`~planar.Vec2`
         :rtype: bool
         """
         sides = len(self)
@@ -521,8 +610,13 @@ class Polygon(planar.Seq2):
                 return True
             if self._max_r2 is not None and d2 > self._max_r2:
                 return False
+        if self._y_polylines is not None:
+            return self._pnp_y_monotone_test(point)
         if sides == 4 or self.bounding_box.contains(point):
             return self._pnp_winding_test(point)
         return False
 
 _unknown = object()
+
+
+# vim: ai ts=4 sts=4 et sw=4 tw=78
