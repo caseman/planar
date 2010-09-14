@@ -616,6 +616,55 @@ class Polygon(planar.Seq2):
             return self._pnp_winding_test(point)
         return False
 
+    ## Tangent methods ##
+    
+    def _pt_tangents(self, point):
+        """Return the pair of tangent points for the given exterior point.
+        This general algorithm works for all polygons in O(n) time.
+        """
+        px, py = point
+        left_tan = right_tan = self[0]
+        verts = iter(self)
+        v0_x, v0_y = self[-2]
+        v1_x, v1_y = self[-1]
+        prev_turn = (v1_x - v0_x)*(py - v0_y) - (px - v0_x)*(v1_y - v0_y)
+        v0_x = v1_x
+        v0_y = v1_y
+        for v1_x, v1_y in self:
+            next_turn = (v1_x - v0_x)*(py - v0_y) - (px - v0_x)*(v1_y - v0_y)
+            if prev_turn <= 0.0 and next_turn > 0.0:
+                if ((v0_x - px)*(right_tan.y - py)
+                    - (right_tan.x - px)*(v0_y - py) >= 0.0):
+                    right_tan = planar.Vec2(v0_x, v0_y)
+            elif prev_turn > 0.0 and next_turn <= 0.0:
+                if ((v0_x - px)*(left_tan.y - py)
+                    - (left_tan.x - px)*(v0_y - py) <= 0.0):
+                    left_tan = planar.Vec2(v0_x, v0_y)
+            v0_x = v1_x
+            v0_y = v1_y
+            prev_turn = next_turn
+        return left_tan, right_tan
+
+    def tangents_to_point(self, point):
+        """Given a point **exterior** to the polygon, return the pair of
+        vertex points from the polygon that define the tangent lines with the
+        specified point.
+
+        Runtime Complexity: O(log n) convex, O(n) other
+
+        :param point: A point outside the polygon. If the point specified is
+            inside, the result is undefined.
+        :type point: :class:`~planar.Vec2`
+        :return: A tuple containing the left and right tangent points.
+        :rtype: tuple of :class:`~planar.Vec2`
+        """
+        if self.is_convex:
+            return self._pt_tangents_convex(point)
+        else:
+            return self._pt_tangents(point)
+        
+        
+
 _unknown = object()
 
 

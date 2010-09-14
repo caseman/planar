@@ -417,6 +417,15 @@ class PolygonBaseTestCase(object):
         assert not poly.contains_point((-100, 100))
         assert not poly.contains_point((100, 100))
 
+    def test_tangents_to_point_non_convex(self):
+        poly = self.Polygon([(1,-1), (0,-3), (-1,3), (0,1), (2,2), (2,-2)])
+        assert not poly.is_convex
+        assert_equal(poly.tangents_to_point((2.1,1)), ((2,-2), (2,2)))
+        assert_equal(poly.tangents_to_point((0,-4)), ((-1,3), (2,-2)))
+        assert_equal(poly.tangents_to_point((1,-4)), ((0,-3), (2,-2)))
+        assert_equal(poly.tangents_to_point((20,20)), ((2,-2), (-1,3)))
+        assert_equal(poly.tangents_to_point((-5,2)), ((-1,3), (0,-3)))
+
 
 class PyPolygonTestCase(PolygonBaseTestCase, unittest.TestCase):
     from planar.vector import Vec2, Seq2
