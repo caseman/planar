@@ -171,7 +171,8 @@ class Polygon(planar.Seq2):
                 poly._min_r = min_r = (
                     (poly[0] + poly[1]) * 0.5 - center).length
                 poly._min_r2 = min_r * min_r
-        poly._dupe_verts = (radius1 > 0.0 and radius2 > 0.0) or _unknown
+        if radius1 > 0.0 and radius2 > 0.0:
+            poly._dupe_verts = False
         return poly
 
     def _clear_cached_properties(self):
