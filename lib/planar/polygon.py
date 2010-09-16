@@ -121,6 +121,7 @@ class Polygon(planar.Seq2):
         poly._max_r2 = radius * radius
         poly._min_r = min_r = ((poly[0] + poly[1]) * 0.5 - center).length
         poly._min_r2 = min_r * min_r
+        poly._dupe_verts = False
         return poly
 
     @classmethod
@@ -170,6 +171,7 @@ class Polygon(planar.Seq2):
                 poly._min_r = min_r = (
                     (poly[0] + poly[1]) * 0.5 - center).length
                 poly._min_r2 = min_r * min_r
+        poly._dupe_verts = (radius1 > 0.0 and radius2 > 0.0) or _unknown
         return poly
 
     def _clear_cached_properties(self):
@@ -184,6 +186,7 @@ class Polygon(planar.Seq2):
             if '_pnp_triangle_test' in self.__dict__:
                 # clear cached closure
                 del self.__dict__['_pnp_triangle_test']
+        self._dupe_verts = _unknown
         self._degenerate = _unknown
         self._bbox = None
         self._centroid = _unknown
@@ -232,6 +235,7 @@ class Polygon(planar.Seq2):
         """
         dir_changes = 0
         angle_sign = 0
+        count = 0
         is_null = True
         self._convex = True
         self._winding = 0
@@ -244,6 +248,7 @@ class Polygon(planar.Seq2):
         for delta in itertools.ifilter(
             lambda v: v, self._iter_edge_vectors()):
             is_null = False
+            count += 1
             this_dir = (
                 (delta.x > 0) * -1 or
                 (delta.x < 0) * 1 or
@@ -270,6 +275,7 @@ class Polygon(planar.Seq2):
         self._simple = self._convex or _unknown
         self._degenerate = is_null or not angle_sign
         if self._convex:
+            self._dupe_verts = (count < len(self))
             self._split_y_polylines()
     
     def _split_y_polylines(self):
@@ -617,7 +623,8 @@ class Polygon(planar.Seq2):
         return False
 
     ## Tangent methods ##
-    
+    # See: http://softsurfer.com/Archive/algorithm_0201/algorithm_0201.htm
+
     def _pt_tangents(self, point):
         """Return the pair of tangent points for the given exterior point.
         This general algorithm works for all polygons in O(n) time.
@@ -645,6 +652,80 @@ class Polygon(planar.Seq2):
             prev_turn = next_turn
         return left_tan, right_tan
 
+    @staticmethod
+    def _pt_above(p, a, b):
+        """Return True if a is above b relative to fixed point p"""
+        return ((a[0] - p[0])*(b[1] - p[1]) 
+            - (b[0] - p[0])*(a[1] - p[1]) > 0.0)
+
+    @staticmethod
+    def _pt_below(p, a, b):
+        """Return True if a is below b relative to fixed point p"""
+        return ((a[0] - p[0])*(b[1] - p[1]) 
+            - (b[0] - p[0])*(a[1] - p[1]) < 0.0)
+
+    def _left_tan_i_convex(self, point):
+        """Return the left tangent index to the given exterior point for a 
+        convex polygon using a binary search.
+        """
+        below = self._pt_below
+        above = self._pt_above
+        
+        # See if vertex[-1] is the tangent point
+        if (not below(point, self[0], self[-1]) 
+            and above(point, self[-2], self[-1])):
+            return -1
+
+        a = -1
+        b = len(self) - 1
+        while a < b: # Avoid inf loop if polygon is not actually convex
+            c = (a + b) // 2
+            down_c = below(point, self[c+1], self[c])
+            if not down_c and above(point, self[c-1], self[c]):
+                # We have our man
+                return c
+            if below(point, self[a+1], self[a]):
+                if not down_c or below(point, self[a], self[c]):
+                    b = c
+                else:
+                    a = c
+            else:
+                if down_c or not above(point, self[a], self[c]):
+                    a = c
+                else:
+                    b = c
+
+    def _right_tan_i_convex(self, point):
+        """Return the right tangent index to the given exterior point for a 
+        convex polygon using a binary search.
+        """
+        below = self._pt_below
+        above = self._pt_above
+        
+        # See if vertex[-1] is the tangent point
+        if (below(point, self[0], self[-1]) 
+            and not above(point, self[-2], self[-1])):
+            return -1
+
+        a = -1
+        b = len(self) - 1
+        while a < b: # Avoid inf loop if polygon is not actually convex
+            c = (a + b) // 2
+            down_c = below(point, self[c+1], self[c])
+            if down_c and not above(point, self[c-1], self[c]):
+                # We have our man
+                return c
+            if above(point, self[a+1], self[a]):
+                if down_c or above(point, self[a], self[c]):
+                    b = c
+                else:
+                    a = c
+            else:
+                if not down_c or not below(point, self[a], self[c]):
+                    a = c
+                else:
+                    b = c
+
     def tangents_to_point(self, point):
         """Given a point **exterior** to the polygon, return the pair of
         vertex points from the polygon that define the tangent lines with the
@@ -658,12 +739,12 @@ class Polygon(planar.Seq2):
         :return: A tuple containing the left and right tangent points.
         :rtype: tuple of :class:`~planar.Vec2`
         """
-        if self.is_convex:
-            return self._pt_tangents_convex(point)
+        if len(self) > 20 and self.is_convex and not self._dupe_verts:
+            return (self[self._left_tan_i_convex(point)], 
+                self[self._right_tan_i_convex(point)])
         else:
             return self._pt_tangents(point)
-        
-        
+
 
 _unknown = object()
 
