@@ -297,6 +297,78 @@ class PolygonBaseTestCase(object):
         assert_equal(poly.centroid, None)
         assert not poly.is_simple
 
+    def test_eq_identical(self):
+        poly1 = self.Polygon([(0,0), (1,0), (1,1), (-1, 1)])
+        poly2 = self.Polygon([(0,0), (1,0), (1,1), (-1, 1)])
+        assert poly1 == poly2
+        assert not poly1 != poly2
+
+    def test_eq_same_object(self):
+        poly = self.Polygon([(-1,1), (0,0), (1,1), (0,1), (0,-2)])
+        assert poly == poly
+        assert not poly != poly
+
+    def test_eq_not_polygon(self):
+        verts = [(1, -2), (0, 0), (1, 0), (3, 0), (4, -2)]
+        assert self.Polygon(verts) != self.Seq2(verts)
+        assert not self.Polygon(verts) == self.Seq2(verts)
+        assert self.Polygon(verts) != None
+        assert not self.Polygon(verts) == None
+
+    def test_eq_different_lengths(self):
+        poly1 = self.Polygon([(0,0), (1,0), (1,1), (-1, 1), (0,0)])
+        poly2 = self.Polygon([(0,0), (1,0), (1,1), (-1, 1)])
+        assert not poly1 == poly2
+        assert poly1 != poly2
+
+    def test_eq_different_verts(self):
+        poly1 = self.Polygon([(0,0), (1,0), (1,1), (-1, 1)])
+        poly2 = self.Polygon([(0,0), (1,0), (1,1), (0, 1)])
+        assert not poly1 == poly2
+        assert poly1 != poly2
+    
+    def test_eq_different_starting_vert(self):
+        poly1 = self.Polygon([(-3,3), (-1,-2), (1,-2), (3,3), (1,-1), (-1,-1)])
+        poly2 = self.Polygon([(3,3), (1,-1), (-1,-1), (-3,3), (-1,-2), (1,-2)])
+        assert poly1 == poly2
+        assert not poly1 != poly2
+        poly3 = self.Polygon([(3,3), (1,0), (-1,-1), (-4,3), (-1,-2), (1,-2)])
+        assert poly1 != poly3
+        assert not poly1 == poly3
+
+    def test_eq_different_winding(self):
+        verts = [(1, -2), (0, 0), (1, 0), (3, 0), (4, -2)]
+        poly1 = self.Polygon(verts)
+        verts.reverse()
+        poly2 = self.Polygon(verts)
+        assert poly1 == poly2
+        assert not poly1 != poly2
+        poly3 = self.Polygon(verts[2:] + verts[:2])
+        assert poly1 == poly3
+        assert not poly1 != poly3
+        verts[2] = (0.5, 0)
+        poly4 = self.Polygon(verts)
+        assert not poly1 == poly4
+        assert poly1 != poly4
+
+    def test_eq_degenerate_cases(self):
+        verts = [(0,0)]*3 + [(0,1)] + [(0,0)]*2
+        assert self.Polygon(verts) == self.Polygon(verts)
+        assert self.Polygon(reversed(verts)) == self.Polygon(verts)
+        assert self.Polygon(verts) == self.Polygon(verts[:-2] + verts[-2:])
+        # Rect with coincident edges
+        verts = [(0,0), (0,1), (1,1), (1,0), (0,0), (0,1), (1,1), (1,0)]
+        assert self.Polygon(verts) == self.Polygon(verts)
+        assert self.Polygon(reversed(verts)) == self.Polygon(verts)
+        assert self.Polygon(verts) == self.Polygon(verts[:1] + verts[1:])
+        # Different repeating verts
+        poly1 = self.Polygon([(0,0), (0,1), (0,1), (0,1), (1,1)])
+        poly2 = self.Polygon([(0,0), (0,1), (1,1), (1,1), (1,1)])
+        assert poly1 != poly2
+        poly3 = self.Polygon([(1,1), (0,1), (0,1), (0,1), (0,0)])
+        assert poly1 == poly3
+        assert not poly2 == poly3
+
     def test_contains_point_triangle(self):
         poly = self.Polygon([(0,1), (1, -1), (-0.5,-0.5)])
         assert poly.contains_point((0, 0))
