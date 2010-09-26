@@ -387,6 +387,14 @@ class PolygonBaseTestCase(object):
         assert not poly.contains_point((-100, 100))
         assert not poly.contains_point((100, 100))
 
+    def test_contains_point_degenerate_triangle(self):
+        poly = self.Polygon([(2,3), (2,0), (2,5)])
+        assert not poly.contains_point((0,0))
+        assert not poly.contains_point((2,0))
+        assert not poly.contains_point((2,4))
+        assert not poly.contains_point((0,4))
+        assert not poly.contains_point((2.1,4))
+
     def test_contains_point_convex_no_centroid(self):
         poly = self.Polygon([(1,1), (0,2), (-1,0.5), (-1,-1), (0.5,-1)])
         assert poly.is_convex
@@ -489,6 +497,14 @@ class PolygonBaseTestCase(object):
         assert not poly.contains_point((-100, 100))
         assert not poly.contains_point((100, 100))
 
+    def test_contains_point_degenerate(self):
+        poly = self.Polygon([(-2,1), (2,1), (3,1), (5,1), (5.2,1)])
+        assert not poly.contains_point((0,0))
+        assert not poly.contains_point((2,1))
+        assert not poly.contains_point((5,1))
+        assert not poly.contains_point((-2.1,1))
+        assert not poly.contains_point((2.1,4))
+
     def test_tangents_to_point_convex(self):
         poly = self.Polygon.regular(30, 2)
         assert_equal(poly.tangents_to_point((0,10)), 
@@ -508,6 +524,57 @@ class PolygonBaseTestCase(object):
         assert_equal(poly.tangents_to_point((1,-4)), ((0,-3), (2,-2)))
         assert_equal(poly.tangents_to_point((20,20)), ((2,-2), (-1,3)))
         assert_equal(poly.tangents_to_point((-5,2)), ((-1,3), (0,-3)))
+
+    def test_convex_hull_triangle(self):
+        points = [(0,0), (1, -2), (2, 3)]
+        hull = self.Polygon.convex_hull(points)
+        assert hull.is_convex
+        assert hull == self.Polygon(points), list(hull)
+
+    def confirm_hull(self, points, hull):
+        poly = self.Polygon(hull)
+        assert poly.is_convex, hull
+        for pt in hull:
+            if pt not in points:
+                assert False, "Hull pt %r not in points" % pt
+        for pt in points:
+            if not poly.contains_point(pt) and pt not in hull:
+                assert False, "Pt %r outside hull %r" % (pt, hull)
+
+    def test_convex_hull_random_points(self):
+        points = [(55,27), (53,95), (57,15), (55,24), (54,0), (3,28), (21,93),
+            (10,86), (17,74), (51,44), (7,4), (5,93), (25,86), (20,55),
+            (27,24), (47,52), (55,62), (57,85), (71,71), (75,46), (90,10),
+            (25,42), (62,72), (36,38), (27,52), (69,17), (93,40), (70,51),
+            (77,80), (43,88), (88,74), (91,76), (63,45), (40,13), (10,59),
+            (8,16), (3,63), (18,67), (47,65), (88,65), (19,25), (14,2),
+            (55,97), (41,70), (83,86), (0,80), (46,78), (12,20), (54,46),
+            (48,72), (25,34), (67,68), (24,22), (91,63), (58,88), (100,77),
+            (93,73), (43,65), (2,27), (81,2), (53,52), (64,3), (16,76),
+            (8,10), (64,18), (93,48), (93,96), (37,17), (48,83), (96,94),
+            (56,21), (36,6), (82,92), (2,88), (1,7), (99,42), (56,48), (35,0),
+            (54,7), (92,57), (26,11), (31,28), (31,73), (54,7), (91,52),
+            (40,31), (15,78), (67,6), (89,72), (9,3), (25,58), (6,86),
+            (58,75), (17,63), (32,11), (71,71), (95,53), (22,78), (63,78),
+            (88,33)]
+        hull = self.Polygon.convex_hull(points)
+        self.confirm_hull(points, hull)
+
+    def test_convex_hull_convex_input(self):
+        points = self.Polygon.regular(33, 5)
+        hull = self.Polygon.convex_hull(points)
+        assert points == hull, (list(points), list(hull))
+
+    def test_convex_hull_degenerate(self):
+        points = [(0,1), (2,1), (5,1), (7,1), (12,1)]
+        hull = list(self.Polygon.convex_hull(points))
+        assert (0,1) in points
+        assert (12,1) in points
+        assert_equal(len(hull), 3)
+        while hull:
+            pt = hull.pop()
+            assert pt[1] == 1, pt
+            assert 0 <= pt[0] <= 12, pt
 
 
 class PyPolygonTestCase(PolygonBaseTestCase, unittest.TestCase):

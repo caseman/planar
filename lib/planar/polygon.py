@@ -636,10 +636,15 @@ class Polygon(planar.Seq2):
         p0 = self[0]
         v0 = self[1] - self[0]
         v1 = self[2] - self[0]
+        if v0.is_null or v1.is_null:
+            return False
         dot01 = v0.dot(v1)
         dot00 = v0.length2
         dot11 = v1.length2
-        inv_denom = 1.0 / (dot00 * dot11 - dot01 * dot01)
+        denom = (dot00 * dot11 - dot01 * dot01)
+        if not denom:
+            return False # degenerate triangle
+        inv_denom = 1.0 / denom
         # The above vars are cached in the closure below
         def _pnp_triangle_test(point):
             v2 = point - p0
@@ -834,8 +839,9 @@ class Polygon(planar.Seq2):
         if isinstance(points, Polygon):
             if points.is_convex_known and points.is_convex:
                 return points.__copy__()
-            if points.is_simple_known and points.is_simple:
-                return cls(_melkman_hull(points), is_convex=True)
+        if (getattr(points, "is_simple_known", False)
+            and getattr(points, "is_simple", False)):
+            return cls(_melkman_hull(points), is_convex=True)
         return cls(_adaptive_quick_hull(points), is_convex=True)
 
 
@@ -911,20 +917,25 @@ def _ahull_partition_points(hull, points, p0, p1):
     dot00 = v0.length2
     dot01 = v0.dot(v1)
     dot11 = v1.length2
-    inv_denom = 1.0 / (dot00 * dot11 - dot01 * dot01)
-    for p in points:
-        v2 = p - partition_point
-        dot02 = v0.dot(v2)
-        dot12 = v1.dot(v2)
-        u = (dot11 * dot02 - dot01 * dot12) * inv_denom
-        v = (dot00 * dot12 - dot01 * dot02) * inv_denom
-        # Since the partition point is the furthest from p0->p1
-        # u and v cannot both be negative
-        # Note the partition point is discarded here
-        if v < 0.0:
-            add_left(p)
-        elif u < 0.0:
-            add_right(p)
+    denom = (dot00 * dot11 - dot01 * dot01)
+    # If denom is zero, the triangle has no area and
+    # all points lie on the partition line 
+    # and thus can be culled
+    if denom:
+        inv_denom = 1.0 / denom
+        for p in points:
+            v2 = p - partition_point
+            dot02 = v0.dot(v2)
+            dot12 = v1.dot(v2)
+            u = (dot11 * dot02 - dot01 * dot12) * inv_denom
+            v = (dot00 * dot12 - dot01 * dot02) * inv_denom
+            # Since the partition point is the furthest from p0->p1
+            # u and v cannot both be negative
+            # Note the partition point is discarded here
+            if v < 0.0:
+                add_left(p)
+            elif u < 0.0:
+                add_right(p)
 
     left_count = len(left_points)
     right_count = len(right_points)
@@ -978,6 +989,7 @@ def _ahull_sort_points(hull, points, p0, p1):
         push(p)
     pop()
     hull.extend(stack)
+
 
 _unknown = object()
 
