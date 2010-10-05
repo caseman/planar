@@ -576,6 +576,23 @@ class PolygonBaseTestCase(object):
             assert pt[1] == 1, pt
             assert 0 <= pt[0] <= 12, pt
 
+    def test_str_and_repr(self):
+        poly = self.Polygon([(0,3.5), (1,4), (0,2), (-0.5,0)])
+        assert_equal(repr(poly), 
+            "Polygon([(0.0, 3.5), (1.0, 4.0), (0.0, 2.0), (-0.5, 0.0)])")
+        assert_equal(repr(poly), str(poly))
+        assert not poly.is_convex
+        assert poly.is_simple
+        assert_equal(repr(poly), 
+            "Polygon([(0.0, 3.5), (1.0, 4.0), (0.0, 2.0), (-0.5, 0.0)], "
+            "is_convex=False, is_simple=True)")
+        assert_equal(repr(poly), str(poly))
+        poly = self.Polygon([(1,1), (0,0), (2,2)])
+        assert poly.is_convex
+        assert_equal(repr(poly),
+            "Polygon([(1.0, 1.0), (0.0, 0.0), (2.0, 2.0)], is_convex=True)")
+        assert_equal(repr(poly), str(poly))
+
 
 class PyPolygonTestCase(PolygonBaseTestCase, unittest.TestCase):
     from planar.vector import Vec2, Seq2

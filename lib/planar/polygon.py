@@ -529,6 +529,18 @@ class Polygon(planar.Seq2):
     def __ne__(self, other):
         return not self.__eq__(other)
 
+    def __repr__(self):
+        kwargs = ""
+        if self.is_convex_known:
+            kwargs += ", is_convex=%r" % self.is_convex
+            if not self.is_convex and self.is_simple_known:
+                kwargs += ", is_simple=%r" % self.is_simple
+        return "%s([%s]%s)" % (self.__class__.__name__,
+            ', '.join(repr(tuple(v)) for v in self),
+            kwargs)
+
+    __str__ = __repr__
+
     ## Point in poly methods ##
 
     def _pnp_crossing_test(self, point):
@@ -839,9 +851,6 @@ class Polygon(planar.Seq2):
         if isinstance(points, Polygon):
             if points.is_convex_known and points.is_convex:
                 return points.__copy__()
-        if (getattr(points, "is_simple_known", False)
-            and getattr(points, "is_simple", False)):
-            return cls(_melkman_hull(points), is_convex=True)
         return cls(_adaptive_quick_hull(points), is_convex=True)
 
 
