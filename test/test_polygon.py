@@ -7,6 +7,15 @@ import unittest
 from nose.tools import assert_equal, assert_almost_equal, raises
 
 
+def assert_contains_point(polys, i, p):
+    containing = [j for j, t in enumerate(polys) 
+        if t.contains_point(p)]
+    if i is not None:
+        assert_equal([i], containing)
+    else:
+        assert_equal([], containing)
+
+
 class PolygonBaseTestCase(object):
 
     @raises(TypeError)
@@ -502,8 +511,56 @@ class PolygonBaseTestCase(object):
         assert not poly.contains_point((0,0))
         assert not poly.contains_point((2,1))
         assert not poly.contains_point((5,1))
+        assert not poly.contains_point((5.2,1))
         assert not poly.contains_point((-2.1,1))
         assert not poly.contains_point((2.1,4))
+
+    def test_contains_point_exclusive_triangles(self):
+        tris = [
+            self.Polygon([(0,0), (0,3), (3,3)]),
+            self.Polygon([(0,0), (3,0), (3,3)]),
+            self.Polygon([(-1,-1), (0,0), (0,3)]),
+            self.Polygon([(3,3), (0,3), (1,4)]),
+        ]
+        assert_contains_point(tris, 0, (0, 1))
+        assert_contains_point(tris, 0, (0, 2))
+        assert_contains_point(tris, 0, (0, 3))
+        assert_contains_point(tris, 0, (1.5, 3))
+        assert_contains_point(tris, 1, (2, 2))
+        assert_contains_point(tris, 1, (1, 1))
+        assert_contains_point(tris, None, (0, 0))
+        assert_contains_point(tris, None, (1.5, 0))
+        assert_contains_point(tris, None, (3, 0))
+        assert_contains_point(tris, None, (3, 1.5))
+        assert_contains_point(tris, None, (3, 3))
+
+    def test_contains_point_exclusive_convex(self):
+        polys = [
+            self.Polygon([(2,2), (0,0), (-2,1), (0,3)]),
+            self.Polygon([(0,-1), (0,0), (-2,1), (-2,-3)]),
+            self.Polygon([(2,-1), (0,-1), (0,0), (2,2)]),
+        ]
+        assert polys[0].is_convex
+        assert polys[1].is_convex
+        assert polys[2].is_convex
+        assert_contains_point(polys, 0, (-1, 2))
+        assert_contains_point(polys, 0, (-2, 1))
+        assert_contains_point(polys, 0, (-1, 0.5))
+        assert_contains_point(polys, 1, (-1, 0))
+        assert_contains_point(polys, 1, (-2, 0))
+        assert_contains_point(polys, 1, (-2, -2))
+        assert_contains_point(polys, 2, (0, 0))
+        assert_contains_point(polys, 2, (1, 1))
+        assert_contains_point(polys, 2, (0, -0.5))
+        assert_contains_point(polys, None, (0, -1))
+        assert_contains_point(polys, None, (1, -1))
+        assert_contains_point(polys, None, (2, -1))
+        assert_contains_point(polys, None, (2, 0))
+        assert_contains_point(polys, None, (-1, -2))
+        assert_contains_point(polys, None, (-2, -3))
+        assert_contains_point(polys, None, (0, 3))
+        assert_contains_point(polys, None, (1.5, 2.5))
+        assert_contains_point(polys, None, (2, 2))
 
     def test_tangents_to_point_convex(self):
         poly = self.Polygon.regular(30, 2)

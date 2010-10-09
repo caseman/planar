@@ -272,7 +272,7 @@ class Polygon(planar.Seq2):
             self._convex = False
         self._simple = self._convex or _unknown
         self._degenerate = is_null or not angle_sign
-        if self._convex:
+        if self._convex and not self._degenerate:
             self._dupe_verts = (count < len(self))
             self._split_y_polylines()
     
@@ -296,32 +296,26 @@ class Polygon(planar.Seq2):
             if vert.x > max_x:
                 max_x = vert.x
                 right_i = i
-        if not (min_x <= self[min_i].x < max_x 
-            or min_x < self[max_i].x <= max_x):
-            # special case where left and right branches are not
-            # easily discerned. 
-            # Use a containment test for a definitive answer
-            # since only points on the left edges of the polygon
-            # are considered "inside"
-            if not self.contains_point(self[min_i]):
-                # Simple left/right test was wrong
-                left_i = right_i
 
         verts_yx = [(y, x) for x, y in self]
         if min_i < max_i:
             pl1 = verts_yx[min_i:max_i+1]
             pl2 = verts_yx[max_i:] + verts_yx[:min_i+1]
+            if min_i <= left_i < max_i or right_i < min_i or right_i > max_i:
+                self._y_polylines = pl1, pl2
+            else:
+                self._y_polylines = pl2, pl1
         else:
             pl1 = verts_yx[max_i:min_i+1]
             pl2 = verts_yx[min_i:] + verts_yx[:max_i+1]
+            if min_i >= left_i > max_i or right_i > min_i or right_i < max_i:
+                self._y_polylines = pl1, pl2
+            else:
+                self._y_polylines = pl2, pl1
         if pl1[0][0] > pl1[-1][0]:
             pl1.reverse()
         if pl2[0][0] > pl2[-1][0]:
             pl2.reverse()
-        if min_i <= left_i < max_i or min_i >= left_i > max_i:
-            self._y_polylines = pl1, pl2
-        else:
-            self._y_polylines = pl2, pl1
 
     @property
     def is_simple(self):
@@ -536,19 +530,19 @@ class Polygon(planar.Seq2):
         px, py = point
         winding_no = 0
         v0_x, v0_y = self[-1]
-        v0_above = (v0_y > py)
+        v0_above = (v0_y >= py)
         for v1_x, v1_y in self:
-            v1_above = (v1_y > py)
+            v1_above = (v1_y >= py)
             if v0_above != v1_above:
                 if v1_above: # upward crossing
                     if ((v1_x - v0_x) * (py - v0_y)
-                        - (px - v0_x) * (v1_y - v0_y) > 0):
-                        # point is left of edge, valid up intersect
+                        - (px - v0_x) * (v1_y - v0_y) <= 0):
+                        # point is right of edge, valid up intersect
                         winding_no += 1
                 else:
                     if ((v1_x - v0_x) * (py - v0_y)
-                        - (px - v0_x) * (v1_y - v0_y) < 0):
-                        # point is right of edge, valid down intersect
+                        - (px - v0_x) * (v1_y - v0_y) >= 0):
+                        # point is left of edge, valid down intersect
                         winding_no -= 1
             v0_above = v1_above
             v0_x = v1_x
@@ -590,9 +584,9 @@ class Polygon(planar.Seq2):
 
         Complexity: O(1)
         """
-        p0 = self[0]
-        v0 = self[1] - self[0]
-        v1 = self[2] - self[0]
+        lo, mid, hi = sorted(self, key=lambda xy: (xy[1], xy[0]))
+        v0 = lo - mid
+        v1 = hi - mid
         if v0.is_null or v1.is_null:
             return False
         dot01 = v0.dot(v1)
@@ -602,14 +596,28 @@ class Polygon(planar.Seq2):
         if not denom:
             return False # degenerate triangle
         inv_denom = 1.0 / denom
-        # The above vars are cached in the closure below
-        def _pnp_triangle_test(point):
-            v2 = point - p0
-            dot02 = v0.dot(v2)
-            dot12 = v1.dot(v2)
-            u = (dot11 * dot02 - dot01 * dot12) * inv_denom
-            v = (dot00 * dot12 - dot01 * dot02) * inv_denom
-            return u > 0.0 and v > 0.0 and u + v < 1.0
+        # The above vars are cached in the closure defined below
+
+        if ((hi[0] - lo[0])*(mid[1] - lo[1]) 
+            - (mid[0] - lo[0])*(hi[1] - lo[1]) > 0.0):
+            # Triangle has 2 inclusive leading edges
+            def _pnp_triangle_test(point):
+                v2 = point - mid
+                dot02 = v0.dot(v2)
+                dot12 = v1.dot(v2)
+                u = (dot11 * dot02 - dot01 * dot12) * inv_denom
+                v = (dot00 * dot12 - dot01 * dot02) * inv_denom
+                return u >= 0.0 and v >= 0.0 and u + v < 1.0
+        else:
+            # Triangle has 1 inclusive leading edge
+            def _pnp_triangle_test(point):
+                v2 = point - mid
+                dot02 = v0.dot(v2)
+                dot12 = v1.dot(v2)
+                u = (dot11 * dot02 - dot01 * dot12) * inv_denom
+                v = (dot00 * dot12 - dot01 * dot02) * inv_denom
+                return u > 0.0 and v > 0.0 and u + v <= 1.0
+
         # Store the closure in the instance as a method override
         # which will intercept future calls
         self._pnp_triangle_test = _pnp_triangle_test
