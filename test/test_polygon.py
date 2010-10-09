@@ -562,6 +562,44 @@ class PolygonBaseTestCase(object):
         assert_contains_point(polys, None, (1.5, 2.5))
         assert_contains_point(polys, None, (2, 2))
 
+    def test_contains_point_exclusive_concave(self):
+        polys = [
+            self.Polygon([(0,0), (0,1), (1,1), (2,2), (3,2), (3,0)]),
+            self.Polygon([(2,2), (1,1), (0,1), (1,2), (0,3), (1,3)]),
+            self.Polygon([(4,3), (1,3), (2,2), (3,2), (3,0), 
+                (4,0), (5,2), (5,1)]),
+        ]
+        assert not polys[0].is_convex
+        assert not polys[1].is_convex
+        assert not polys[2].is_convex
+        assert_contains_point(polys, 0, (0, 1))
+        assert_contains_point(polys, 0, (0, 0.5))
+        assert_contains_point(polys, 0, (1, 1))
+        assert_contains_point(polys, 0, (1.5, 1.5))
+        assert_contains_point(polys, 0, (2, 2))
+        assert_contains_point(polys, 0, (2.5, 2))
+        assert_contains_point(polys, 1, (0, 3))
+        assert_contains_point(polys, 1, (0.5, 3))
+        assert_contains_point(polys, 1, (0.5, 2.5))
+        assert_contains_point(polys, 1, (1, 2))
+        assert_contains_point(polys, 1, (0.5, 1.5))
+        assert_contains_point(polys, 2, (3, 2))
+        assert_contains_point(polys, 2, (3, 1))
+        assert_contains_point(polys, 2, (1, 3))
+        assert_contains_point(polys, 2, (2, 3))
+        assert_contains_point(polys, 2, (1.5, 2.5))
+        assert_contains_point(polys, None, (0, 0))
+        assert_contains_point(polys, None, (1, 0))
+        assert_contains_point(polys, None, (3, 0))
+        assert_contains_point(polys, None, (3.5, 0))
+        assert_contains_point(polys, None, (4, 0))
+        assert_contains_point(polys, None, (4, 3))
+        assert_contains_point(polys, None, (4.5, 2))
+        assert_contains_point(polys, None, (4.5, 1))
+        assert_contains_point(polys, None, (5, 2))
+        assert_contains_point(polys, None, (5, 1.5))
+        assert_contains_point(polys, None, (5, 1))
+
     def test_tangents_to_point_convex(self):
         poly = self.Polygon.regular(30, 2)
         assert_equal(poly.tangents_to_point((0,10)), 
