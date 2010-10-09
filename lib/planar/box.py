@@ -181,24 +181,16 @@ class BoundingBox(object):
         dv = planar.Vec2(dx, dy) / 2.0
         return self.from_points((self._min - dv, self._max + dv))
     
-    def contains(self, other):
-        """Return True if the box completely contains the specified object.
+    def contains_point(self, point):
+        """Return True if the box contains the specified point.
 
-        :param other: A point vector, or a shape with a bounding box.
-        :type other: :class:`~planar.Vec2` or :class:`~planar.Shape`
+        :param other: A point vector
+        :type other: :class:`~planar.Vec2`
         :rtype: bool
         """
-        try:
-            x, y = other
-        except (TypeError, ValueError):
-            box = other.bounding_box
-            return (self._min.x <= box.min_point.x <= self._max.x 
-                and self._min.x <= box.max_point.x <= self._max.x 
-                and self._min.y <= box.min_point.y <= self._max.y
-                and self._min.y <= box.max_point.y <= self._max.y)
-        else:
-            return (self._min.x <= x <= self._max.x 
-                and self._min.y <= y <= self._max.y)
+        x, y = point
+        return (self._min.x <= x < self._max.x 
+            and self._min.y < y <= self._max.y)
     
     def fit(self, shape):
         """Create a new shape by translating and scaling shape so that

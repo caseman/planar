@@ -357,31 +357,20 @@ BBox_inflate(PlanarBBoxObject *self, PyObject *amount)
 }
 
 static PyObject *
-BBox_contains(PlanarBBoxObject *self, PyObject *other)
+BBox_contains_point(PlanarBBoxObject *self, PyObject *other)
 {
     double px, py;
     int contains;
-    PyObject *r;
+    PyObject *r = NULL;
     PlanarBBoxObject *bbox;
 
     assert(PlanarBBox_Check(self));
     if (PlanarVec2_Parse(other, &px, &py)) {
-        /* Point in bbox */
-        contains = (px >= self->min.x && px <= self->max.x
-            && py >= self->min.y && py <= self->max.y);
-    } else {
-        bbox = get_bounding_box(other);
-        if (bbox == NULL) {
-            return NULL;
-        }
-        contains = (bbox->min.x >= self->min.x && bbox->min.x <= self->max.x
-            && bbox->min.y >= self->min.y && bbox->min.y <= self->max.y
-            && bbox->max.x >= self->min.x && bbox->max.x <= self->max.x
-            && bbox->max.y >= self->min.y && bbox->max.y <= self->max.y);
-        Py_DECREF(bbox);
-    }
-    r = contains ? Py_True : Py_False;
-    Py_INCREF(r);
+        contains = (px >= self->min.x && px < self->max.x
+            && py > self->min.y && py <= self->max.y);
+		r = contains ? Py_True : Py_False;
+		Py_INCREF(r);
+	}
     return r;
 }
 
@@ -448,8 +437,8 @@ static PyMethodDef BBox_methods[] = {
 		"Return a new box resized from this one. The new "
         "box has its size changed by the specified amount, "
         "but remains centered on the same point."},
-    {"contains", (PyCFunction)BBox_contains, METH_O, 
-        "Return True if the box completely contains the specified object."},
+    {"contains_point", (PyCFunction)BBox_contains_point, METH_O, 
+        "Return True if the box contains the specified point."},
     {"fit", (PyCFunction)BBox_fit, METH_O, 
         "Create a new shape by translating and scaling shape so that "
         "it fits in this bounding box. The shape is scaled evenly so that "

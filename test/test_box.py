@@ -169,33 +169,20 @@ class BoundingBoxBaseTestCase(object):
         
     def test_contains_point(self):
         box = self.BoundingBox([(-1, -2), (3, 0)])
-        assert box.contains((0, 0))
-        assert box.contains((-0.5, -1))
-        assert box.contains(self.Vec2(-1, -2))
-        assert box.contains((3, 0))
-        assert box.contains((-1, 0))
-        assert box.contains((3, -2))
-        assert not box.contains((-1.1, -2))
-        assert not box.contains(self.Vec2(3.1, 0))
-        assert not box.contains((-50, 0))
-        assert not box.contains((50, 0))
-        assert not box.contains((0, 50))
-        assert not box.contains((50, 50))
-    
-    def test_contains_shape(self):
-        BoundingBox = self.BoundingBox
-        class Shape(object):
-            def __init__(self, x1, y1, x2, y2):
-                self.bounding_box = BoundingBox([(x1, y1), (x2, y2)])
-        box = self.BoundingBox([(2, 6), (5, 7)])
-        assert box.contains(Shape(2, 6, 5, 7))
-        assert box.contains(Shape(2.5, 6.25, 4.5, 6.5))
-        assert box.contains(Shape(3, 6.5, 3, 6.5))
-        assert not box.contains(Shape(1, 4, 3, 6.5))
-        assert not box.contains(Shape(3, 6.5, 6, 8))
-        assert not box.contains(Shape(3, 6.5, 0, 0))
-        assert not box.contains(Shape(1, 5, 6, 8))
-        assert not box.contains(Shape(10, 50, 15, 80))
+        assert box.contains_point((-0.5, -1))
+        assert box.contains_point(self.Vec2(-1, 0))
+        assert box.contains_point((-1, -0))
+        assert box.contains_point((2.99, 0))
+        assert box.contains_point((0, 0))
+        assert not box.contains_point((-1, -2))
+        assert not box.contains_point((3, 0))
+        assert not box.contains_point((3, -2))
+        assert not box.contains_point((-1.1, -2))
+        assert not box.contains_point(self.Vec2(3.1, 0))
+        assert not box.contains_point((-50, 0))
+        assert not box.contains_point((50, 0))
+        assert not box.contains_point((0, 50))
+        assert not box.contains_point((50, 50))
     
     @raises(AttributeError)
     def test_contains_wrong_type(self):

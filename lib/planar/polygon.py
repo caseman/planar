@@ -651,7 +651,7 @@ class Polygon(planar.Seq2):
                 return False
         if self._y_polylines is not None:
             return self._pnp_y_monotone_test(point)
-        if sides == 4 or self.bounding_box.contains(point):
+        if sides == 4 or self.bounding_box.contains_point(point):
             return self._pnp_winding_test(point)
         return False
 
@@ -949,6 +949,7 @@ def _ahull_sort_points(hull, points, p0, p1):
             else:
                 break
         push(p)
+    print "hey!"
     pop()
     hull.extend(stack)
 
