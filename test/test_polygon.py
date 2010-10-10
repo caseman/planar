@@ -725,6 +725,40 @@ class PolygonBaseTestCase(object):
             "Polygon([(1.0, 1.0), (0.0, 0.0), (2.0, 2.0)], is_convex=True)")
         assert_equal(repr(poly), str(poly))
 
+    def test_copy(self):
+        from copy import copy
+        p = self.Polygon([(0,0), (1,0), (1,1), (0,1)])
+        assert p.is_convex
+        centroid = p.centroid
+        c = copy(p)
+        assert isinstance(c, self.Polygon)
+        assert_equal(tuple(c), tuple(p))
+        assert c.is_convex_known
+        assert c.is_convex
+        assert c.is_simple_known
+        assert c.is_simple
+        assert c.is_centroid_known
+        assert_equal(c.centroid, centroid)
+
+        p = self.Polygon([(0,0), (1,1), (1,0), (0,1)])
+        assert not p.is_simple
+        c = copy(p)
+        assert isinstance(c, self.Polygon)
+        assert_equal(tuple(c), tuple(p))
+        assert c.is_convex_known
+        assert not c.is_convex
+        assert c.is_simple_known
+        assert not c.is_simple
+
+    def test_deepcopy(self):
+        from copy import deepcopy
+        p = self.Polygon([(0,0), (1,0), (1,1), (0,1)])
+        bbox = p.bounding_box
+        c = deepcopy(p)
+        assert isinstance(c, self.Polygon)
+        assert_equal(tuple(c), tuple(p))
+        assert c.bounding_box is not bbox
+
 
 class PyPolygonTestCase(PolygonBaseTestCase, unittest.TestCase):
     from planar.vector import Vec2, Seq2

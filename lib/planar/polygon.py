@@ -180,7 +180,6 @@ class Polygon(planar.Seq2):
         else:
             self._convex = True
             self._simple = True
-            self._bary_coord_cache = None
             if '_pnp_triangle_test' in self.__dict__:
                 # clear cached closure
                 del self.__dict__['_pnp_triangle_test']
@@ -509,6 +508,27 @@ class Polygon(planar.Seq2):
             kwargs)
 
     __str__ = __repr__
+
+    def __copy__(self):
+        copy = self.from_points(self)
+        copy._convex = self._convex
+        copy._simple = self._simple
+        copy._y_polylines = self._y_polylines
+        copy._dupe_verts = self._dupe_verts
+        copy._degenerate = self._degenerate
+        copy._bbox = self._bbox
+        copy._centroid = self._centroid
+        copy._max_r = self._max_r
+        copy._max_r2 = self._max_r2
+        copy._min_r = self._min_r
+        copy._min_r2 = self._min_r2
+        return copy
+
+    def __deepcopy__(self, memo):
+        copy = self.__copy__()
+        copy._y_polylines = None
+        copy._bbox = None
+        return copy
 
     ## Point in poly methods ##
 
