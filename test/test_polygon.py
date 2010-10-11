@@ -732,6 +732,7 @@ class PolygonBaseTestCase(object):
         centroid = p.centroid
         c = copy(p)
         assert isinstance(c, self.Polygon)
+        assert c is not p
         assert_equal(tuple(c), tuple(p))
         assert c.is_convex_known
         assert c.is_convex
@@ -739,16 +740,21 @@ class PolygonBaseTestCase(object):
         assert c.is_simple
         assert c.is_centroid_known
         assert_equal(c.centroid, centroid)
+        c[0] = (0,0.1)
+        assert c[0] != p[0]
 
         p = self.Polygon([(0,0), (1,1), (1,0), (0,1)])
         assert not p.is_simple
         c = copy(p)
         assert isinstance(c, self.Polygon)
+        assert c is not p
         assert_equal(tuple(c), tuple(p))
         assert c.is_convex_known
         assert not c.is_convex
         assert c.is_simple_known
         assert not c.is_simple
+        c[0] = (0,0.1)
+        assert c[0] != p[0]
 
     def test_deepcopy(self):
         from copy import deepcopy
@@ -756,7 +762,10 @@ class PolygonBaseTestCase(object):
         bbox = p.bounding_box
         c = deepcopy(p)
         assert isinstance(c, self.Polygon)
+        assert c is not p
         assert_equal(tuple(c), tuple(p))
+        c[0] = (0,0.1)
+        assert c[0] != p[0]
         assert c.bounding_box is not bbox
 
 
