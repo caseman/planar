@@ -519,6 +519,7 @@ class Polygon(planar.Seq2):
     def __imul__(self, other):
         try:
            other.itransform(self)
+           self._clear_cached_properties()
            return self
         except AttributeError:
             raise TypeError("Cannot multiply %s with %s"
