@@ -172,6 +172,13 @@ class Polygon(planar.Seq2):
             poly._dupe_verts = False
         return poly
 
+    @classmethod
+    def from_points(cls, points):
+        """Create a polygon from a sequence of points"""
+        poly = super(Polygon, cls).from_points(points)
+        poly._clear_cached_properties()
+        return poly
+
     def _clear_cached_properties(self):
         if len(self) > 3:
             self._convex = _unknown
@@ -508,6 +515,14 @@ class Polygon(planar.Seq2):
             kwargs)
 
     __str__ = __repr__
+
+    def __imul__(self, other):
+        try:
+           other.itransform(self)
+           return self
+        except AttributeError:
+            raise TypeError("Cannot multiply %s with %s"
+                % (type(self).__name__, type(other).__name__))
 
     def __copy__(self):
         copy = self.from_points(self)

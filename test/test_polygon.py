@@ -768,9 +768,34 @@ class PolygonBaseTestCase(object):
         assert c[0] != p[0]
         assert c.bounding_box is not bbox
 
+    def test_imul_by_transform(self):
+        b = a = self.Polygon([(1,2), (3,4), (5,6)])
+        a *= self.Affine.translation((5, -4))
+        assert a is b
+        V = self.Vec2
+        assert_equal(tuple(a), (V(6, -2), V(8, 0), V(10, 2)))
+
+    @raises(TypeError)
+    def test_imul_incompatible(self):
+        a = self.Polygon([(1,2), (3,4), (5,6)])
+        a *= None
+
+    def test_mul_by_transform(self):
+        a = self.Polygon([(1,2), (3,4), (5,6)])
+        b = a * self.Affine.scale((2, -1))
+        assert a is not b
+        assert isinstance(b, self.Polygon)
+        V = self.Vec2
+        assert_equal(tuple(b), (V(2, -2), V(6, -4), V(10, -6)))
+
+    @raises(TypeError)
+    def test_mul_incompatible(self):
+        a = self.Polygon([(1,2), (3,4), (5,6)]) * 2
+
 
 class PyPolygonTestCase(PolygonBaseTestCase, unittest.TestCase):
     from planar.vector import Vec2, Seq2
+    from planar.transform import Affine
     from planar.box import BoundingBox
     from planar.polygon import Polygon
 
