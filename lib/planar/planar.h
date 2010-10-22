@@ -51,7 +51,8 @@
 #define degrees(d) ((d) * 180.0 / M_PI)
 #define almost_eq(a, b) (fabs((a) - (b)) < PLANAR_EPSILON)
 
-static void cos_sin_deg(double deg, double *cosout, double *sinout) 
+static void 
+cos_sin_deg(double deg, double *cosout, double *sinout) 
 {
 	double rad;
 	deg = deg >= 360.0 ? fmod(deg, 360.0) : 
@@ -122,6 +123,50 @@ typedef struct {
     };
 } PlanarBBoxObject;
 
+typedef struct {
+	PyObject_VAR_HEAD
+    planar_vec2_t *vert;
+	unsigned long flags;
+	planar_vec2_t centroid;
+	planar_vec2_t data[1];
+} PlanarPolygonObject;
+
+#define POLY_CONVEX_KNOWN_FLAG 0x1
+#define POLY_CONVEX_FLAG 0x2
+#define POLY_SIMPLE_KNOWN_FLAG 0x4
+#define POLY_SIMPLE_FLAG 0x8
+#define POLY_DEGEN_KNOWN_FLAG 0x10
+#define POLY_DEGEN_FLAG 0x20
+#define POLY_DUP_VERTS_KNOWN_FLAG 0x40
+#define POLY_DUP_VERTS_FLAG 0x80
+#define POLY_CENTROID_KNOWN_FLAG 0x100
+
+
+/* Geometry utils */
+
+/* Return 1 if the line segment a->b intersects with line segment c->d */
+static int
+segments_intersect(const planar_vec2_t *a, const planar_vec2_t *b, 
+	const planar_vec2_t *c, const planar_vec2_t *d)
+{
+	const double dir1 = (b->x - a->x)*(c->y - a->y)-(c->x - a->x)*(b->y - a->y);
+	const double dir2 = (b->x - a->x)*(d->y - a->y)-(d->x - a->x)*(b->y - a->y);
+	const double dir3 = (d->x - c->x)*(a->y - c->y)-(a->x - c->x)*(d->y - c->y);
+	const double dir4 = (d->x - c->x)*(b->y - c->y)-(b->x - c->x)*(d->y - c->y);
+	return ((((dir1 > 0.0) != (dir2 > 0.0)) | ((dir1 == 0.0) != (dir2 == 0.0)))
+		& (((dir3 > 0.0) != (dir4 > 0.0)) | ((dir3 == 0.0) != (dir4 == 0.0))));
+}
+
+/* Comparison function for lexicographical sorting of vectors */
+static int
+compare_vec_lexi(const void *a, const void *b)
+{
+	const planar_vec2_t *va = *(planar_vec2_t **)a;
+	const planar_vec2_t *vb = *(planar_vec2_t **)b;
+	const int result = (va->x > vb->x) - (va->x < vb->x);
+	return result ? result : (va->y > vb->y) - (va->y < vb->y);
+}
+
 /***************************************************************************/
 
 /* Convert the object to a float, this is designed to
@@ -180,6 +225,9 @@ hash_double(double v)
 	return hipart + (long)v + (expo << 15);
 }
 
+#define Py_BOOL(i) (i) ? (Py_INCREF(Py_True), Py_True) \
+                       : (Py_INCREF(Py_False), Py_False)
+
 /***************************************************************************/
 
 extern double PLANAR_EPSILON;
@@ -190,6 +238,7 @@ extern PyTypeObject PlanarSeq2Type;
 extern PyTypeObject PlanarVec2ArrayType;
 extern PyTypeObject PlanarAffineType;
 extern PyTypeObject PlanarBBoxType;
+extern PyTypeObject PlanarPolygonType;
 
 extern PyObject *PlanarTransformNotInvertibleError;
 
@@ -314,5 +363,10 @@ PlanarAffine_FromDoubles(
 
 #define PlanarBBox_Check(op) PyObject_TypeCheck(op, &PlanarBBoxType)
 #define PlanarBBox_CheckExact(op) (Py_TYPE(op) == &PlanarBBoxType)
+
+/* Polygon utils */
+
+#define PlanarPolygon_Check(op) PyObject_TypeCheck(op, &PlanarPolygonType)
+#define PlanarPolygon_CheckExact(op) (Py_TYPE(op) == &PlanarPolygonType)
 
 #endif /* #ifdef PY_PLANAR_H */

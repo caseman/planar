@@ -41,7 +41,7 @@ PyDoc_STRVAR(module_doc, "Planar native code classes");
 
 #define INIT_TYPE(type, name) {                                         \
     if ((type).tp_new == 0) {                                           \
-	(type).tp_new = PyType_GenericNew;                              \
+		(type).tp_new = PyType_GenericNew;                              \
     }                                                                   \
     if (PyType_Ready(&(type)) < 0) {                                    \
         goto fail;                                                      \
@@ -87,6 +87,7 @@ initc(void)
     Py_INCREF((PyObject *)&PlanarVec2ArrayType);
     Py_INCREF((PyObject *)&PlanarAffineType);
     Py_INCREF((PyObject *)&PlanarBBoxType);
+    Py_INCREF((PyObject *)&PlanarPolygonType);
 
     INIT_TYPE(PlanarVec2Type, "Vec2");
     INIT_TYPE(PlanarSeq2Type, "Seq2");
@@ -95,6 +96,7 @@ initc(void)
 	PlanarVec2ArrayType.tp_itemsize = 0;
     INIT_TYPE(PlanarAffineType, "Affine");
     INIT_TYPE(PlanarBBoxType, "BoundingBox");
+    INIT_TYPE(PlanarPolygonType, "Polygon");
 
 	PlanarTransformNotInvertibleError = PyErr_NewException(
 		"planar.TransformNotInvertibleError", NULL, NULL);
@@ -118,6 +120,7 @@ fail:
     Py_DECREF((PyObject *)&PlanarVec2ArrayType);
     Py_DECREF((PyObject *)&PlanarAffineType);
     Py_DECREF((PyObject *)&PlanarBBoxType);
+    Py_DECREF((PyObject *)&PlanarPolygonType);
     Py_DECREF(module);
     INITERROR;
 }

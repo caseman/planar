@@ -800,6 +800,11 @@ class PyPolygonTestCase(PolygonBaseTestCase, unittest.TestCase):
     from planar.polygon import Polygon
 
 
+class CPolygonTestCase(PolygonBaseTestCase, unittest.TestCase):
+    from planar.c import Vec2, Seq2, Affine, BoundingBox
+    from planar.c import Polygon
+
+
 class PyPolygonWhiteBoxTestCase(unittest.TestCase):
     from planar.vector import Vec2, Seq2
     from planar.polygon import Polygon

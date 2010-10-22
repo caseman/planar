@@ -217,7 +217,7 @@ class Polygon(planar.Seq2):
 
     @property
     def is_convex_known(self):
-        """True if the polygon is already known to be convex or not.
+        """True if the polygon is already known to be convex.
 
         If this value is True, then the value of ``is_convex`` is 
         cached and does not require additional calculation to access.
@@ -240,7 +240,6 @@ class Polygon(planar.Seq2):
         dir_changes = 0
         angle_sign = 0
         count = 0
-        is_null = True
         self._convex = True
         self._winding = 0
         last_delta = self[-1] - self[-2]
@@ -251,7 +250,6 @@ class Polygon(planar.Seq2):
             (last_delta.y < 0) * 1) or 0
         for delta in itertools.ifilter(
             lambda v: v, self._iter_edge_vectors()):
-            is_null = False
             count += 1
             this_dir = (
                 (delta.x > 0) * -1 or
@@ -277,7 +275,7 @@ class Polygon(planar.Seq2):
         else:
             self._convex = False
         self._simple = self._convex or _unknown
-        self._degenerate = is_null or not angle_sign
+        self._degenerate = not count or not angle_sign
         if self._convex and not self._degenerate:
             self._dupe_verts = (count < len(self))
             self._split_y_polylines()
@@ -342,7 +340,7 @@ class Polygon(planar.Seq2):
     
     @property
     def is_simple_known(self):
-        """True if the polygon is already known to be simple or not.
+        """True if the polygon is already known to be simple.
 
         If this value is True, then the value of ``is_simple`` is 
         cached and does not require additional calculation to access.

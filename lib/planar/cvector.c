@@ -864,11 +864,11 @@ Seq2_new_from_points(PyTypeObject *type, PyObject *points)
 		for (i = 0; i < size; ++i) {
 			if (!PlanarVec2_Parse(PySequence_Fast_GET_ITEM(points, i), 
 				&varray->vec[i].x, &varray->vec[i].y)) {
-			PyErr_SetString(PyExc_TypeError,
-				"expected iterable of Vec2 objects");
-			Py_DECREF(varray);
-			Py_DECREF(points);
-			return NULL;
+				PyErr_SetString(PyExc_TypeError,
+					"expected iterable of Vec2 objects");
+				Py_DECREF(varray);
+				Py_DECREF(points);
+				return NULL;
 			}
 		}
 		Py_DECREF(points);
@@ -931,7 +931,7 @@ Seq2_compare(PyObject *a, PyObject *b, int op)
 		case Py_EQ:
 			while (size--) {
 				if (av->x != bv->x || av->y != bv->y) {
-				Py_RETURN_FALSE;
+					Py_RETURN_FALSE;
 				}
 				++av;
 				++bv;
@@ -940,7 +940,7 @@ Seq2_compare(PyObject *a, PyObject *b, int op)
 		case Py_NE:
 			while (size--) {
 				if (av->x != bv->x || av->y != bv->y) {
-				Py_RETURN_TRUE;
+					Py_RETURN_TRUE;
 				}
 				++av;
 				++bv;
@@ -986,7 +986,7 @@ Seq2_assitem(PlanarSeq2Object *self, Py_ssize_t index, PyObject *v)
     double x, y;
     Py_ssize_t size = PySequence_Size((PyObject *)self);
     if (size == -1) {
-	return -1;
+		return -1;
     }
     if (index >= 0 && index < size) {
 		if (!PlanarVec2_Parse(v, &x, &y)) {
@@ -1034,7 +1034,7 @@ Seq2_almost_equals(PlanarSeq2Object *self, PlanarSeq2Object *other)
     size = PySequence_Size((PyObject *)self);
     osize = PySequence_Size((PyObject *)other);
     if (Py_TYPE(self) != Py_TYPE(other) || size == -1 || osize == -1) {
-	CONVERSION_ERROR();
+		CONVERSION_ERROR();
     }
     if (size == osize) {
 	sv = self->vec;

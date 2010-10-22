@@ -65,6 +65,7 @@ setup(
 			 'lib/planar/cvector.c',
 			 'lib/planar/ctransform.c',
 			 'lib/planar/cbox.c',
+			 'lib/planar/cpolygon.c',
 			], 
 			include_dirs=include_dirs,
 			#library_dirs=library_dirs,
