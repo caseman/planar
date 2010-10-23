@@ -217,7 +217,7 @@ class Polygon(planar.Seq2):
 
     @property
     def is_convex_known(self):
-        """True if the polygon is already known to be convex.
+        """True if the polygon is already known to be convex or not.
 
         If this value is True, then the value of ``is_convex`` is 
         cached and does not require additional calculation to access.
@@ -340,7 +340,7 @@ class Polygon(planar.Seq2):
     
     @property
     def is_simple_known(self):
-        """True if the polygon is already known to be simple.
+        """True if the polygon is already known to be simple or not.
 
         If this value is True, then the value of ``is_simple`` is 
         cached and does not require additional calculation to access.

@@ -248,6 +248,7 @@ Poly_get_is_simple_known(PlanarPolygonObject *self) {
 	return Py_BOOL(self->flags & POLY_SIMPLE_KNOWN_FLAG);
 }
 
+
 static PyObject *
 Poly_get_is_simple(PlanarPolygonObject *self)
 {
@@ -264,6 +265,56 @@ Poly_get_is_simple(PlanarPolygonObject *self)
 	return Py_BOOL(self->flags & POLY_SIMPLE_FLAG);
 }
 
+static PyObject *
+Poly_get_is_centroid_known(PlanarPolygonObject *self) {
+	return Py_BOOL(self->flags & POLY_CENTROID_KNOWN_FLAG);
+}
+
+static PyObject *
+Poly_get_centroid(PlanarPolygonObject *self)
+{
+	Py_ssize_t i;
+	double area, total_area;
+	planar_vec2_t *a, *b, *c;
+
+	if (!(self->flags & POLY_CENTROID_KNOWN_FLAG) 
+		|| !(self->flags & POLY_SIMPLE_KNOWN_FLAG)) {
+		if (!(self->flags & POLY_CONVEX_KNOWN_FLAG)) {
+			Poly_classify(self);
+		}
+		if (!(self->flags & POLY_SIMPLE_KNOWN_FLAG)) {
+			if (!Poly_check_is_simple(self)) {
+				return NULL;
+			}
+		}
+		if (self->flags & POLY_SIMPLE_FLAG) {
+			DUP_FIRST_VERT(self);
+			total_area = 0.0;
+			self->centroid.x = self->centroid.y = 0.0;
+			a = self->vert;
+			b = self->vert + 1;
+			for (i = 2; i < Py_SIZE(self); ++i) {
+				c = self->vert + i;
+				area = ((b->x - a->x) * (c->y - a->y)
+					- (c->x - a->x) * (b->y - a->y));
+				self->centroid.x += (a->x + b->x + c->x) * area;
+				self->centroid.y += (a->y + b->y + c->y) * area;
+				total_area += area;
+				b = c;
+			}
+			self->centroid.x /= 3.0 * total_area;
+			self->centroid.y /= 3.0 * total_area;
+		}
+		self->flags |= POLY_CENTROID_KNOWN_FLAG;
+	}
+	if (self->flags & POLY_SIMPLE_FLAG) {
+		return (PyObject *)PlanarVec2_FromStruct(&self->centroid);
+	} else {
+		/* No centroid for non-simple polygon */
+		Py_RETURN_NONE;
+	}
+}
+
 static PyGetSetDef Poly_getset[] = {
     {"is_convex_known", (getter)Poly_get_is_convex_known, NULL, 
 		"True if the polygon is already known to be convex or not.", NULL},
@@ -273,6 +324,14 @@ static PyGetSetDef Poly_getset[] = {
 		"True if the polygon is already known to be simple or not.", NULL},
     {"is_simple", (getter)Poly_get_is_simple, NULL, 
 		"True if the polygon is simple.", NULL},
+    {"is_centroid_known", (getter)Poly_get_is_centroid_known, NULL, 
+		"True if the polygon's centroid has been pre-calculated and cached.",
+		NULL},
+    {"centroid", (getter)Poly_get_centroid, NULL, 
+		"The geometric center point of the polygon. This point only exists "
+        "for simple polygons. For non-simple polygons it is None. Note "
+        "in concave polygons, this point may lie outside of the polygon "
+		"itself.", NULL},
     {NULL}
 };
 
