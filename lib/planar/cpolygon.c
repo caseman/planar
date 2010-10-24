@@ -172,51 +172,52 @@ Poly_check_is_simple(PlanarPolygonObject *self)
 {
 	planar_vec2_t **points, **p, *v;
 	planar_vec2_t **open = NULL;
-	planar_vec2_t **o, **last_open;
-	Py_ssize_t i, j, open_count;
+	planar_vec2_t **o, **next_open;
+	Py_ssize_t i, j;
+	const Py_ssize_t size = Py_SIZE(self);
+	const Py_ssize_t last_index = size - 1;
 	int result = 1;
 
 	points = (planar_vec2_t **)PyMem_Malloc(
-		sizeof(planar_vec2_t *) * Py_SIZE(self));
+		sizeof(planar_vec2_t *) * (size + 1));
 	if (points == NULL) {
 		PyErr_NoMemory();
 		result = 0;
 		goto finish;
 	}
+	DUP_FIRST_VERT(self);
 	p = points;
 	v = self->vert;
-	for (i = Py_SIZE(self); i--;) {
+	for (i = 0; i <= size; ++i) {
 		*(p++) = v++;
 	}
-	qsort(points, Py_SIZE(self), sizeof(planar_vec2_t *), compare_vec_lexi);	
+	qsort(points, size + 1, sizeof(planar_vec2_t *), compare_vec_lexi);	
 	open = (planar_vec2_t **)PyMem_Malloc(
-		sizeof(planar_vec2_t *) * Py_SIZE(self));
+		sizeof(planar_vec2_t *) * (size + 1));
 	if (open == NULL) {
 		PyErr_NoMemory();
 		result = 0;
 		goto finish;
 	}
 
-	DUP_FIRST_VERT(self);
-	open_count = 0;
-	last_open = open;
-	for (i = 0, p = points; i < Py_SIZE(self); ++i, ++p) {
-		for (j = 0, o = open; j < open_count; ++j, ++o) {
-			if (abs(p - o) > 1 /* ignore adjacent edges */
+	next_open = open;
+	for (i = 0, p = points; i <= size; ++i, ++p) {
+		for (o = open; o < next_open; ++o) {
+			if (abs(*p - *o) > 1 && abs(*p - *o) < last_index /* ignore adjacent edges */
 				&& segments_intersect(*p, (*p)+1, *o, (*o)+1)) {
 				self->flags |= POLY_SIMPLE_KNOWN_FLAG;
 				self->flags &= ~POLY_SIMPLE_FLAG;
 				goto finish;
 			} else if (*p == (*o)+1) {
 				/* Segment end point */ 
-				if (--open_count && *o != *last_open) {
-					*o = *last_open;
+				--next_open;
+				if (o < next_open && *o != *next_open) {
+					*o = *next_open;
+					--j;
 				}
-				--last_open;
 			}
 		}
-		*(last_open++) = *p;
-		open_count++;
+		*(next_open++) = *p;
 	}
 	self->flags |= POLY_SIMPLE_KNOWN_FLAG | POLY_SIMPLE_FLAG;
 finish:
@@ -335,6 +336,58 @@ static PyGetSetDef Poly_getset[] = {
     {NULL}
 };
 
+/* Sequence Methods */
+
+static PyObject *
+Poly_getitem(PlanarPolygonObject *self, Py_ssize_t index)
+{
+    Py_ssize_t size = Py_SIZE(self);
+    if (index >= 0 && index < size) {
+        return (PyObject *)PlanarVec2_FromStruct(self->vert + index);
+    }
+    PyErr_Format(PyExc_IndexError, "index %d out of range", (int)index);
+    return NULL;
+}
+
+static int
+Poly_assitem(PlanarPolygonObject *self, Py_ssize_t index, PyObject *v)
+{
+    double x, y;
+    Py_ssize_t size = Py_SIZE(self);
+    if (index >= 0 && index < size) {
+		if (!PlanarVec2_Parse(v, &x, &y)) {
+			if (!PyErr_Occurred()) {
+			PyErr_Format(PyExc_TypeError, 
+				"Cannot assign %.200s into %.200s",
+				Py_TYPE(v)->tp_name, Py_TYPE(self)->tp_name);
+			}
+			return -1;
+		}
+        self->vert[index].x = x;
+        self->vert[index].y = y;
+		self->flags = 0;
+        return 0;
+    }
+    PyErr_Format(PyExc_IndexError, 
+		"assignment index %d out of range", (int)index);
+    return -1;
+}
+
+static Py_ssize_t
+Poly_length(PlanarPolygonObject *self)
+{
+    return Py_SIZE(self);
+}
+
+static PySequenceMethods Poly_as_sequence = {
+	(lenfunc)Poly_length,	/* sq_length */
+	0,		/*sq_concat*/
+	0,		/*sq_repeat*/
+	(ssizeargfunc)Poly_getitem,		/*sq_item*/
+	0,		/* sq_slice */
+	(ssizeobjargproc)Poly_assitem,	/* sq_ass_item */
+};
+
 PyDoc_STRVAR(Polygon__doc__, 
 	"Arbitrary polygon represented as a list of vertices.\n\n" 
     "The individual vertices of a polygon are mutable, but the number "
@@ -353,7 +406,7 @@ PyTypeObject PlanarPolygonType = {
 	0,		        /*tp_compare*/
 	0, //(reprfunc)Vec2Array__repr__, /*tp_repr*/
 	0, //&Vec2Array_as_number,        /*tp_as_number*/
-	0, //&Vec2Array_as_sequence,      /*tp_as_sequence*/
+	&Poly_as_sequence,      /*tp_as_sequence*/
 	0, //&Vec2Array_as_mapping,	     /*tp_as_mapping*/
 	0,	                /*tp_hash*/
 	0,                      /*tp_call*/
