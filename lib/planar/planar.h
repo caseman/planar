@@ -9,6 +9,7 @@
 * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
 ****************************************************************************/
 #include "Python.h"
+#include <float.h>
 
 #ifndef PY_PLANAR_H
 #define PY_PLANAR_H
@@ -363,6 +364,36 @@ PlanarAffine_FromDoubles(
 
 #define PlanarBBox_Check(op) PyObject_TypeCheck(op, &PlanarBBoxType)
 #define PlanarBBox_CheckExact(op) (Py_TYPE(op) == &PlanarBBoxType)
+
+static PlanarBBoxObject *
+PlanarBBox_fromSeq2(PlanarSeq2Object *seq)
+{
+	PlanarBBoxObject *b;
+	planar_vec2_t *vec;
+	Py_ssize_t i;
+
+	b = (PlanarBBoxObject *)PlanarBBoxType.tp_alloc(
+		&PlanarBBoxType, 0);
+	if (b != NULL) {
+		b->min.x = b->min.y = FLT_MAX;
+		b->max.x = b->max.y = -FLT_MAX;
+		for (i = 0, vec = seq->vec; i < Py_SIZE(seq); ++i, ++vec) {
+			if (vec->x < b->min.x) {
+				b->min.x = vec->x;
+			} 
+			if (vec->x > b->max.x) {
+				b->max.x = vec->x;
+			}
+			if (vec->y < b->min.y) {
+				b->min.y = vec->y;
+			} 
+			if (vec->y > b->max.y) {
+				b->max.y = vec->y;
+			}
+		}
+	}
+	return b;
+}
 
 /* Polygon utils */
 

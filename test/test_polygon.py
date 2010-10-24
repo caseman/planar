@@ -306,6 +306,13 @@ class PolygonBaseTestCase(object):
         assert_equal(poly.centroid, None)
         assert not poly.is_simple
 
+    def test_bounding_box(self):
+        poly = self.Polygon([(1, -2), (0, 0), (1, 0), (3, 0), (4, -2)])
+        bbox = poly.bounding_box
+        assert isinstance(bbox, self.BoundingBox)
+        assert_equal(bbox.min_point, (0, -2))
+        assert_equal(bbox.max_point, (4, 0))
+
     def test_eq_identical(self):
         poly1 = self.Polygon([(0,0), (1,0), (1,1), (-1, 1)])
         poly2 = self.Polygon([(0,0), (1,0), (1,1), (-1, 1)])

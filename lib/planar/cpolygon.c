@@ -333,6 +333,8 @@ static PyGetSetDef Poly_getset[] = {
         "for simple polygons. For non-simple polygons it is None. Note "
         "in concave polygons, this point may lie outside of the polygon "
 		"itself.", NULL},
+    {"bounding_box", (getter)PlanarBBox_fromSeq2, NULL, 
+		"The bounding box of the polygon", NULL},
     {NULL}
 };
 
