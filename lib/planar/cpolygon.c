@@ -14,6 +14,26 @@
 #include "planar.h"
 
 static PlanarPolygonObject *
+Poly_alloc_new(PyTypeObject *type, Py_ssize_t size)
+{
+	PlanarPolygonObject *poly;
+
+	if (size < 3) {
+		PyErr_Format(PyExc_ValueError,
+			"Polygon: minimum of 3 vertices required");
+		return NULL;
+	}
+	/* Allocate space for an extra vert to duplicate the first
+	 * vert at the end to simplify many operations */
+	poly = (PlanarPolygonObject *)type->tp_alloc(type, size + 1);
+	if (poly != NULL) {
+		Py_SIZE(poly) = size;
+		poly->vert = poly->data;
+	}
+	return poly;
+}
+
+static PlanarPolygonObject *
 Poly_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
 	PyObject *verts_arg, *is_convex_arg = NULL, *is_simple_arg = NULL;
@@ -23,7 +43,6 @@ Poly_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 
     static char *kwlist[] = {"vertices", "is_convex", "is_simple", NULL};
 
-    assert(PlanarPolygon_Check(self));
     if (!PyArg_ParseTupleAndKeywords(
         args, kwargs, "O|OO:Polygon.__init__", kwlist, 
 			&verts_arg, &is_convex_arg, &is_simple_arg)) {
@@ -40,19 +59,10 @@ Poly_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 	if (size == -1) {
 		goto error;
 	}
-	if (size < 3) {
-		PyErr_Format(PyExc_ValueError,
-			"Polygon(): minimum of 3 vertices required");
-		goto error;
-	}
-	/* Allocate one extra vert to duplicate the first to
-	 * simplify operations */
-	poly = (PlanarPolygonObject *)type->tp_alloc(type, size + 1);
-	Py_SIZE(poly) = size;
+	poly = Poly_alloc_new(type, size);
 	if (poly == NULL) {
 		goto error;
 	}
-	poly->vert = poly->data;
 	if (is_convex_arg != NULL && PyObject_IsTrue(is_convex_arg) > 0 
 		|| size == 3) {
 		poly->flags = (POLY_CONVEX_FLAG | POLY_CONVEX_KNOWN_FLAG 
@@ -88,6 +98,60 @@ error:
 static void
 Poly_dealloc(PlanarPolygonObject *self) {
     Py_TYPE(self)->tp_free((PyObject *)self);
+}
+
+static PlanarPolygonObject *
+Poly_new_regular(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+{
+	Py_ssize_t vert_count, i;
+	double radius, angle_step, x, y;
+	PyObject *center_arg = NULL;
+	double center_x = 0.0, center_y = 0.0;
+	double angle = 0.0;
+	planar_vec2_t *vert;
+	PlanarPolygonObject *poly;
+
+    static char *kwlist[] = {
+		"vertex_count", "radius", "center", "angle", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(
+        args, kwargs, "nd|Od:Polygon.regular", kwlist, 
+			&vert_count, &radius, &center_arg, &angle)) {
+        return NULL;
+    }
+	if (center_arg != NULL) {
+		if (!PlanarVec2_Parse(center_arg, &center_x, &center_y)) {
+			PyErr_SetString(PyExc_TypeError,
+				"Polygon.regular(): "
+				"expected Vec2 object for argument center");
+			return NULL;
+		}
+	}
+	poly = Poly_alloc_new(type, vert_count);
+	if (poly == NULL) {
+		return NULL;
+	}
+	angle_step = 360.0 / vert_count;
+	for (i = 0, vert = poly->vert; i < vert_count; ++i, ++vert) {
+		cos_sin_deg(angle, &x, &y);
+		vert->x = x * radius + center_x;
+		vert->y = y * radius + center_y;
+		angle += angle_step;
+	}
+	poly->centroid.x = center_x;
+	poly->centroid.y = center_y;
+	x = (poly->vert[0].x + poly->vert[1].x) * 0.5 - center_x;
+	y = (poly->vert[0].y + poly->vert[1].y) * 0.5 - center_y;
+	poly->min_r2 = x*x + y*y;
+	poly->max_r2 = radius * radius;
+	poly->flags |= (POLY_CENTROID_KNOWN_FLAG | POLY_DUP_VERTS_KNOWN_FLAG 
+		| POLY_CONVEX_KNOWN_FLAG | POLY_CONVEX_FLAG 
+		| POLY_SIMPLE_KNOWN_FLAG | POLY_SIMPLE_FLAG
+		| POLY_RADIUS_KNOWN_FLAG | POLY_DEGEN_KNOWN_FLAG);
+	if (radius == 0.0) {
+		poly->flags |= POLY_DEGEN_FLAG;
+	}
+	return poly;
 }
 
 #define DUP_FIRST_VERT(poly) {                          \
@@ -390,6 +454,15 @@ static PySequenceMethods Poly_as_sequence = {
 	(ssizeobjargproc)Poly_assitem,	/* sq_ass_item */
 };
 
+static PyMethodDef Poly_methods[] = {
+    {"regular", (PyCFunction)Poly_new_regular, 
+		METH_CLASS | METH_VARARGS | METH_KEYWORDS, 
+		"Create a regular polygon with the specified number of vertices "
+        "radius distance from the center point. Regular polygons are "
+        "always convex."},
+    {NULL, NULL}
+};
+
 PyDoc_STRVAR(Polygon__doc__, 
 	"Arbitrary polygon represented as a list of vertices.\n\n" 
     "The individual vertices of a polygon are mutable, but the number "
@@ -424,7 +497,7 @@ PyTypeObject PlanarPolygonType = {
 	0,                      /*tp_weaklistoffset*/
 	0,                      /*tp_iter*/
 	0,                      /*tp_iternext*/
-	0, //Vec2Array_methods,           /*tp_methods*/
+	Poly_methods,           /*tp_methods*/
 	0,                      /*tp_members*/
 	Poly_getset,            /*tp_getset*/
 	&PlanarSeq2Type,        /*tp_base*/

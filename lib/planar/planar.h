@@ -129,6 +129,8 @@ typedef struct {
     planar_vec2_t *vert;
 	unsigned long flags;
 	planar_vec2_t centroid;
+	double max_r2;
+	double min_r2;
 	planar_vec2_t data[1];
 } PlanarPolygonObject;
 
@@ -141,7 +143,7 @@ typedef struct {
 #define POLY_DUP_VERTS_KNOWN_FLAG 0x40
 #define POLY_DUP_VERTS_FLAG 0x80
 #define POLY_CENTROID_KNOWN_FLAG 0x100
-
+#define POLY_RADIUS_KNOWN_FLAG 0x200
 
 /* Geometry utils */
 
