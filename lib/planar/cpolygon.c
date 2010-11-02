@@ -149,7 +149,90 @@ Poly_new_regular(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 		| POLY_SIMPLE_KNOWN_FLAG | POLY_SIMPLE_FLAG
 		| POLY_RADIUS_KNOWN_FLAG | POLY_DEGEN_KNOWN_FLAG);
 	if (radius == 0.0) {
-		poly->flags |= POLY_DEGEN_FLAG;
+		poly->flags |= POLY_DEGEN_FLAG | POLY_DUP_VERTS_FLAG;
+	}
+	return poly;
+}
+
+static PlanarPolygonObject *
+Poly_new_star(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+{
+	Py_ssize_t peak_count, i;
+	double radius1, radius2, angle_step, x, y;
+	PyObject *center_arg = NULL;
+	double center_x = 0.0, center_y = 0.0;
+	double angle = 0.0;
+	planar_vec2_t *vert;
+	PlanarPolygonObject *poly;
+
+    static char *kwlist[] = {
+		"peak_count", "radius1", "radius2", "center", "angle", NULL};
+
+    if (!PyArg_ParseTupleAndKeywords(
+        args, kwargs, "ndd|Od:Polygon.regular", kwlist, 
+			&peak_count, &radius1, &radius2, &center_arg, &angle)) {
+        return NULL;
+    }
+	if (peak_count < 2) {
+		PyErr_SetString(PyExc_ValueError,
+			"star polygon must have a minimum of 2 peaks");
+		return NULL;
+	}
+	if (center_arg != NULL) {
+		if (!PlanarVec2_Parse(center_arg, &center_x, &center_y)) {
+			PyErr_SetString(PyExc_TypeError,
+				"Polygon.star(): "
+				"expected Vec2 object for argument center");
+			return NULL;
+		}
+	}
+	poly = Poly_alloc_new(type, peak_count * 2);
+	if (poly == NULL) {
+		return NULL;
+	}
+	angle_step = 180.0 / peak_count;
+	for (i = 0, vert = poly->vert; i < peak_count; ++i, ++vert) {
+		cos_sin_deg(angle, &x, &y);
+		vert->x = x * radius1 + center_x;
+		vert->y = y * radius1 + center_y;
+		angle += angle_step;
+		++vert;
+		cos_sin_deg(angle, &x, &y);
+		vert->x = x * radius2 + center_x;
+		vert->y = y * radius2 + center_y;
+		angle += angle_step;
+	}
+	poly->centroid.x = center_x;
+	poly->centroid.y = center_y;
+	x = (poly->vert[0].x + poly->vert[1].x) * 0.5 - center_x;
+	y = (poly->vert[0].y + poly->vert[1].y) * 0.5 - center_y;
+	if (radius1 != radius2) {
+		if (radius1 < radius2) {
+			poly->min_r2 = MIN(radius1 * radius1, x*x + y*y);
+			poly->max_r2 = radius2 * radius2;
+		} else {
+			poly->min_r2 = MIN(radius2 * radius2, x*x + y*y);
+			poly->max_r2 = radius1 * radius1;
+		}
+		poly->flags |= POLY_CONVEX_KNOWN_FLAG;
+		poly->flags &= ~POLY_CONVEX_FLAG;
+		poly->flags |= POLY_DUP_VERTS_FLAG * (
+			radius1 == 0.0 || radius2 == 0.0);
+		if ((radius1 > 0.0) == (radius2 > 0.0)) {
+			poly->flags |= POLY_SIMPLE_FLAG | POLY_SIMPLE_KNOWN_FLAG
+				| POLY_CENTROID_KNOWN_FLAG | POLY_RADIUS_KNOWN_FLAG 
+				| POLY_DEGEN_KNOWN_FLAG;
+		}
+	} else {
+		poly->min_r2 = x*x + y*y;
+		poly->max_r2 = radius1 * radius1;
+		poly->flags |= POLY_CONVEX_KNOWN_FLAG | POLY_CONVEX_FLAG
+			| POLY_SIMPLE_KNOWN_FLAG | POLY_SIMPLE_FLAG 
+			| POLY_CENTROID_KNOWN_FLAG | POLY_RADIUS_KNOWN_FLAG 
+			| POLY_DEGEN_KNOWN_FLAG;
+		if (radius1 == 0.0) {
+			poly->flags |= POLY_DEGEN_FLAG | POLY_DUP_VERTS_FLAG;
+		}
 	}
 	return poly;
 }
@@ -460,6 +543,10 @@ static PyMethodDef Poly_methods[] = {
 		"Create a regular polygon with the specified number of vertices "
         "radius distance from the center point. Regular polygons are "
         "always convex."},
+    {"star", (PyCFunction)Poly_new_star, 
+		METH_CLASS | METH_VARARGS | METH_KEYWORDS, 
+		"Create a circular pointed star polygon with the specified number "
+        "of peaks."},
     {NULL, NULL}
 };
 

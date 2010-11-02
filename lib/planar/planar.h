@@ -51,6 +51,8 @@
 #define radians(d) ((d) * M_PI / 180.0)
 #define degrees(d) ((d) * 180.0 / M_PI)
 #define almost_eq(a, b) (fabs((a) - (b)) < PLANAR_EPSILON)
+#define MIN(a, b) ((a) <= (b) ? (a) : (b))
+#define MAX(a, b) ((a) >= (b) ? (a) : (b))
 
 static void 
 cos_sin_deg(double deg, double *cosout, double *sinout) 
