@@ -924,31 +924,31 @@ Seq2_compare(PyObject *a, PyObject *b, int op)
 	size = PySequence_Size(a);
 	osize = PySequence_Size(b);
 	if (size == osize && size != -1 
-	&& PlanarSeq2_Check(a) && Py_TYPE(a) == Py_TYPE(b)) {
-	av = ((PlanarSeq2Object *)a)->vec;
-	bv = ((PlanarSeq2Object *)b)->vec;
-	switch (op) {
-		case Py_EQ:
-			while (size--) {
-				if (av->x != bv->x || av->y != bv->y) {
-					Py_RETURN_FALSE;
+		&& PlanarSeq2_Check(a) && Py_TYPE(a) == Py_TYPE(b)) {
+		av = ((PlanarSeq2Object *)a)->vec;
+		bv = ((PlanarSeq2Object *)b)->vec;
+		switch (op) {
+			case Py_EQ:
+				while (size--) {
+					if (av->x != bv->x || av->y != bv->y) {
+						Py_RETURN_FALSE;
+					}
+					++av;
+					++bv;
 				}
-				++av;
-				++bv;
-			}
-			Py_RETURN_TRUE;
-		case Py_NE:
-			while (size--) {
-				if (av->x != bv->x || av->y != bv->y) {
-					Py_RETURN_TRUE;
+				Py_RETURN_TRUE;
+			case Py_NE:
+				while (size--) {
+					if (av->x != bv->x || av->y != bv->y) {
+						Py_RETURN_TRUE;
+					}
+					++av;
+					++bv;
 				}
-				++av;
-				++bv;
-			}
-			Py_RETURN_FALSE;
-		default:
-			/* Only == and != are defined */
-				RETURN_NOT_IMPLEMENTED;
+				Py_RETURN_FALSE;
+			default:
+				/* Only == and != are defined */
+					RETURN_NOT_IMPLEMENTED;
 		}
 	} else {
 		PyErr_Clear();

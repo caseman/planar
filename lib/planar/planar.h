@@ -81,6 +81,15 @@ cos_sin_deg(double deg, double *cosout, double *sinout)
 	}
 }
 
+#define VEC_EQ(a, b) (((a)->x == (b)->x) & ((a)->y == (b)->y))
+#define VEC_NEQ(a, b) (((a)->x != (b)->x) | ((a)->y != (b)->y))
+
+/* Given the line a->b, return negative if c is to the left of the line,
+   positive if c is to the right, and 0 if c is colinear.
+*/
+#define SIDE(a, b, c) (((b)->x - (a)->x)*((c)->y - (a)->y) \
+	- ((c)->x - (a)->x)*((b)->y - (a)->y))
+
 /***************************************************************************/
 
 /* Type definitions */

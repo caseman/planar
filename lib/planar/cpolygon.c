@@ -23,12 +23,12 @@ Poly_alloc_new(PyTypeObject *type, Py_ssize_t size)
 			"Polygon: minimum of 3 vertices required");
 		return NULL;
 	}
-	/* Allocate space for an extra vert to duplicate the first
-	 * vert at the end to simplify many operations */
-	poly = (PlanarPolygonObject *)type->tp_alloc(type, size + 1);
+	/* Allocate space for extra verst to duplicate the first
+	 * and last vert at either end to simplify many operations */
+	poly = (PlanarPolygonObject *)type->tp_alloc(type, size + 2);
 	if (poly != NULL) {
 		Py_SIZE(poly) = size;
-		poly->vert = poly->data;
+		poly->vert = poly->data + 1;
 	}
 	return poly;
 }
@@ -240,6 +240,146 @@ Poly_new_star(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 #define DUP_FIRST_VERT(poly) {                          \
 	(poly)->vert[Py_SIZE(poly)].x = (poly)->vert[0].x;  \
 	(poly)->vert[Py_SIZE(poly)].y = (poly)->vert[0].y;  \
+}
+
+#define DUP_LAST_VERT(poly) {                          \
+	(poly)->data[0].x = (poly)->vert[Py_SIZE(poly)-1].x;  \
+	(poly)->data[0].y = (poly)->vert[Py_SIZE(poly)-1].y;  \
+}
+
+/* Comparison function for sorting of vector triples */
+static int
+compare_vec_triples(const void *a, const void *b)
+{
+	const planar_vec2_t *va = *(planar_vec2_t **)a;
+	const planar_vec2_t *vb = *(planar_vec2_t **)b;
+	int result, i;
+
+	for (i = -1, result = 0; !result && i <= 1; ++i) {
+		result = ((va+i)->x > (vb+i)->x) - ((va+i)->x < (vb+i)->x);
+		result = result ? result : (
+			(va+i)->y > (vb+i)->y) - ((va+i)->y < (vb+i)->y);
+	}
+	return result;
+}
+
+static int
+compare_vec_triples_reverse(const void *a, const void *b)
+{
+	const planar_vec2_t *va = *(planar_vec2_t **)a;
+	const planar_vec2_t *vb = *(planar_vec2_t **)b;
+	int result, i;
+
+	for (i = -1, result = 0; !result && i <= 1; ++i) {
+		result = ((va-i)->x > (vb-i)->x) - ((va-i)->x < (vb-i)->x);
+		result = result ? result : (
+			(va-i)->y > (vb-i)->y) - ((va-i)->y < (vb-i)->y);
+	}
+	return result;
+}
+
+static int
+Poly_compare_eq(PlanarPolygonObject *a, PlanarPolygonObject *b) {
+	Py_ssize_t i, eq_count, ai, bi;
+	planar_vec2_t *a_vert, *b_vert;
+	planar_vec2_t **a_triples = NULL, **b_triples = NULL;
+	const planar_vec2_t *a_end = a->vert + Py_SIZE(a);
+	int is_equal;
+
+	if (a == b) {
+		return 1;
+	}
+
+	/* Test for identical verts */
+	if (Py_SIZE(a) != Py_SIZE(b)) {
+		return 0;
+	}
+	is_equal = 1;
+
+	for (a_vert = a->vert, b_vert = b->vert; a_vert < a_end; 
+		 ++a_vert, ++a_end) {
+		if (VEC_NEQ(a_vert, b_vert)) {
+			is_equal = 0;
+			break;
+		}
+	}
+	if (is_equal) {
+		return 1;
+	}
+
+	/* Test for identical edges */
+	DUP_FIRST_VERT(a);
+	DUP_FIRST_VERT(b);
+	DUP_LAST_VERT(a);
+	DUP_LAST_VERT(b);
+	a_triples = (planar_vec2_t **)PyMem_Malloc(
+		sizeof(planar_vec2_t *) * Py_SIZE(a) * 2);
+	if (a_triples == NULL) {
+		return -1;
+	}
+	b_triples = a_triples + Py_SIZE(a);
+	for (i = 0, a_vert = a->vert, b_vert = b->vert; i < Py_SIZE(a); ++i) {
+		a_triples[i] = a_vert++;
+		b_triples[i] = b_vert++;
+	}
+	qsort(a_triples, Py_SIZE(a), sizeof(planar_vec2_t *), compare_vec_triples);	
+	qsort(b_triples, Py_SIZE(a), sizeof(planar_vec2_t *), compare_vec_triples);	
+	is_equal = 1;
+	for (i = 0; i < Py_SIZE(a); ++i) {
+		if (VEC_NEQ(a_triples[i]-1, b_triples[i]-1)
+			| VEC_NEQ(a_triples[i], b_triples[i])
+		    | VEC_NEQ(a_triples[i]+1, b_triples[i]+1)) {
+			is_equal = 0;
+			break;
+		}
+	}
+	if (is_equal) {
+		PyMem_Free(a_triples);
+		return 1;
+	}
+	
+	/* Try comparing with reverse winding */
+	qsort(b_triples, Py_SIZE(a), sizeof(planar_vec2_t *), 
+		compare_vec_triples_reverse);	
+	is_equal = 1;
+	for (i = 0; i < Py_SIZE(a); ++i) {
+		if (VEC_NEQ(a_triples[i]-1, b_triples[i]+1)
+			| VEC_NEQ(a_triples[i], b_triples[i])
+		    | VEC_NEQ(a_triples[i]+1, b_triples[i]-1)) {
+			is_equal = 0;
+			break;
+		}
+	}
+	PyMem_Free(a_triples);
+	return is_equal;
+}
+
+static PyObject *
+Poly_compare(PyObject *a, PyObject *b, int op)
+{
+	if (PlanarPolygon_Check(a) && PlanarPolygon_Check(b)) {
+		switch (op) {
+			case Py_EQ:
+				return Py_BOOL(Poly_compare_eq(
+					(PlanarPolygonObject *)a, (PlanarPolygonObject *)b));
+			case Py_NE:
+				return Py_BOOL(!Poly_compare_eq(
+					(PlanarPolygonObject *)a, (PlanarPolygonObject *)b));
+			default:
+				/* Only == and != are defined */
+				RETURN_NOT_IMPLEMENTED;
+		}
+	} else {
+		switch (op) {
+			case Py_EQ:
+				Py_RETURN_FALSE;
+			case Py_NE:
+				Py_RETURN_TRUE;
+			default:
+				/* Only == and != are defined */
+				RETURN_NOT_IMPLEMENTED;
+		}
+	}
 }
 
 /* Property descriptors */
@@ -537,6 +677,46 @@ static PySequenceMethods Poly_as_sequence = {
 	(ssizeobjargproc)Poly_assitem,	/* sq_ass_item */
 };
 
+/* Methods */
+
+static PyObject *
+Poly_pt_tangents(PlanarPolygonObject *self, PyObject *point)
+{
+	planar_vec2_t pt;
+	planar_vec2_t *left_tan = self->vert;
+	planar_vec2_t *right_tan = self->vert;
+	planar_vec2_t *v0 = self->vert + Py_SIZE(self) - 2;
+	planar_vec2_t *v1 = v0 + 1;
+	planar_vec2_t *v_end;
+	double prev_turn, next_turn;
+
+	if (!PlanarVec2_Parse(point, &pt.x, &pt.y)) {
+		PyErr_SetString(PyExc_TypeError,
+			"Polygon.tangents_to_point(): "
+			"expected Vec2 object for argument");
+		return NULL;
+	}
+	prev_turn = SIDE(v0, v1, &pt);
+	v0 = v_end = v1;
+	for (v1 = self->vert; v1 <= v_end; ++v1) {
+		next_turn = SIDE(v0, v1, &pt);
+		if ((prev_turn <= 0.0) & (next_turn > 0.0)) {
+			if (SIDE(&pt, v0, right_tan) >= 0.0) {
+				right_tan = v0;
+			}
+		} else if ((prev_turn > 0.0) & (next_turn <= 0.0)) {
+			if (SIDE(&pt, v0, left_tan) <= 0.0) {
+				left_tan = v0;
+			}
+		}
+		v0 = v1;
+		prev_turn = next_turn;
+	}
+	return PyTuple_Pack(2, 
+		PlanarVec2_FromStruct(left_tan), 
+		PlanarVec2_FromStruct(right_tan));
+}
+
 static PyMethodDef Poly_methods[] = {
     {"regular", (PyCFunction)Poly_new_regular, 
 		METH_CLASS | METH_VARARGS | METH_KEYWORDS, 
@@ -547,6 +727,10 @@ static PyMethodDef Poly_methods[] = {
 		METH_CLASS | METH_VARARGS | METH_KEYWORDS, 
 		"Create a circular pointed star polygon with the specified number "
         "of peaks."},
+	{"tangents_to_point", (PyCFunction)Poly_pt_tangents, METH_O,
+		"Given a point exterior to the polygon, return the pair of "
+        "vertex points from the polygon that define the tangent lines with "
+		"the specified point."},
     {NULL, NULL}
 };
 
@@ -580,7 +764,7 @@ PyTypeObject PlanarPolygonType = {
 	Polygon__doc__,       /*tp_doc*/
 	0,                      /*tp_traverse*/
 	0,                      /*tp_clear*/
-	0, //Seq2_compare,           /*tp_richcompare*/
+	Poly_compare,           /*tp_richcompare*/
 	0,                      /*tp_weaklistoffset*/
 	0,                      /*tp_iter*/
 	0,                      /*tp_iternext*/
