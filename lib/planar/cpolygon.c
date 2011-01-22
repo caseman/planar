@@ -712,7 +712,6 @@ Poly_left_tan_convex(PlanarPolygonObject *self, planar_vec2_t *pt)
 			}
 		}
 	}
-	printf("say what?");
 	return a; /* should not happen */
 }
 
@@ -749,7 +748,6 @@ Poly_right_tan_convex(PlanarPolygonObject *self, planar_vec2_t *pt)
 			}
 		}
 	}
-	printf("say what?");
 	return a; /* should not happen */
 }
 
