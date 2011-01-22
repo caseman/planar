@@ -849,7 +849,7 @@ def _adaptive_quick_hull(points):
     The adaptive algorithm paritions the points as in quick-hull unless
     the paritioning fails to cull enough points to remain efficient.
     If this occurs then the algorithm changes to a monotone chain
-    (A simplified variant of Graham's scan) for the parition to avoid
+    (A simplified variant of Graham's scan) for the partition to avoid
     the worst-case quick-hull behavior.
     """
     leftmost = rightmost = points[0]

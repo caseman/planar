@@ -679,6 +679,80 @@ static PySequenceMethods Poly_as_sequence = {
 
 /* Methods */
 
+static planar_vec2_t *
+Poly_left_tan_convex(PlanarPolygonObject *self, planar_vec2_t *pt)
+{
+	planar_vec2_t *a, *b, *c;
+	long down_c;
+	DUP_FIRST_VERT(self);
+	DUP_LAST_VERT(self);
+	
+	a = self->vert - 1;
+	b = self->vert + Py_SIZE(self) - 1;
+	if ((SIDE(pt, a + 1, a) >= 0.0) & (SIDE(pt, b - 1, b) > 0.0)) {
+		return b;
+	}
+	while (a < b) {
+		c = a + (b - a) / 2;
+		down_c = SIDE(pt, c + 1, c) < 0.0;
+		if ((!down_c) & (SIDE(pt, c - 1, c) > 0.0)) {
+			return c;
+		}
+		if (SIDE(pt, a + 1, a) < 0.0) {
+			if ((!down_c) | (SIDE(pt, a, c) < 0.0)) {
+				b = c;
+			} else {
+				a = c;
+			}
+		} else {
+			if ((down_c) | (SIDE(pt, a, c) <= 0.0)) {
+				a = c;
+			} else {
+				b = c;
+			}
+		}
+	}
+	printf("say what?");
+	return a; /* should not happen */
+}
+
+static planar_vec2_t *
+Poly_right_tan_convex(PlanarPolygonObject *self, planar_vec2_t *pt)
+{
+	planar_vec2_t *a, *b, *c;
+	long down_c;
+	DUP_FIRST_VERT(self);
+	DUP_LAST_VERT(self);
+	
+	a = self->vert - 1;
+	b = self->vert + Py_SIZE(self) - 1;
+	if ((SIDE(pt, a + 1, a) < 0.0) & (SIDE(pt, b - 1, b) <= 0.0)) {
+		return b;
+	}
+	while (a < b) {
+		c = a + (b - a) / 2;
+		down_c = SIDE(pt, c + 1, c) < 0.0;
+		if ((down_c) & (SIDE(pt, c - 1, c) <= 0.0)) {
+			return c;
+		}
+		if (SIDE(pt, a + 1, a) > 0.0) {
+			if ((down_c) | (SIDE(pt, a, c) > 0.0)) {
+				b = c;
+			} else {
+				a = c;
+			}
+		} else {
+			if ((!down_c) | (SIDE(pt, a, c) >= 0.0)) {
+				a = c;
+			} else {
+				b = c;
+			}
+		}
+	}
+	printf("say what?");
+	return a; /* should not happen */
+}
+
 static PyObject *
 Poly_pt_tangents(PlanarPolygonObject *self, PyObject *point)
 {
@@ -696,21 +770,26 @@ Poly_pt_tangents(PlanarPolygonObject *self, PyObject *point)
 			"expected Vec2 object for argument");
 		return NULL;
 	}
-	prev_turn = SIDE(v0, v1, &pt);
-	v0 = v_end = v1;
-	for (v1 = self->vert; v1 <= v_end; ++v1) {
-		next_turn = SIDE(v0, v1, &pt);
-		if ((prev_turn <= 0.0) & (next_turn > 0.0)) {
-			if (SIDE(&pt, v0, right_tan) >= 0.0) {
-				right_tan = v0;
+	if (self->flags & POLY_CONVEX_FLAG) {
+		left_tan = Poly_left_tan_convex(self, &pt);
+		right_tan = Poly_right_tan_convex(self, &pt);
+	} else {
+		prev_turn = SIDE(v0, v1, &pt);
+		v0 = v_end = v1;
+		for (v1 = self->vert; v1 <= v_end; ++v1) {
+			next_turn = SIDE(v0, v1, &pt);
+			if ((prev_turn <= 0.0) & (next_turn > 0.0)) {
+				if (SIDE(&pt, v0, right_tan) >= 0.0) {
+					right_tan = v0;
+				}
+			} else if ((prev_turn > 0.0) & (next_turn <= 0.0)) {
+				if (SIDE(&pt, v0, left_tan) <= 0.0) {
+					left_tan = v0;
+				}
 			}
-		} else if ((prev_turn > 0.0) & (next_turn <= 0.0)) {
-			if (SIDE(&pt, v0, left_tan) <= 0.0) {
-				left_tan = v0;
-			}
+			v0 = v1;
+			prev_turn = next_turn;
 		}
-		v0 = v1;
-		prev_turn = next_turn;
 	}
 	return PyTuple_Pack(2, 
 		PlanarVec2_FromStruct(left_tan), 
