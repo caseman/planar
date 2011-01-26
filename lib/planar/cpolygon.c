@@ -23,7 +23,7 @@ Poly_alloc_new(PyTypeObject *type, Py_ssize_t size)
 			"Polygon: minimum of 3 vertices required");
 		return NULL;
 	}
-	/* Allocate space for extra verst to duplicate the first
+	/* Allocate space for extra verts to duplicate the first
 	 * and last vert at either end to simplify many operations */
 	poly = (PlanarPolygonObject *)type->tp_alloc(type, size + 2);
 	if (poly != NULL) {
@@ -97,6 +97,11 @@ error:
 
 static void
 Poly_dealloc(PlanarPolygonObject *self) {
+	if (self->lt_y_poly != NULL) {
+		PyMem_Free(self->lt_y_poly);
+		self->lt_y_poly = NULL;
+		self->rt_y_poly = NULL;
+	}
     Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
@@ -794,6 +799,213 @@ Poly_pt_tangents(PlanarPolygonObject *self, PyObject *point)
 		PlanarVec2_FromStruct(right_tan));
 }
 
+static int
+pnp_winding_test(PlanarPolygonObject *self, planar_vec2_t *pt)
+{
+	int winding_no = 0;
+	planar_vec2_t *v0 = self->vert + Py_SIZE(self) - 1;
+	planar_vec2_t *v_end = v0;
+	planar_vec2_t *v1;
+	int v1_above;
+	int v0_above = (v0->y >= pt->y);
+	for (v1 = self->vert; v1 <= v_end; ++v1) {
+		v1_above = (v1->y >= pt->y);
+		if (v0_above != v1_above) {
+			if (v1_above) { /* Upward crossing */
+				winding_no += (SIDE(v0, v1, pt) <= 0);
+			} else {
+				winding_no -= (SIDE(v0, v1, pt) >= 0);
+			}
+		}
+		v0_above = v1_above;
+		v0 = v1;
+	}
+	return winding_no != 0;
+}
+
+static int 
+split_y_polylines(PlanarPolygonObject *self) 
+{
+	double min_x, max_x, min_y, max_y;	
+	planar_vec2_t *v, *v_end, *p, *pl1, *pl2;
+	planar_vec2_t *min, *max, *left, *right;
+
+	self->lt_y_poly = (planar_vec2_t *)PyMem_Malloc(
+		sizeof(planar_vec2_t) * (Py_SIZE(self) + 2));
+	if (self->lt_y_poly == NULL) {
+		return -1;
+	}
+	min = max = self->vert;
+	min_y = max_y = self->vert[0].y;
+	min_x = max_x = self->vert[0].x;
+	v_end = self->vert + Py_SIZE(self) - 1;
+	for (v = self->vert + 1; v <= v_end; ++v) {
+		if (v->y < min_y) {
+			min_y = v->y;
+			min = v;
+		}
+		if (v->y > max_y) {
+			max_y = v->y;
+			max = v;
+		}
+		if (v->x < min_x) {
+			min_x = v->x;
+			left = v;
+		}
+		if (v->x > max_x) {
+			max_x = v->x;
+			right = v;
+		}
+	}
+	if (min < max) {
+		if ((min <= left && left < max) || right < min || right > max) {
+			pl1 = self->lt_y_poly;
+			pl2 = self->rt_y_poly = pl1 + (max - min) + 1;
+		} else {
+			pl2 = self->lt_y_poly;
+			pl1 = self->rt_y_poly = pl2 + (Py_SIZE(self) - (max - min)) + 1;
+		}
+		for (v = min, p = pl1; v <= max; ++v, ++p) {
+			p->x = v->x;
+			p->y = v->y;
+		}
+		for (v = min, p = pl2; v >= self->vert; --v, ++p) {
+			p->x = v->x;
+			p->y = v->y;
+		}
+		for (v = v_end; v >= max; --v, ++p) {
+			p->x = v->x;
+			p->y = v->y;
+		}
+	} else {
+		if ((min >= left && left > max) || right > min || right < max) {
+			pl1 = self->lt_y_poly;
+			pl2 = self->rt_y_poly = pl1 + (min - max) + 1;
+		} else {
+			pl2 = self->lt_y_poly;
+			pl1 = self->rt_y_poly = pl2 + (Py_SIZE(self) - (min - max)) + 1;
+		}
+		for (v = min, p = pl1; v >= max; --v, ++p) {
+			p->x = v->x;
+			p->y = v->y;
+		}
+		for (v = min, p = pl2; v <= v_end; ++v, ++p) {
+			p->x = v->x;
+			p->y = v->y;
+		}
+		for (v = self->vert; v <= max; ++v, ++p) {
+			p->x = v->x;
+			p->y = v->y;
+		}
+	}
+	return 0;
+}
+
+static int pnp_y_monotone_test(PlanarPolygonObject *self, planar_vec2_t *pt)
+{
+	planar_vec2_t *v, *lo, *hi;
+	double pt_y = pt->y;
+
+	if (self->lt_y_poly == NULL) {
+		if (split_y_polylines(self) == -1) {
+			return -1;
+		}
+	}
+	lo = self->lt_y_poly;
+	hi = self->rt_y_poly - 1;
+	if ((pt_y < lo->y) | (pt_y > hi->y)) {
+		return 0;
+	}
+	while (lo < hi) {
+		v = lo + (hi - lo) / 2;
+		if (pt_y < v->y) {
+			hi = v;
+		} else {
+			lo = v + 1;
+		}
+	}
+	if (SIDE(lo - 1, lo, pt) > 0.0) {
+		/* pt too far left */
+		return 0;
+	}
+	lo = self->rt_y_poly;
+	hi = self->lt_y_poly + Py_SIZE(self) + 1;
+	while (lo < hi) {
+		v = lo + (hi - lo) / 2;
+		if (pt_y < v->y) {
+			hi = v;
+		} else {
+			lo = v + 1;
+		}
+	}
+	return SIDE(lo - 1, lo, pt) > 0.0;
+}
+
+static PyObject *
+Poly_contains_point(PlanarPolygonObject *self, PyObject *point)
+{
+	planar_vec2_t pt;
+	int result;
+	
+	if (!PlanarVec2_Parse(point, &pt.x, &pt.y)) {
+		PyErr_SetString(PyExc_TypeError,
+			"Polygon.contains_point(): "
+			"expected Vec2 object for argument");
+		return NULL;
+	}
+	if (self->flags & POLY_CONVEX_FLAG && Py_SIZE(self) > 5) {
+		result = pnp_y_monotone_test(self, &pt);
+	} else {
+		result = pnp_winding_test(self, &pt);
+	}
+	if (result != -1) {
+		return Py_BOOL(result);
+	} else {
+		return PyErr_NoMemory();
+	}
+}
+
+static PyObject *
+Poly_pnp_y_monotone_test(PlanarPolygonObject *self, PyObject *point)
+{
+	planar_vec2_t pt;
+	int result;
+	
+	if (!PlanarVec2_Parse(point, &pt.x, &pt.y)) {
+		PyErr_SetString(PyExc_TypeError,
+			"Polygon.contains_point(): "
+			"expected Vec2 object for argument");
+		return NULL;
+	}
+		result = pnp_y_monotone_test(self, &pt);
+	if (result != -1) {
+		return Py_BOOL(result);
+	} else {
+		return PyErr_NoMemory();
+	}
+}
+
+static PyObject *
+Poly_pnp_winding_test(PlanarPolygonObject *self, PyObject *point)
+{
+	planar_vec2_t pt;
+	int result;
+	
+	if (!PlanarVec2_Parse(point, &pt.x, &pt.y)) {
+		PyErr_SetString(PyExc_TypeError,
+			"Polygon.contains_point(): "
+			"expected Vec2 object for argument");
+		return NULL;
+	}
+		result = pnp_winding_test(self, &pt);
+	if (result != -1) {
+		return Py_BOOL(result);
+	} else {
+		return PyErr_NoMemory();
+	}
+}
+
+
 static PyMethodDef Poly_methods[] = {
     {"regular", (PyCFunction)Poly_new_regular, 
 		METH_CLASS | METH_VARARGS | METH_KEYWORDS, 
@@ -808,6 +1020,10 @@ static PyMethodDef Poly_methods[] = {
 		"Given a point exterior to the polygon, return the pair of "
         "vertex points from the polygon that define the tangent lines with "
 		"the specified point."},
+	{"contains_point", (PyCFunction)Poly_contains_point, METH_O,
+		"Return True if the specified point is inside the polygon."},
+	{"_pnp_y_monotone_test", (PyCFunction)Poly_pnp_y_monotone_test, METH_O, ""},
+	{"_pnp_winding_test", (PyCFunction)Poly_pnp_winding_test, METH_O, ""},
     {NULL, NULL}
 };
 

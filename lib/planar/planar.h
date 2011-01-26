@@ -83,6 +83,8 @@ cos_sin_deg(double deg, double *cosout, double *sinout)
 
 #define VEC_EQ(a, b) (((a)->x == (b)->x) & ((a)->y == (b)->y))
 #define VEC_NEQ(a, b) (((a)->x != (b)->x) | ((a)->y != (b)->y))
+#define VEC_LT(a, b) (((a)->x < (b)->x) | (((a)->x == (b)->x) \
+	& ((a)->y < (b)->y)))
 
 /* Given the line a->b, return negative if c is to the left of the line,
    positive if c is to the right, and 0 if c is colinear.
@@ -142,6 +144,7 @@ typedef struct {
 	planar_vec2_t centroid;
 	double max_r2;
 	double min_r2;
+	planar_vec2_t *lt_y_poly, *rt_y_poly;
 	planar_vec2_t data[1];
 } PlanarPolygonObject;
 
