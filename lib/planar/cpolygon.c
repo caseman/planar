@@ -527,13 +527,19 @@ Poly_get_is_convex_known(PlanarPolygonObject *self) {
 	return Py_BOOL(self->flags & POLY_CONVEX_KNOWN_FLAG);
 }
 
-static PyObject *
-Poly_get_is_convex(PlanarPolygonObject *self)
+static int
+poly_is_convex(PlanarPolygonObject *self)
 {
 	if (!(self->flags & POLY_CONVEX_KNOWN_FLAG)) {
 		Poly_classify(self);
 	}
-	return Py_BOOL(self->flags & POLY_CONVEX_FLAG);
+	return self->flags & POLY_CONVEX_FLAG;
+}
+
+static PyObject *
+Poly_get_is_convex(PlanarPolygonObject *self)
+{
+	return Py_BOOL(poly_is_convex(self));
 }
 
 static PyObject *
@@ -644,6 +650,17 @@ Poly_getitem(PlanarPolygonObject *self, Py_ssize_t index)
 }
 
 static int
+clear_cached_properties(PlanarPolygonObject *self)
+{
+	self->flags = 0;
+	if (self->lt_y_poly != NULL) {
+		PyMem_Free(self->lt_y_poly);
+		self->lt_y_poly = NULL;
+		self->rt_y_poly = NULL;
+	}
+}
+
+static int
 Poly_assitem(PlanarPolygonObject *self, Py_ssize_t index, PyObject *v)
 {
     double x, y;
@@ -659,7 +676,7 @@ Poly_assitem(PlanarPolygonObject *self, Py_ssize_t index, PyObject *v)
 		}
         self->vert[index].x = x;
         self->vert[index].y = y;
-		self->flags = 0;
+		clear_cached_properties(self);
         return 0;
     }
     PyErr_Format(PyExc_IndexError, 
@@ -773,7 +790,7 @@ Poly_pt_tangents(PlanarPolygonObject *self, PyObject *point)
 			"expected Vec2 object for argument");
 		return NULL;
 	}
-	if (self->flags & POLY_CONVEX_FLAG) {
+	if (poly_is_convex(self)) {
 		left_tan = Poly_left_tan_convex(self, &pt);
 		right_tan = Poly_right_tan_convex(self, &pt);
 	} else {
@@ -953,7 +970,7 @@ Poly_contains_point(PlanarPolygonObject *self, PyObject *point)
 			"expected Vec2 object for argument");
 		return NULL;
 	}
-	if (self->flags & POLY_CONVEX_FLAG && Py_SIZE(self) > 5) {
+	if (poly_is_convex(self) && Py_SIZE(self) > 5) {
 		result = pnp_y_monotone_test(self, &pt);
 	} else {
 		result = pnp_winding_test(self, &pt);

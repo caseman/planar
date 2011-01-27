@@ -1,7 +1,7 @@
 from random import random, randint
 from timeit import timeit
 from planar import Vec2
-from planar.polygon import Polygon
+from planar.c import Polygon
 
 def rand_pt(span=10):
 	return Vec2(random() * span - 0, random() * span - 0.5)
@@ -44,8 +44,8 @@ def rand_y_mono(vert_count):
 		verts = verts[first_i:] + verts[:first_i]
 	assert len(verts) == vert_count, (len(verts), vert_count)
 	poly = Polygon(verts)
-	poly._split_y_polylines()
-	assert poly._y_polylines == (pl1, pl2), (poly._y_polylines, (pl1, pl2))
+	#poly._split_y_polylines()
+	#assert poly._y_polylines == (pl1, pl2), (poly._y_polylines, (pl1, pl2))
 	return poly
 
 pts = [rand_pt(10) for i in range(2000)]
@@ -64,7 +64,7 @@ def poly_winding_test(poly):
 			winding_test(pt)
 	return test
 
-for verts in [4, 5, 6, 7, 8, 9, 10, 20, 40, 80, 160, 320, 640]:
+for verts in [4, 5, 6, 7, 8, 9, 10, 20, 40, 80, 160, 320, 640, 1280, 3000]:
 	poly = rand_y_mono(verts)
 	winding_test = poly._pnp_winding_test
 	ymono_test = poly._pnp_y_monotone_test

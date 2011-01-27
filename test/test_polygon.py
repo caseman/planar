@@ -412,7 +412,8 @@ class PolygonBaseTestCase(object):
         assert not poly.contains_point((2.1,4))
 
     def test_contains_point_convex_no_centroid(self):
-        poly = self.Polygon([(1,1), (0,2), (-1,0.5), (-1,-1), (0.5,-1)])
+        poly = self.Polygon(
+            [(1,1), (0,2), (-0.9, 1.5), (-1,0.5), (-1,-1), (0.5,-1)])
         assert poly.is_convex
         assert not poly.is_centroid_known
         assert poly.contains_point((0, 0))
@@ -432,6 +433,17 @@ class PolygonBaseTestCase(object):
         assert not poly.contains_point((100, -100))
         assert not poly.contains_point((-100, 100))
         assert not poly.contains_point((100, 100))
+
+    def test_contains_point_convex_with_mutation(self):
+        poly = self.Polygon(
+            [(-1.5,0), (0,2), (1, 0), (1.5,-2), (-0.5,-2), (-1,-1.5)])
+        assert poly.is_convex
+        assert poly.contains_point((0, 0))
+        assert poly.contains_point((1,-1.5))
+        poly[3] = (0.5,-2)
+        assert poly.is_convex
+        assert poly.contains_point((0, 0))
+        assert not poly.contains_point((1,-1.5))
 
     def test_contains_point_regular(self):
         poly = self.Polygon.regular(8, 1.5, center=(1,1), angle=22.5)

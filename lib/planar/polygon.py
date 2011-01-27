@@ -983,7 +983,6 @@ def _ahull_sort_points(hull, points, p0, p1):
             else:
                 break
         push(p)
-    print "hey!"
     pop()
     hull.extend(stack)
 

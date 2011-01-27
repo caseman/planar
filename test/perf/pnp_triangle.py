@@ -1,6 +1,6 @@
 from timeit import timeit
 from planar import Vec2
-from planar.polygon import Polygon
+from planar.c import Polygon
 from random import random
 import itertools
 
@@ -9,16 +9,17 @@ def rand_pt(span=10):
 
 tris = [Polygon([rand_pt(), rand_pt(), rand_pt()]) for i in range(100)]
 pts = [rand_pt(20) for i in range(1000)]
-ins = 0
+ins = count = 0
 
 # confirm the two algorithms agree
 for tri in tris:
-	crossing_test = tri._pnp_crossing_test
+	winding_test = tri._pnp_winding_test
 	bary_test = tri._pnp_triangle_test
 	for p in pts:
-		cross = crossing_test(p)
+		cross = winding_test(p)
 		bary = bary_test(p)
 		ins += bary
+		count += 1
 		assert cross == bary, (count, list(tri), p, cross, bary)
 
 print("ins", ins)
@@ -28,19 +29,19 @@ times = 10
 
 def test_null():
 	for tri in tris:
-		crossing_test = tri._pnp_crossing_test
+		winding_test = tri._pnp_winding_test
 		for p in pts:
 			pass
 
 null = timeit(test_null, number=times)
 
-def test_crossing():
+def test_winding():
 	for tri in tris:
-		crossing_test = tri._pnp_crossing_test
+		winding_test = tri._pnp_winding_test
 		for p in pts:
-			crossing_test(p)
+			winding_test(p)
 
-print("crossing", timeit(test_crossing, number=times) - null)
+print("winding", timeit(test_winding, number=times) - null)
 
 def test_bary():
 	for tri in tris:
