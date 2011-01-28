@@ -2427,60 +2427,7 @@ Vec2Array_neg(PlanarSeq2Object *self)
 static PyObject *
 Vec2Array__repr__(PlanarSeq2Object *self)
 {
-	PyObject *repr = NULL;
-	PyObject *parts = NULL;
-	PyObject *s = NULL;
-	PyObject *joined = NULL;
-	PyObject *sep_str = NULL;
-	PyObject *join_str = NULL;
-	PyObject *format_str = NULL;
-	PyObject *format_args = NULL;
-	Py_ssize_t i;
-	char buf[255];
-
-	parts = PyList_New(Py_SIZE(self));
-	if (parts == NULL) {
-		goto done;
-	}
-	for (i = 0; i < Py_SIZE(self); ++i) {
-		PyOS_snprintf(buf, 255, "(%lg, %lg)",
-			self->vec[i].x, self->vec[i].y);
-		s = PyUnicode_FromString(buf);
-		if (s == NULL) {
-			goto done;
-		}
-		PyList_SET_ITEM(parts, i, s);
-	}
-	s = NULL;
-	sep_str = PyUnicode_FromString(", ");
-	join_str = PyUnicode_FromString("join");
-	if (sep_str == NULL || join_str == NULL) {
-		goto done;
-	}
-	joined = PyObject_CallMethodObjArgs(sep_str, join_str, parts, NULL);
-	if (joined == NULL) {
-		goto done;
-	}
-	s = PyUnicode_FromString("Vec2Array");
-	if (s == NULL) {
-		goto done;
-	}
-	format_str = PyUnicode_FromString("%s([%s])");
-	format_args = PyTuple_Pack(2, s, joined);
-	if (format_str == NULL || format_args == NULL) {
-		goto done;
-	}
-	repr = PyUnicode_Format(format_str, format_args);
-
-done:
-	Py_XDECREF(parts);
-	Py_XDECREF(s);
-	Py_XDECREF(joined);
-	Py_XDECREF(sep_str);
-	Py_XDECREF(join_str);
-	Py_XDECREF(format_str);
-	Py_XDECREF(format_args);
-	return repr;
+	return Seq2__repr__(self, "Vec2Array", NULL);
 }
 
 static PyNumberMethods Vec2Array_as_number = {

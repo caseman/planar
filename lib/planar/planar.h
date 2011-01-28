@@ -342,6 +342,71 @@ error:
     return 0;
 }
 
+
+
+static PyObject *
+Seq2__repr__(PlanarSeq2Object *self, char *class_name, char *extra)
+{
+	PyObject *repr = NULL;
+	PyObject *parts = NULL;
+	PyObject *s = NULL;
+	PyObject *ex = NULL;
+	PyObject *joined = NULL;
+	PyObject *sep_str = NULL;
+	PyObject *join_str = NULL;
+	PyObject *format_str = NULL;
+	PyObject *format_args = NULL;
+	Py_ssize_t i;
+	char buf[256];
+
+	parts = PyList_New(Py_SIZE(self));
+	if (parts == NULL) {
+		goto done;
+	}
+	for (i = 0; i < Py_SIZE(self); ++i) {
+		PyOS_snprintf(buf, 255, "(%lg, %lg)",
+			self->vec[i].x, self->vec[i].y);
+		s = PyUnicode_FromString(buf);
+		if (s == NULL) {
+			goto done;
+		}
+		PyList_SET_ITEM(parts, i, s);
+	}
+	s = NULL;
+	sep_str = PyUnicode_FromString(", ");
+	join_str = PyUnicode_FromString("join");
+	if (sep_str == NULL || join_str == NULL) {
+		goto done;
+	}
+	joined = PyObject_CallMethodObjArgs(sep_str, join_str, parts, NULL);
+	s = PyUnicode_FromString(class_name);
+	if (extra != NULL) {
+		ex = PyUnicode_FromString(extra);
+	} else {
+		ex = PyUnicode_FromString("");
+	}
+	if (joined == NULL || s == NULL || ex == NULL) {
+		goto done;
+	}
+	format_str = PyUnicode_FromString("%s([%s]%s)");
+	format_args = PyTuple_Pack(3, s, joined, ex);
+	if (format_str == NULL || format_args == NULL) {
+		goto done;
+	}
+	repr = PyUnicode_Format(format_str, format_args);
+
+done:
+	Py_XDECREF(parts);
+	Py_XDECREF(s);
+	Py_XDECREF(joined);
+	Py_XDECREF(ex);
+	Py_XDECREF(sep_str);
+	Py_XDECREF(join_str);
+	Py_XDECREF(format_str);
+	Py_XDECREF(format_args);
+	return repr;
+}
+
 /* Seq2 utils */
 
 #define PlanarSeq2_Check(op) PyObject_TypeCheck(op, &PlanarSeq2Type)

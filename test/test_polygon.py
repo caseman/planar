@@ -728,20 +728,20 @@ class PolygonBaseTestCase(object):
             assert 0 <= pt[0] <= 12, pt
 
     def test_str_and_repr(self):
-        poly = self.Polygon([(0,3.5), (1,4), (0,2), (-0.5,0)])
+        poly = self.Polygon([(0.2,3.5), (1.3,4.1), (0.1,2.3), (-0.5,0.1)])
         assert_equal(repr(poly), 
-            "Polygon([(0.0, 3.5), (1.0, 4.0), (0.0, 2.0), (-0.5, 0.0)])")
+            "Polygon([(0.2, 3.5), (1.3, 4.1), (0.1, 2.3), (-0.5, 0.1)])")
         assert_equal(repr(poly), str(poly))
         assert not poly.is_convex
         assert poly.is_simple
         assert_equal(repr(poly), 
-            "Polygon([(0.0, 3.5), (1.0, 4.0), (0.0, 2.0), (-0.5, 0.0)], "
+            "Polygon([(0.2, 3.5), (1.3, 4.1), (0.1, 2.3), (-0.5, 0.1)], "
             "is_convex=False, is_simple=True)")
         assert_equal(repr(poly), str(poly))
-        poly = self.Polygon([(1,1), (0,0), (2,2)])
+        poly = self.Polygon([(1.3,1.5), (0.1,0.1), (2.3,2.3)])
         assert poly.is_convex
         assert_equal(repr(poly),
-            "Polygon([(1.0, 1.0), (0.0, 0.0), (2.0, 2.0)], is_convex=True)")
+            "Polygon([(1.3, 1.5), (0.1, 0.1), (2.3, 2.3)], is_convex=True)")
         assert_equal(repr(poly), str(poly))
 
     def test_copy(self):

@@ -1022,6 +1022,26 @@ Poly_pnp_winding_test(PlanarPolygonObject *self, PyObject *point)
 	}
 }
 
+static PyObject *
+Poly__repr__(PlanarPolygonObject *self)
+{
+	char props[256];
+	int is_convex;
+	
+	props[0] = 0;
+	if (self->flags & POLY_CONVEX_KNOWN_FLAG) {
+		if (!(self->flags & POLY_CONVEX_FLAG)
+			&& self->flags & POLY_SIMPLE_KNOWN_FLAG) {
+			PyOS_snprintf(props, 255, ", is_convex=%s, is_simple=%s",
+				self->flags & POLY_CONVEX_FLAG ? "True" : "False",
+				self->flags & POLY_SIMPLE_FLAG ? "True" : "False");
+		} else {
+			PyOS_snprintf(props, 255, ", is_convex=%s", 
+				self->flags & POLY_CONVEX_FLAG ? "True" : "False");
+		}
+	}
+	return Seq2__repr__((PlanarSeq2Object *)self, "Polygon", props);
+}
 
 static PyMethodDef Poly_methods[] = {
     {"regular", (PyCFunction)Poly_new_regular, 
@@ -1060,13 +1080,13 @@ PyTypeObject PlanarPolygonType = {
 	0,                      /*tp_getattr*/
 	0,                      /*tp_setattr*/
 	0,		        /*tp_compare*/
-	0, //(reprfunc)Vec2Array__repr__, /*tp_repr*/
+	(reprfunc)Poly__repr__, /*tp_repr*/
 	0, //&Vec2Array_as_number,        /*tp_as_number*/
 	&Poly_as_sequence,      /*tp_as_sequence*/
 	0, //&Vec2Array_as_mapping,	     /*tp_as_mapping*/
 	0,	                /*tp_hash*/
 	0,                      /*tp_call*/
-	0, //(reprfunc)Vec2Array__repr__, /*tp_str*/
+	(reprfunc)Poly__repr__, /*tp_str*/
 	0,                      /*tp_getattro*/
 	0,                      /*tp_setattro*/
 	0,                      /*tp_as_buffer*/
