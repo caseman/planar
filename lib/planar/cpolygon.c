@@ -462,16 +462,15 @@ Poly_classify(PlanarPolygonObject *self)
 static int
 Poly_check_is_simple(PlanarPolygonObject *self)
 {
-	planar_vec2_t **points, **p, *v;
+	planar_vec2_t **points, **p, **p_end, *v, *v_end;
 	planar_vec2_t **open = NULL;
 	planar_vec2_t **o, **next_open;
-	Py_ssize_t i, j;
 	const Py_ssize_t size = Py_SIZE(self);
 	const Py_ssize_t last_index = size - 1;
 	int result = 1;
 
 	points = (planar_vec2_t **)PyMem_Malloc(
-		sizeof(planar_vec2_t *) * (size + 1));
+		sizeof(planar_vec2_t *) * size);
 	if (points == NULL) {
 		PyErr_NoMemory();
 		result = 0;
@@ -479,11 +478,11 @@ Poly_check_is_simple(PlanarPolygonObject *self)
 	}
 	DUP_FIRST_VERT(self);
 	p = points;
-	v = self->vert;
-	for (i = 0; i <= size; ++i) {
-		*(p++) = v++;
+	v_end = self->vert + size;
+	for (v = self->vert; v < v_end; ++v) {
+		*(p++) = v;
 	}
-	qsort(points, size + 1, sizeof(planar_vec2_t *), compare_vec_lexi);	
+	qsort(points, size, sizeof(planar_vec2_t *), compare_vec_lexi);	
 	open = (planar_vec2_t **)PyMem_Malloc(
 		sizeof(planar_vec2_t *) * (size + 1));
 	if (open == NULL) {
@@ -493,20 +492,22 @@ Poly_check_is_simple(PlanarPolygonObject *self)
 	}
 
 	next_open = open;
-	for (i = 0, p = points; i <= size; ++i, ++p) {
+	p_end = points + size;
+	for (p = points; p < p_end; ++p) {
 		for (o = open; o < next_open; ++o) {
-			if (abs(*p - *o) > 1 && abs(*p - *o) < last_index /* ignore adjacent edges */
-				&& segments_intersect(*p, (*p)+1, *o, (*o)+1)) {
-				self->flags |= POLY_SIMPLE_KNOWN_FLAG;
-				self->flags &= ~POLY_SIMPLE_FLAG;
-				goto finish;
-			} else if (*p == (*o)+1) {
+			if ((*p == (*o)+1) | (*o - *p == last_index)) {
 				/* Segment end point */ 
 				--next_open;
 				if (o < next_open && *o != *next_open) {
 					*o = *next_open;
-					--j;
+					--o;
 				}
+			} else if (abs(*p - *o) > 1 && abs(*p - *o) < last_index 
+				/* ignore adjacent edges */
+				&& segments_intersect(*p, (*p)+1, *o, (*o)+1)) {
+				self->flags |= POLY_SIMPLE_KNOWN_FLAG;
+				self->flags &= ~POLY_SIMPLE_FLAG;
+				goto finish;
 			}
 		}
 		*(next_open++) = *p;
