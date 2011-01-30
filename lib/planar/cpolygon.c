@@ -462,7 +462,7 @@ Poly_classify(PlanarPolygonObject *self)
 static int
 Poly_check_is_simple(PlanarPolygonObject *self)
 {
-	planar_vec2_t **points, **p, **p_end, *v, *v_end;
+	planar_vec2_t **points, **p, *v;
 	planar_vec2_t **open = NULL;
 	planar_vec2_t **o, **next_open;
 	const Py_ssize_t size = Py_SIZE(self);
@@ -478,8 +478,7 @@ Poly_check_is_simple(PlanarPolygonObject *self)
 	}
 	DUP_FIRST_VERT(self);
 	p = points;
-	v_end = self->vert + size;
-	for (v = self->vert; v < v_end; ++v) {
+	for (v = self->vert; v < self->vert + size; ++v) {
 		*(p++) = v;
 	}
 	qsort(points, size, sizeof(planar_vec2_t *), compare_vec_lexi);	
@@ -492,8 +491,7 @@ Poly_check_is_simple(PlanarPolygonObject *self)
 	}
 
 	next_open = open;
-	p_end = points + size;
-	for (p = points; p < p_end; ++p) {
+	for (p = points; p < points + size; ++p) {
 		for (o = open; o < next_open; ++o) {
 			if ((*p == (*o)+1) | (*o - *p == last_index)) {
 				/* Segment end point */ 
