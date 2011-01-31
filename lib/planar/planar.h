@@ -245,6 +245,24 @@ hash_double(double v)
 #define Py_BOOL(i) (i) ? (Py_INCREF(Py_True), Py_True) \
                        : (Py_INCREF(Py_False), Py_False)
 
+/* Call the method "from_points(points)" on the Python object
+   specified. This is the generic API for instantiating 
+   a planar object from a sequence of points 
+*/
+static PyObject *
+call_from_points(PyObject *obj, PyObject *points) 
+{
+	static PyObject *from_points_str = NULL;
+
+	if (from_points_str == NULL) {
+		from_points_str = PyUnicode_InternFromString("from_points");
+		if (from_points_str == NULL) {
+			return NULL;
+		}
+	}
+	return PyObject_CallMethodObjArgs(obj, from_points_str, points, NULL);
+}
+
 /***************************************************************************/
 
 extern double PLANAR_EPSILON;

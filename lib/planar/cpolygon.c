@@ -1042,6 +1042,44 @@ Poly__repr__(PlanarPolygonObject *self)
 	return Seq2__repr__((PlanarSeq2Object *)self, "Polygon", props);
 }
 
+static PyObject *
+Poly_copy(PlanarPolygonObject *self, PyObject *args)
+{
+	PyObject *result;
+    PlanarPolygonObject *poly;
+    
+    assert(PlanarPolygon_Check(self));
+    poly = Poly_alloc_new(Py_TYPE(self), Py_SIZE(self));
+    if (poly == NULL) {
+		return NULL;
+    }
+    memcpy(poly->vert, self->vert, sizeof(planar_vec2_t) * Py_SIZE(self));
+	if (PlanarPolygon_CheckExact(self)) {
+		poly->flags = self->flags;
+		poly->centroid.x = self->centroid.x;
+		poly->centroid.y = self->centroid.y;
+		poly->min_r2 = self->min_r2;
+		poly->max_r2 = self->max_r2;
+		if (self->lt_y_poly != NULL) {
+			poly->lt_y_poly = (planar_vec2_t *)PyMem_Malloc(
+				sizeof(planar_vec2_t) * (Py_SIZE(self) + 2));
+			if (poly == NULL) {
+				Py_DECREF(poly);
+				return PyErr_NoMemory();
+			}
+			memcpy(poly->lt_y_poly, self->lt_y_poly, 
+				sizeof(planar_vec2_t) * (Py_SIZE(self) + 2));
+			poly->rt_y_poly = poly->lt_y_poly + (
+				self->rt_y_poly - self->lt_y_poly);
+		}
+		return (PyObject *)poly;
+	} else {
+		result = call_from_points((PyObject *)self, (PyObject *)poly);
+		Py_DECREF(poly);
+		return result;
+	}
+}
+
 static PyMethodDef Poly_methods[] = {
     {"regular", (PyCFunction)Poly_new_regular, 
 		METH_CLASS | METH_VARARGS | METH_KEYWORDS, 
@@ -1058,8 +1096,10 @@ static PyMethodDef Poly_methods[] = {
 		"the specified point."},
 	{"contains_point", (PyCFunction)Poly_contains_point, METH_O,
 		"Return True if the specified point is inside the polygon."},
-	{"_pnp_y_monotone_test", (PyCFunction)Poly_pnp_y_monotone_test, METH_O, ""},
-	{"_pnp_winding_test", (PyCFunction)Poly_pnp_winding_test, METH_O, ""},
+    {"__copy__", (PyCFunction)Poly_copy, METH_NOARGS, NULL}, 
+    {"__deepcopy__", (PyCFunction)Poly_copy, METH_O, NULL}, 
+	{"_pnp_y_monotone_test", (PyCFunction)Poly_pnp_y_monotone_test, METH_O, NULL},
+	{"_pnp_winding_test", (PyCFunction)Poly_pnp_winding_test, METH_O, NULL},
     {NULL, NULL}
 };
 

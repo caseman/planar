@@ -183,13 +183,13 @@ class Polygon(planar.Seq2):
         if len(self) > 3:
             self._convex = _unknown
             self._simple = _unknown
-            self._y_polylines = None
         else:
             self._convex = True
             self._simple = True
             if '_pnp_triangle_test' in self.__dict__:
                 # clear cached closure
                 del self.__dict__['_pnp_triangle_test']
+        self._y_polylines = None
         self._dupe_verts = _unknown
         self._degenerate = _unknown
         self._bbox = None

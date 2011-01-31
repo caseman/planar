@@ -886,24 +886,6 @@ Seq2_pynew(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 	}
 }
 
-/* Call the method "new_from_points(points)" on the Python object
-   specified. This is the generic API for instantiating 
-   a planar object from a sequence of points 
-*/
-static PyObject *
-call_from_points(PyObject *obj, PlanarSeq2Object *points) 
-{
-	static PyObject *from_points_str = NULL;
-
-	if (from_points_str == NULL) {
-		from_points_str = PyUnicode_InternFromString("from_points");
-		if (from_points_str == NULL) {
-			return NULL;
-		}
-	}
-	return PyObject_CallMethodObjArgs(obj, from_points_str, points, NULL);
-}
-	
 static void
 Seq2_dealloc(PlanarSeq2Object *self)
 {
@@ -1068,7 +1050,7 @@ Seq2_copy(PlanarSeq2Object *self)
 	if (PlanarVec2Array_CheckExact(self) || PlanarSeq2_CheckExact(self)) {
 		return (PyObject *)varray;
 	} else {
-		result = call_from_points((PyObject *)self, varray);
+		result = call_from_points((PyObject *)self, (PyObject *)varray);
 		Py_DECREF(varray);
 		return result;
 	}
@@ -1080,7 +1062,7 @@ static PyMethodDef Seq2_methods[] = {
     {"from_points", (PyCFunction)Seq2_new_from_points, METH_CLASS | METH_O, 
 		"Create a new 2D sequence from an iterable of points"},
     {"__copy__", (PyCFunction)Seq2_copy, METH_NOARGS, NULL}, 
-    {"__deepcopy__", (PyCFunction)Seq2_copy, METH_NOARGS, NULL}, 
+    {"__deepcopy__", (PyCFunction)Seq2_copy, METH_O, NULL}, 
     {NULL, NULL}
 };
 
@@ -1967,7 +1949,7 @@ static PyMethodDef Vec2Array_methods[] = {
    given the two operands and the result sequence
 */
 static PyObject *
-create_result_seq2(PyObject *a, PyObject *b, PlanarSeq2Object *seq)
+create_result_seq2(PyObject *a, PyObject *b, PyObject *seq)
 {
 	if (!PlanarVec2Array_Check(b) && PlanarSeq2_Check(b)) {
 		return call_from_points(b, seq);
@@ -1979,7 +1961,7 @@ create_result_seq2(PyObject *a, PyObject *b, PlanarSeq2Object *seq)
 		return call_from_points(a, seq);
 	} else {
 		Py_INCREF(seq);
-		return (PyObject *)seq;
+		return seq;
 	}
 }
 
@@ -2050,7 +2032,7 @@ Vec2Array__add__(PyObject *a, PyObject *b)
 		return varray;
 	}
 	assert(PlanarVec2Array_Check(varray));
-	result = create_result_seq2(a, b, (PlanarSeq2Object *)varray);
+	result = create_result_seq2(a, b, varray);
 	Py_DECREF(varray);
 	return result;
 }
@@ -2130,7 +2112,7 @@ Vec2Array__sub__(PyObject *a, PyObject *b)
 		return varray;
 	}
 	assert(PlanarVec2Array_Check(varray));
-	result = create_result_seq2(a, b, (PlanarSeq2Object *)varray);
+	result = create_result_seq2(a, b, varray);
 	Py_DECREF(varray);
 	return result;
 }
@@ -2225,7 +2207,7 @@ Vec2Array__mul__(PyObject *a, PyObject *b)
 		}
 	}
 	assert(PlanarVec2Array_Check(varray));
-	result = create_result_seq2(a, b, (PlanarSeq2Object *)varray);
+	result = create_result_seq2(a, b, varray);
 	Py_DECREF(varray);
 	return result;
 }
@@ -2332,7 +2314,7 @@ Vec2Array__truediv__(PyObject *a, PyObject *b)
 		return varray;
 	}
 	assert(PlanarVec2Array_Check(varray));
-	result = create_result_seq2(a, b, (PlanarSeq2Object *)varray);
+	result = create_result_seq2(a, b, varray);
 	Py_DECREF(varray);
 	return result;
 }
@@ -2375,7 +2357,7 @@ Vec2Array__floordiv__(PyObject *a, PyObject *b)
 	}
 	assert(PlanarVec2Array_Check(varray));
 	result = create_result_seq2(a, b, 
-		Vec2Array_floor((PlanarSeq2Object *)varray));
+		(PyObject *)Vec2Array_floor((PlanarSeq2Object *)varray));
 	Py_DECREF(varray);
 	return result;
 }
@@ -2418,7 +2400,7 @@ Vec2Array_neg(PlanarSeq2Object *self)
 	if (PlanarVec2Array_CheckExact(self)) {
 		return (PyObject *)varray;
 	} else {
-		result = call_from_points((PyObject *)self, varray);
+		result = call_from_points((PyObject *)self, (PyObject *)varray);
 		Py_DECREF(varray);
 		return result;
 	}

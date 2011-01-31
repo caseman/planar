@@ -307,9 +307,10 @@ class PolygonBaseTestCase(object):
         assert not poly.is_simple
 
     def test_bounding_box(self):
+        import planar
         poly = self.Polygon([(1, -2), (0, 0), (1, 0), (3, 0), (4, -2)])
         bbox = poly.bounding_box
-        assert isinstance(bbox, self.BoundingBox)
+        assert isinstance(bbox, planar.BoundingBox)
         assert_equal(bbox.min_point, (0, -2))
         assert_equal(bbox.max_point, (4, 0))
 
@@ -774,6 +775,25 @@ class PolygonBaseTestCase(object):
         assert not c.is_simple
         c[0] = (0,0.1)
         assert c[0] != p[0]
+
+    def test_copy_subclass(self):
+        from copy import copy
+        class PolySubclass(self.Polygon):
+            from_points_called = False
+            @classmethod
+            def from_points(cls, points):
+                cls.from_points_called = True
+                return super(self.Polygon, cls).from_points(points)
+
+        a = PolySubclass([(0,1), (1,2), (3,4)])
+        assert not PolySubclass.from_points_called
+        b = copy(a)
+        assert PolySubclass.from_points_called
+        assert a is not b
+        assert isinstance(b, PolySubclass)
+        assert_equal(tuple(a), tuple(b))
+        a[0] = (0, 0)
+        assert_equal(b[0], self.Vec2(0, 1))
 
     def test_deepcopy(self):
         from copy import deepcopy

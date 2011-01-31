@@ -566,6 +566,16 @@ class VectorSeqBaseTestCase(object):
         a[0] = (0, 0)
         assert_equal(b[0], self.Vec2(0, 1))
 
+    def test_deepcopy(self):
+        from copy import deepcopy
+        p = self.VecSeq([(0,0), (1,0), (1,1), (0,1)])
+        c = deepcopy(p)
+        assert isinstance(c, self.VecSeq)
+        assert c is not p
+        assert_equal(tuple(c), tuple(p))
+        c[0] = (0,0.1)
+        assert c[0] != p[0]
+
     @raises(TypeError)
     def test_unhashable(self):
         hash(self.VecSeq([(3,2), (6,0)]))

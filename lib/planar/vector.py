@@ -524,7 +524,7 @@ class Seq2(object):
         return (self.__class__ is not other.__class__ 
             or tuple(self) != tuple(other))
 
-    def __copy__(self):
+    def __copy__(self, memo=None):
         return self.from_points(self._vectors)
 
     __deepcopy__ = __copy__
