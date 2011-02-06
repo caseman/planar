@@ -1099,7 +1099,8 @@ Seq2__mul__(PyObject *a, PyObject *b)
     if (size == -1) {
 		return NULL;
     }
-	dst = PyObject_CallMethod((PyObject *)src, "__copy__", NULL);
+	dst = (PlanarSeq2Object *)PyObject_CallMethod(
+		(PyObject *)src, "__copy__", NULL);
     if (dst == NULL) {
 		return NULL;
     }

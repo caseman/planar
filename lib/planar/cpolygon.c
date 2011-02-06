@@ -979,6 +979,7 @@ Poly_contains_point(PlanarPolygonObject *self, PyObject *point)
 	planar_vec2_t pt;
 	int result = 0;
 	double d2;
+	PlanarBBoxObject *bbox;
 	
 	if (!PlanarVec2_Parse(point, &pt.x, &pt.y)) {
 		PyErr_SetString(PyExc_TypeError,
@@ -996,6 +997,17 @@ Poly_contains_point(PlanarPolygonObject *self, PyObject *point)
 	if (poly_is_convex(self) && Py_SIZE(self) > 5) {
 		result = pnp_y_monotone_test(self, &pt);
 	} else {
+		if (Py_SIZE(self) > 4) {
+			bbox = Poly_get_bbox(self);
+			if (bbox == NULL) {
+				return NULL;
+			}
+			if (!PlanarBBox_contains_point(bbox, &pt)) {
+				Py_DECREF(bbox);
+				return Py_BOOL(0);
+			}
+			Py_DECREF(bbox);
+		}
 		result = pnp_winding_test(self, &pt);
 	}
 	if (result != -1) {

@@ -241,7 +241,6 @@ get_bounding_box(PyObject *shape)
     return bbox;
 }
 
-
 static PlanarBBoxObject *
 BBox_new_from_shapes(PyTypeObject *type, PyObject *shapes) 
 {

@@ -494,6 +494,10 @@ PlanarBBox_fromSeq2(PlanarSeq2Object *seq)
 	return b;
 }
 
+#define PlanarBBox_contains_point(b, p) \
+	(((p)->x >= (b)->min.x) & ((p)->x < (b)->max.x) \
+     & ((p)->y > (b)->min.y) && ((p)->y <= (b)->max.y))
+
 /* Polygon utils */
 
 #define PlanarPolygon_Check(op) PyObject_TypeCheck(op, &PlanarPolygonType)
