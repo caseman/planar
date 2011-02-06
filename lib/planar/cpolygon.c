@@ -962,12 +962,20 @@ Poly_contains_point(PlanarPolygonObject *self, PyObject *point)
 {
 	planar_vec2_t pt;
 	int result;
+	double d2;
 	
 	if (!PlanarVec2_Parse(point, &pt.x, &pt.y)) {
 		PyErr_SetString(PyExc_TypeError,
 			"Polygon.contains_point(): "
 			"expected Vec2 object for argument");
 		return NULL;
+	}
+	if ((self->flags & (POLY_RADIUS_KNOWN_FLAG | POLY_CENTROID_KNOWN_FLAG))
+		== (POLY_RADIUS_KNOWN_FLAG | POLY_CENTROID_KNOWN_FLAG)) {
+		d2 = (pt.x - self->centroid.x)*(pt.x - self->centroid.x)
+			+ (pt.y - self->centroid.y)*(pt.y - self->centroid.y);
+		if (d2 < self->min_r2) return Py_BOOL(1);
+		if (d2 > self->max_r2) return Py_BOOL(0);
 	}
 	if (poly_is_convex(self) && Py_SIZE(self) > 5) {
 		result = pnp_y_monotone_test(self, &pt);
@@ -993,7 +1001,7 @@ Poly_pnp_y_monotone_test(PlanarPolygonObject *self, PyObject *point)
 			"expected Vec2 object for argument");
 		return NULL;
 	}
-		result = pnp_y_monotone_test(self, &pt);
+	result = pnp_y_monotone_test(self, &pt);
 	if (result != -1) {
 		return Py_BOOL(result);
 	} else {

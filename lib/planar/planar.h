@@ -361,7 +361,6 @@ error:
 }
 
 
-
 static PyObject *
 Seq2__repr__(PlanarSeq2Object *self, char *class_name, char *extra)
 {
