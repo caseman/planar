@@ -141,6 +141,7 @@ typedef struct {
 	PyObject_VAR_HEAD
     planar_vec2_t *vert;
 	unsigned long flags;
+	PlanarBBoxObject *bbox;
 	planar_vec2_t centroid;
 	double max_r2;
 	double min_r2;

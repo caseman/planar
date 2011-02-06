@@ -97,6 +97,8 @@ error:
 
 static void
 Poly_dealloc(PlanarPolygonObject *self) {
+	Py_XDECREF(self->bbox);
+	self->bbox = NULL;
 	if (self->lt_y_poly != NULL) {
 		PyMem_Free(self->lt_y_poly);
 		self->lt_y_poly = NULL;
@@ -613,6 +615,18 @@ Poly_get_centroid(PlanarPolygonObject *self)
 	}
 }
 
+static PlanarBBoxObject *
+Poly_get_bbox(PlanarPolygonObject *self) {
+	if (self->bbox == NULL) {
+		self->bbox = PlanarBBox_fromSeq2((PlanarSeq2Object *)self);
+		if (self->bbox == NULL) {
+			return NULL;
+		}
+	}
+	Py_INCREF(self->bbox);
+	return self->bbox;
+}
+
 static PyGetSetDef Poly_getset[] = {
     {"is_convex_known", (getter)Poly_get_is_convex_known, NULL, 
 		"True if the polygon is already known to be convex or not.", NULL},
@@ -630,7 +644,7 @@ static PyGetSetDef Poly_getset[] = {
         "for simple polygons. For non-simple polygons it is None. Note "
         "in concave polygons, this point may lie outside of the polygon "
 		"itself.", NULL},
-    {"bounding_box", (getter)PlanarBBox_fromSeq2, NULL, 
+    {"bounding_box", (getter)Poly_get_bbox, NULL, 
 		"The bounding box of the polygon", NULL},
     {NULL}
 };
@@ -652,6 +666,8 @@ static int
 clear_cached_properties(PlanarPolygonObject *self)
 {
 	self->flags = 0;
+	Py_XDECREF(self->bbox);
+	self->bbox = NULL;
 	if (self->lt_y_poly != NULL) {
 		PyMem_Free(self->lt_y_poly);
 		self->lt_y_poly = NULL;
@@ -961,7 +977,7 @@ static PyObject *
 Poly_contains_point(PlanarPolygonObject *self, PyObject *point)
 {
 	planar_vec2_t pt;
-	int result;
+	int result = 0;
 	double d2;
 	
 	if (!PlanarVec2_Parse(point, &pt.x, &pt.y)) {

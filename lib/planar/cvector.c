@@ -1099,16 +1099,14 @@ Seq2__mul__(PyObject *a, PyObject *b)
     if (size == -1) {
 		return NULL;
     }
-    dst = Seq2_New(Py_TYPE(src), size);
+	dst = PyObject_CallMethod((PyObject *)src, "__copy__", NULL);
     if (dst == NULL) {
 		return NULL;
     }
-    srcv = src->vec;
     dstv = dst->vec;
     while (size--) {
-		dstv->x = srcv->x*ta + srcv->y*td + tc;
-		dstv->y = srcv->x*tb + srcv->y*te + tf;
-		++srcv;
+		dstv->x = dstv->x*ta + dstv->y*td + tc;
+		dstv->y = dstv->x*tb + dstv->y*te + tf;
 		++dstv;
     }
     return (PyObject *)dst;
