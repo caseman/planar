@@ -817,20 +817,17 @@ class Polygon(planar.Seq2):
     @classmethod
     def convex_hull(cls, points):
         """Return a new polygon that is the convex hull of the supplied
-        sequence points. 
+        sequence of points. 
 
         If points is a polygon known to be convex, a copy of the 
         polygon is returned.
 
-        If points is a polygon already known to be simple, then the
-        hull is computed using Melkman's algorithm in O(n) time.
-
-        Otherwise the points are assumed to be unordered and the hull is
-        computed using an adaptive quick-hull algorithm.  The expected runtime
-        complexity of this algorithm is O(n log h) (where h is the size of the
-        hull), the worst case is O(n log n) when the supplied points are
-        already nearly convex. This algorithm is especially fast when many of
-        the supplied points are inside the resulting hull.
+        The hull is computed using an adaptive quick-hull algorithm.  The
+        expected runtime complexity of this algorithm is O(n log h) (where h
+        is the size of the hull), the worst case is O(n log n) when the
+        supplied points are already nearly convex. This algorithm is
+        especially fast when many of the supplied points are inside the
+        resulting hull.
 
         :param points: A sequence of points.
         :rtype: Polygon

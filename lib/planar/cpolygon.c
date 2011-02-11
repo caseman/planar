@@ -107,6 +107,89 @@ Poly_dealloc(PlanarPolygonObject *self) {
     Py_TYPE(self)->tp_free((PyObject *)self);
 }
 
+static PyObject *
+Poly_copy(PlanarPolygonObject *self, PyObject *args)
+{
+	PyObject *result;
+    PlanarPolygonObject *poly;
+    
+    assert(PlanarPolygon_Check(self));
+    poly = Poly_alloc_new(Py_TYPE(self), Py_SIZE(self));
+    if (poly == NULL) {
+		return NULL;
+    }
+    memcpy(poly->vert, self->vert, sizeof(planar_vec2_t) * Py_SIZE(self));
+	if (PlanarPolygon_CheckExact(self)) {
+		poly->flags = self->flags;
+		poly->centroid.x = self->centroid.x;
+		poly->centroid.y = self->centroid.y;
+		poly->min_r2 = self->min_r2;
+		poly->max_r2 = self->max_r2;
+		if (self->lt_y_poly != NULL) {
+			poly->lt_y_poly = (planar_vec2_t *)PyMem_Malloc(
+				sizeof(planar_vec2_t) * (Py_SIZE(self) + 2));
+			if (poly == NULL) {
+				Py_DECREF(poly);
+				return PyErr_NoMemory();
+			}
+			memcpy(poly->lt_y_poly, self->lt_y_poly, 
+				sizeof(planar_vec2_t) * (Py_SIZE(self) + 2));
+			poly->rt_y_poly = poly->lt_y_poly + (
+				self->rt_y_poly - self->lt_y_poly);
+		}
+		return (PyObject *)poly;
+	} else {
+		result = call_from_points((PyObject *)self, (PyObject *)poly);
+		Py_DECREF(poly);
+		return result;
+	}
+}
+
+static PlanarPolygonObject *
+Poly_new_from_points(PyTypeObject *type, PyObject *points)
+{
+	PlanarPolygonObject *poly;
+    Py_ssize_t size;
+    Py_ssize_t i;
+
+	if (PlanarPolygon_CheckExact(points)) {
+		poly = (PlanarPolygonObject *)Poly_copy(
+			(PlanarPolygonObject *)points, NULL);
+	} else if (PlanarSeq2_Check(points)) {
+		/* Copy existing Seq2 (optimized) */
+		poly = Poly_alloc_new(type, Py_SIZE(points));
+		if (poly == NULL) {
+			return NULL;
+		}
+		memcpy(poly->vert, ((PlanarSeq2Object *)points)->vec, 
+			sizeof(planar_vec2_t) * Py_SIZE(points));
+    } else {
+		/* Generic iterable of points */
+		points = PySequence_Fast(points, "expected iterable of Vec2 objects");
+		if (points == NULL) {
+			return NULL;
+		}
+		size = PySequence_Fast_GET_SIZE(points);
+		poly = Poly_alloc_new(type, size);
+		if (poly == NULL) {
+			Py_DECREF(points);
+			return NULL;
+		}
+		for (i = 0; i < size; ++i) {
+			if (!PlanarVec2_Parse(PySequence_Fast_GET_ITEM(points, i), 
+				&poly->vert[i].x, &poly->vert[i].y)) {
+				PyErr_SetString(PyExc_TypeError,
+					"expected iterable of Vec2 objects");
+				Py_DECREF(poly);
+				Py_DECREF(points);
+				return NULL;
+			}
+		}
+		Py_DECREF(points);
+    }
+    return poly;
+}
+
 static PlanarPolygonObject *
 Poly_new_regular(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
@@ -1078,42 +1161,215 @@ Poly__repr__(PlanarPolygonObject *self)
 	return Seq2__repr__((PlanarSeq2Object *)self, "Polygon", props);
 }
 
-static PyObject *
-Poly_copy(PlanarPolygonObject *self, PyObject *args)
+static void
+ahull_partition_points(planar_vec2_t **hull, planar_vec2_t **pts, 
+	Py_ssize_t size, planar_vec2_t *p0, planar_vec2_t *p1)
 {
-	PyObject *result;
-    PlanarPolygonObject *poly;
-    
-    assert(PlanarPolygon_Check(self));
-    poly = Poly_alloc_new(Py_TYPE(self), Py_SIZE(self));
-    if (poly == NULL) {
-		return NULL;
-    }
-    memcpy(poly->vert, self->vert, sizeof(planar_vec2_t) * Py_SIZE(self));
-	if (PlanarPolygon_CheckExact(self)) {
-		poly->flags = self->flags;
-		poly->centroid.x = self->centroid.x;
-		poly->centroid.y = self->centroid.y;
-		poly->min_r2 = self->min_r2;
-		poly->max_r2 = self->max_r2;
-		if (self->lt_y_poly != NULL) {
-			poly->lt_y_poly = (planar_vec2_t *)PyMem_Malloc(
-				sizeof(planar_vec2_t) * (Py_SIZE(self) + 2));
-			if (poly == NULL) {
-				Py_DECREF(poly);
-				return PyErr_NoMemory();
-			}
-			memcpy(poly->lt_y_poly, self->lt_y_poly, 
-				sizeof(planar_vec2_t) * (Py_SIZE(self) + 2));
-			poly->rt_y_poly = poly->lt_y_poly + (
-				self->rt_y_poly - self->lt_y_poly);
+	double dist, furthest = -1.0;
+	planar_vec2_t *partition_pt, **p, *tmp;
+	planar_vec2_t **left_pts, **right_pts;
+	planar_vec2_t v0, v1, v2;
+	double u, v, dot00, dot01, dot11, dot02, dot12;
+	double denom, inv_denom;
+	Py_ssize_t left_count, right_count, max_partition;
+
+	/* Find point furthest from line p0->p1 as partition point */
+	for (p = pts; p < pts + size; ++p) {
+		dist = (p1->x - p0->x)*((*p)->y - p0->y) 
+			- ((*p)->x - p0->x)*(p1->y - p0->y);
+		if (dist > furthest) {
+			furthest = dist;
+			partition_pt = *p;
 		}
-		return (PyObject *)poly;
-	} else {
-		result = call_from_points((PyObject *)self, (PyObject *)poly);
-		Py_DECREF(poly);
-		return result;
 	}
+    /* Compute the triangle partition_pt->p0->p1
+       in barycentric coordinates
+       All points inside this triangle are not in the hull
+       divide the remaining points into left and right sets */
+	left_pts = pts;
+	right_pts = pts + size;
+	v0.x = p0->x - partition_pt->x;
+	v0.y = p0->y - partition_pt->y;
+	v1.x = p1->x - partition_pt->x;
+	v1.y = p1->y - partition_pt->y;
+	dot00 = v0.x * v0.x + v0.y * v0.y;
+	dot01 = v0.x * v1.x + v0.y * v1.y;
+	dot11 = v1.x * v1.x + v1.y * v1.y;
+    denom = (dot00 * dot11 - dot01 * dot01);
+    /* If denom is zero, the triangle has no area and
+       all points lie on the partition line 
+       and thus can be culled */
+	if (denom) {
+		inv_denom = 1.0 / denom;
+		for (p = pts; p < right_pts;) {
+			v2.x = (*p)->x - partition_pt->x;
+			v2.y = (*p)->y - partition_pt->y;
+			dot02 = v0.x * v2.x + v0.y * v2.y;
+			dot12 = v1.x * v2.x + v1.y * v2.y;
+            u = (dot11 * dot02 - dot01 * dot12) * inv_denom;
+            v = (dot00 * dot12 - dot01 * dot02) * inv_denom;
+            /* Since the partition point is the furthest from p0->p1
+               u and v cannot both be negative
+               Note the partition point is discarded here */
+			if (v < 0.0) {
+				*(left_pts++) = *(p++);
+			} else if (u < 0.0) {
+				tmp = *(--right_pts);
+				*right_pts = *p;
+				*p = tmp;
+			} else {
+				++p;
+			}
+		}
+	}
+	left_count = left_pts - pts;
+	right_count = pts + size - right_pts;
+    /* Heuristic to determine if we should continue to partition
+       recursively, or complete the sub-hull via a sorted scan.
+       The more points culled by this partition, the greater
+       the chance we will partition further. If paritioning
+       culled few points, it is likely that a sorted scan
+       will be the more efficient algorithm. Note the scaling
+       factor here is not particularly sensitive. */
+    max_partition = (size - left_count - right_count) * 4;
+
+	if (left_count <= 1) {
+		/* trivial partition */
+		(*hull)->x = p0->x;
+		(*hull)->y = p0->y;
+		++(*hull);
+		if (left_count == 1) {
+			(*hull)->x = (*pts)->x;
+			(*hull)->y = (*pts)->y;
+			++(*hull);
+		}
+	} else {
+		ahull_partition_points(
+			hull, pts, left_count, p0, partition_pt);
+	}
+
+	if (right_count <= 1) {
+		/* trivial partition */
+		(*hull)->x = partition_pt->x;
+		(*hull)->y = partition_pt->y;
+		++(*hull);
+		if (right_count == 1) {
+			(*hull)->x = (*right_pts)->x;
+			(*hull)->y = (*right_pts)->y;
+			++(*hull);
+		}
+	} else {
+		ahull_partition_points(
+			hull, right_pts, right_count, partition_pt, p1);
+	}
+}
+
+static planar_vec2_t *
+adaptive_quick_hull(planar_vec2_t *pts, Py_ssize_t *size)
+{
+	planar_vec2_t *v, *v_end, *leftmost, *rightmost;
+	planar_vec2_t *hull_pt, *hull = NULL;
+	planar_vec2_t **pt_sets = NULL;
+	planar_vec2_t **upper_pts, **lower_pts;
+
+	leftmost = rightmost = pts;
+	v_end = pts + *size - 1;
+	for (v = pts + 1; v <= v_end; ++v) {
+		if (v->x < leftmost->x) {
+			leftmost = v;
+		}
+		if (v->x > rightmost->x) {
+			rightmost = v;
+		}
+	}
+
+	pt_sets = (planar_vec2_t **)PyMem_Malloc(
+		sizeof(planar_vec2_t *) * (*size));
+	hull = (planar_vec2_t *)PyMem_Malloc(sizeof(planar_vec2_t) * (*size));
+	if (pt_sets == NULL || hull == NULL) {
+		PyErr_NoMemory();
+		goto error;
+	}
+	upper_pts = pt_sets;
+	lower_pts = pt_sets + *size;
+	for (v = pts; v <= v_end; ++v) {
+		if ((v != leftmost) & (v != rightmost)) {
+			if (SIDE(leftmost, rightmost, v) > 0.0) {
+				*(upper_pts++) = v;
+			} else {
+				*(--lower_pts) = v;
+			}
+		}
+	}
+	hull_pt = hull;
+	if (upper_pts > pt_sets) {
+		ahull_partition_points(
+			&hull_pt, pt_sets, upper_pts - pt_sets, leftmost, rightmost);
+	} else {
+		hull_pt->x = leftmost->x;
+		hull_pt->y = leftmost->y;
+		++hull_pt;
+	}
+	if (lower_pts < pt_sets + *size) {
+		ahull_partition_points(
+			&hull_pt, lower_pts, (pt_sets + *size) - lower_pts, 
+			rightmost, leftmost);
+	} else {
+		hull_pt->x = rightmost->x;
+		hull_pt->y = rightmost->y;
+		++hull_pt;
+	}
+	*size = hull_pt - hull;
+	PyMem_Free(pt_sets);
+	return hull;
+error:
+	if (pt_sets != NULL) {
+		PyMem_Free(pt_sets);
+	}
+	if (hull != NULL) {
+		PyMem_Free(hull);
+	}
+	return NULL;
+}
+
+static PlanarPolygonObject *
+Poly_convex_hull(PyTypeObject *type, PyObject *points) 
+{
+	planar_vec2_t *pts;
+	planar_vec2_t *hull_pts = NULL;
+	PyObject *pts_alloc = NULL;
+	Py_ssize_t size;
+	PlanarPolygonObject *hull_poly = NULL;
+
+	if (PlanarPolygon_CheckExact(points) && 
+		((PlanarPolygonObject *)points)->flags & POLY_CONVEX_FLAG) {
+		return (PlanarPolygonObject *)Poly_copy(
+			(PlanarPolygonObject *)points, NULL);
+	}
+	if (!PlanarSeq2_Check(points)) {
+		points = pts_alloc = call_from_points((PyObject *)type, points);
+		if (points == NULL) goto error;
+		pts = ((PlanarPolygonObject *)points)->vert;
+	} else {
+		pts = ((PlanarSeq2Object *)points)->vec;
+	}
+	size = Py_SIZE(points);
+	hull_pts = adaptive_quick_hull(pts, &size);
+	hull_poly = Poly_alloc_new(type, size);
+	if (hull_pts == NULL || hull_poly == NULL) goto error;
+	memcpy(hull_poly->vert, hull_pts, sizeof(planar_vec2_t) * size);
+	PyMem_Free(hull_pts);
+	Py_XDECREF(pts_alloc);
+	hull_poly->flags = (POLY_CONVEX_KNOWN_FLAG | POLY_CONVEX_FLAG
+		| POLY_SIMPLE_KNOWN_FLAG | POLY_SIMPLE_FLAG);
+	return hull_poly;
+error:
+	if (hull_pts != NULL) {
+		PyMem_Free(hull_pts);
+	}
+	Py_XDECREF(hull_poly);
+	Py_XDECREF(pts_alloc);
+	return NULL;
 }
 
 static PyMethodDef Poly_methods[] = {
@@ -1126,10 +1382,15 @@ static PyMethodDef Poly_methods[] = {
 		METH_CLASS | METH_VARARGS | METH_KEYWORDS, 
 		"Create a circular pointed star polygon with the specified number "
         "of peaks."},
+	{"convex_hull", (PyCFunction)Poly_convex_hull, METH_CLASS | METH_O,
+		"Return a new polygon that is the convex hull of the supplied "
+        "sequence of points."},
 	{"tangents_to_point", (PyCFunction)Poly_pt_tangents, METH_O,
 		"Given a point exterior to the polygon, return the pair of "
         "vertex points from the polygon that define the tangent lines with "
 		"the specified point."},
+    {"from_points", (PyCFunction)Poly_new_from_points, METH_CLASS | METH_O, 
+		"Create a new Polygon from an iterable of points"},
 	{"contains_point", (PyCFunction)Poly_contains_point, METH_O,
 		"Return True if the specified point is inside the polygon."},
     {"__copy__", (PyCFunction)Poly_copy, METH_NOARGS, NULL}, 

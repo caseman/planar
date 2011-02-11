@@ -677,14 +677,14 @@ class PolygonBaseTestCase(object):
         points = [(0,0), (1, -2), (2, 3)]
         hull = self.Polygon.convex_hull(points)
         assert hull.is_convex
-        assert hull == self.Polygon(points), list(hull)
+        assert_equal(hull, self.Polygon(points))
         points = [(0,0), (1, 2), (2, 3)]
         hull = self.Polygon.convex_hull(points)
         assert hull.is_convex
-        assert hull == self.Polygon(points), list(hull)
+        assert_equal(hull, self.Polygon(points))
 
     def confirm_hull(self, points, hull):
-        poly = self.Polygon(hull)
+        poly = self.Polygon(list(hull))
         assert poly.is_convex, hull
         for pt in hull:
             if pt not in points:
