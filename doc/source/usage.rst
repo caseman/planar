@@ -1,3 +1,6 @@
+.. include:: <isogrk1.txt>
+.. include:: <isonum.txt>
+
 Usage Guide
 ===========
 
@@ -27,9 +30,10 @@ plainly named modules::
 
 	from planar.vector import Vec2 # Python implementation
 
-The C implementations are in similarly named modules prefixed with "c"::
+The C implementations of all planar objects can be imported from the 
+``planar.c`` module::
 
-	from planar.cvector import Vec2 # C implementation
+	from planar.c import Vec2 # C implementation
 
 Generally, however, it is best to simply import things directly from the
 ``planar`` package. Relying on the vagaries of either implementation in your
@@ -38,6 +42,37 @@ application is not recommended.
 Also, you should avoid mixing usage of both implementations of a ``planar``
 class in a single app (see below for details why). If you simply import them
 from the ``planar`` package directly, you won't have to worry about this.
+
+Angles
+------
+
+Being a geometry library, ``planar`` has some apis that involve angles.
+Angles in ``planar`` are always specified in degrees with zero degrees being
+parallel to the ascending x-axis. Larger angles are counter-clockwise
+in direction from smaller angles. Thus 90 |deg| is parallel to the ascending
+y-axis.
+
+You might wonder why ``planar``, being a mathematically-minded library, would
+use degrees for angles instead of using the more mathematically pure radians.
+There are a few important reasons for this design decision:
+
+- ``planar`` is a library made by and made for software engineers, not
+  mathematicians. Degrees are simply easier to reason about and construct
+  values for intuitively for non-mathematicians.
+
+- The library is intended to represent and manipulate shapes that may
+  eventually be drawn using a graphics library, such as OpenGL. OpenGL
+  represents angles in degrees, so it makes sense to do the same here for
+  consistency.
+
+- Radians represent angles in terms of |pgr|, a transcendental number.  The
+  value of |pgr| cannot be represented exactly using floating-point numbers.
+  This means that the values of common angles, such as 30 |deg|, 45 |deg|, 60
+  |deg|, 90 |deg|, 180 |deg|, and 270 |deg|, also cannot be represented
+  exactly in floating-point radian values. This adversely affects the
+  precision of rotation operations by common angles, particularly rotation by
+  multiples of 90 |deg|. The use of degrees allows ``planar`` to behave better
+  in these common cases.
 
 Implementation Differences
 --------------------------
