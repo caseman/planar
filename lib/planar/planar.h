@@ -500,6 +500,26 @@ PlanarBBox_fromSeq2(PlanarSeq2Object *seq)
 
 /* Polygon utils */
 
+static PlanarPolygonObject *
+Poly_new(PyTypeObject *type, Py_ssize_t size)
+{
+	PlanarPolygonObject *poly;
+
+	if (size < 3) {
+		PyErr_Format(PyExc_ValueError,
+			"Polygon: minimum of 3 vertices required");
+		return NULL;
+	}
+	/* Allocate space for extra verts to duplicate the first
+	 * and last vert at either end to simplify many operations */
+	poly = (PlanarPolygonObject *)type->tp_alloc(type, size + 2);
+	if (poly != NULL) {
+		Py_SIZE(poly) = size;
+		poly->vert = poly->data + 1;
+	}
+	return poly;
+}
+
 #define PlanarPolygon_Check(op) PyObject_TypeCheck(op, &PlanarPolygonType)
 #define PlanarPolygon_CheckExact(op) (Py_TYPE(op) == &PlanarPolygonType)
 

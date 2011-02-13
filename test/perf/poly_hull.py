@@ -4,7 +4,7 @@ import functools
 import itertools
 from planar import Vec2, Vec2Array
 from planar import polygon
-from planar.polygon import Polygon
+from planar.c import Polygon
 from nose.tools import assert_equal
 
 def rand_pt(span=10):
@@ -151,7 +151,7 @@ def confirm_hull(points, hull):
 
 for i in range(100):
     rand = rand_pts(12)
-    qhull = polygon._adaptive_quick_hull(rand)
+    qhull = Polygon.convex_hull(rand)
     ghull = graham_hull(rand)
     confirm_hull(rand, qhull)
     confirm_hull(rand, ghull)
@@ -165,7 +165,7 @@ for count in [4, 8, 16, 32, 64, 128, 256, 512, 1024]:
     confirm_hull(rand, ghull)
     qhull = quick_hull(rand)
     confirm_hull(rand, qhull)
-    ahull = polygon._adaptive_quick_hull(rand)
+    ahull = Polygon.convex_hull(rand)
     confirm_hull(rand, ahull)
 
     print("Graham rand", count, "points:", 
@@ -175,7 +175,7 @@ for count in [4, 8, 16, 32, 64, 128, 256, 512, 1024]:
         timeit(functools.partial(quick_hull, rand),
         number=times))
     print("Adaptive rand", count, "points:", 
-        timeit(functools.partial(polygon._adaptive_quick_hull, rand),
+        timeit(functools.partial(Polygon.convex_hull, rand),
         number=times))
     
     reg = Polygon.regular(count, 10, center=(20,0))
@@ -185,7 +185,7 @@ for count in [4, 8, 16, 32, 64, 128, 256, 512, 1024]:
     confirm_hull(reg, ghull)
     qhull = quick_hull(reg)
     confirm_hull(reg, qhull)
-    ahull = polygon._adaptive_quick_hull(reg)
+    ahull = Polygon.convex_hull(reg)
     confirm_hull(reg, ahull)
 
     print("Graham reg", count, "points:", 
@@ -195,7 +195,7 @@ for count in [4, 8, 16, 32, 64, 128, 256, 512, 1024]:
         timeit(functools.partial(quick_hull, reg),
         number=times))
     print("Adaptive reg", count, "points:", 
-        timeit(functools.partial(polygon._adaptive_quick_hull, reg),
+        timeit(functools.partial(Polygon.convex_hull, reg),
         number=times))
     
     mixed = reg_tuples + rand_tuples
@@ -207,7 +207,7 @@ for count in [4, 8, 16, 32, 64, 128, 256, 512, 1024]:
         timeit(functools.partial(quick_hull, mixed),
         number=times))
     print("Adaptive mixed", count, "points:", 
-        timeit(functools.partial(polygon._adaptive_quick_hull, mixed),
+        timeit(functools.partial(Polygon.convex_hull, mixed),
         number=times))
     
     multi = (list(Polygon.regular(count, 5, center=(0,8))) + 
@@ -221,7 +221,7 @@ for count in [4, 8, 16, 32, 64, 128, 256, 512, 1024]:
         timeit(functools.partial(quick_hull, multi),
         number=times))
     print("Adaptive multi", count, "points:", 
-        timeit(functools.partial(polygon._adaptive_quick_hull, multi),
+        timeit(functools.partial(Polygon.convex_hull, multi),
         number=times))
 
     print()

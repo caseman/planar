@@ -210,6 +210,17 @@ class BoundingBox(object):
                 self.height / shape_bbox.height))
             return shape * (offset * scale)
 
+    def to_polygon(self):
+        """Return a rectangular :class:`~planar.Polygon` object with the same
+        vertices as the bounding box.
+
+        :rtype: planar.Polygon
+        """
+        return planar.Polygon([
+            self._min, (self._min.x, self._max.y), 
+            self._max, (self._max.x, self._min.y)],
+            is_convex=True)
+
 
 # vim: ai ts=4 sts=4 et sw=4 tw=78
 

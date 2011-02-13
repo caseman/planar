@@ -423,6 +423,28 @@ BBox_fit(PlanarBBoxObject *self, PyObject *shape)
     }
 }
 
+static PlanarPolygonObject *
+BBox_to_polygon(PlanarBBoxObject *self)
+{
+	PlanarPolygonObject *poly;
+
+    assert(PlanarBBox_Check(self));
+	poly = Poly_new(&PlanarPolygonType, 4);
+	if (poly != NULL) {
+		poly->vert[0].x = self->min.x;
+		poly->vert[0].y = self->min.y;
+		poly->vert[1].x = self->min.x;
+		poly->vert[1].y = self->max.y;
+		poly->vert[2].x = self->max.x;
+		poly->vert[2].y = self->max.y;
+		poly->vert[3].x = self->max.x;
+		poly->vert[3].y = self->min.y;
+		poly->flags = POLY_SIMPLE_KNOWN_FLAG | POLY_SIMPLE_FLAG	
+			| POLY_CONVEX_KNOWN_FLAG | POLY_CONVEX_FLAG;
+	}
+	return poly;
+}
+
 static PyMethodDef BBox_methods[] = {
     {"from_points", (PyCFunction)BBox_new_from_points, METH_CLASS | METH_O, 
         "Create a bounding box that encloses all of the specified points."},
@@ -442,6 +464,9 @@ static PyMethodDef BBox_methods[] = {
         "Create a new shape by translating and scaling shape so that "
         "it fits in this bounding box. The shape is scaled evenly so that "
         "it retains the same aspect ratio."},
+    {"to_polygon", (PyCFunction)BBox_to_polygon, METH_NOARGS, 
+		"Return a rectangular Polygon object with the same "
+        "vertices as the bounding box."},
     {NULL, NULL}
 };
 

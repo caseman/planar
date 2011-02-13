@@ -226,6 +226,14 @@ class BoundingBoxBaseTestCase(object):
     def test_fit_wrong_arg_type(self):
         self.BoundingBox([(0, 0), (40, 40)]).fit(None)
 
+    def test_to_polygon(self):
+        import planar
+        poly = self.BoundingBox([(-2,0), (5,-4)]).to_polygon()
+        assert isinstance(poly, planar.Polygon)
+        assert poly.is_convex_known
+        assert poly.is_convex
+        assert_equal(tuple(poly), ((-2,-4), (-2,0), (5,0), (5,-4)))
+
 
 class PyBoundingBoxTestCase(BoundingBoxBaseTestCase, unittest.TestCase):
     from planar.vector import Vec2, Seq2

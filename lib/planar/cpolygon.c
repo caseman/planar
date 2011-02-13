@@ -14,27 +14,7 @@
 #include "planar.h"
 
 static PlanarPolygonObject *
-Poly_alloc_new(PyTypeObject *type, Py_ssize_t size)
-{
-	PlanarPolygonObject *poly;
-
-	if (size < 3) {
-		PyErr_Format(PyExc_ValueError,
-			"Polygon: minimum of 3 vertices required");
-		return NULL;
-	}
-	/* Allocate space for extra verts to duplicate the first
-	 * and last vert at either end to simplify many operations */
-	poly = (PlanarPolygonObject *)type->tp_alloc(type, size + 2);
-	if (poly != NULL) {
-		Py_SIZE(poly) = size;
-		poly->vert = poly->data + 1;
-	}
-	return poly;
-}
-
-static PlanarPolygonObject *
-Poly_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+Poly_create_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
 	PyObject *verts_arg, *is_convex_arg = NULL, *is_simple_arg = NULL;
 	PyObject *verts_seq = NULL;
@@ -59,7 +39,7 @@ Poly_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 	if (size == -1) {
 		goto error;
 	}
-	poly = Poly_alloc_new(type, size);
+	poly = Poly_new(type, size);
 	if (poly == NULL) {
 		goto error;
 	}
@@ -114,7 +94,7 @@ Poly_copy(PlanarPolygonObject *self, PyObject *args)
     PlanarPolygonObject *poly;
     
     assert(PlanarPolygon_Check(self));
-    poly = Poly_alloc_new(Py_TYPE(self), Py_SIZE(self));
+    poly = Poly_new(Py_TYPE(self), Py_SIZE(self));
     if (poly == NULL) {
 		return NULL;
     }
@@ -146,7 +126,7 @@ Poly_copy(PlanarPolygonObject *self, PyObject *args)
 }
 
 static PlanarPolygonObject *
-Poly_new_from_points(PyTypeObject *type, PyObject *points)
+Poly_create_new_from_points(PyTypeObject *type, PyObject *points)
 {
 	PlanarPolygonObject *poly;
     Py_ssize_t size;
@@ -157,7 +137,7 @@ Poly_new_from_points(PyTypeObject *type, PyObject *points)
 			(PlanarPolygonObject *)points, NULL);
 	} else if (PlanarSeq2_Check(points)) {
 		/* Copy existing Seq2 (optimized) */
-		poly = Poly_alloc_new(type, Py_SIZE(points));
+		poly = Poly_new(type, Py_SIZE(points));
 		if (poly == NULL) {
 			return NULL;
 		}
@@ -170,7 +150,7 @@ Poly_new_from_points(PyTypeObject *type, PyObject *points)
 			return NULL;
 		}
 		size = PySequence_Fast_GET_SIZE(points);
-		poly = Poly_alloc_new(type, size);
+		poly = Poly_new(type, size);
 		if (poly == NULL) {
 			Py_DECREF(points);
 			return NULL;
@@ -191,7 +171,7 @@ Poly_new_from_points(PyTypeObject *type, PyObject *points)
 }
 
 static PlanarPolygonObject *
-Poly_new_regular(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+Poly_create_new_regular(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
 	Py_ssize_t vert_count, i;
 	double radius, angle_step, x, y;
@@ -217,7 +197,7 @@ Poly_new_regular(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 			return NULL;
 		}
 	}
-	poly = Poly_alloc_new(type, vert_count);
+	poly = Poly_new(type, vert_count);
 	if (poly == NULL) {
 		return NULL;
 	}
@@ -245,7 +225,7 @@ Poly_new_regular(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 }
 
 static PlanarPolygonObject *
-Poly_new_star(PyTypeObject *type, PyObject *args, PyObject *kwargs)
+Poly_create_new_star(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 {
 	Py_ssize_t peak_count, i;
 	double radius1, radius2, angle_step, x, y;
@@ -276,7 +256,7 @@ Poly_new_star(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 			return NULL;
 		}
 	}
-	poly = Poly_alloc_new(type, peak_count * 2);
+	poly = Poly_new(type, peak_count * 2);
 	if (poly == NULL) {
 		return NULL;
 	}
@@ -1355,7 +1335,7 @@ Poly_convex_hull(PyTypeObject *type, PyObject *points)
 	}
 	size = Py_SIZE(points);
 	hull_pts = adaptive_quick_hull(pts, &size);
-	hull_poly = Poly_alloc_new(type, size);
+	hull_poly = Poly_new(type, size);
 	if (hull_pts == NULL || hull_poly == NULL) goto error;
 	memcpy(hull_poly->vert, hull_pts, sizeof(planar_vec2_t) * size);
 	PyMem_Free(hull_pts);
@@ -1373,12 +1353,12 @@ error:
 }
 
 static PyMethodDef Poly_methods[] = {
-    {"regular", (PyCFunction)Poly_new_regular, 
+    {"regular", (PyCFunction)Poly_create_new_regular, 
 		METH_CLASS | METH_VARARGS | METH_KEYWORDS, 
 		"Create a regular polygon with the specified number of vertices "
         "radius distance from the center point. Regular polygons are "
         "always convex."},
-    {"star", (PyCFunction)Poly_new_star, 
+    {"star", (PyCFunction)Poly_create_new_star, 
 		METH_CLASS | METH_VARARGS | METH_KEYWORDS, 
 		"Create a circular pointed star polygon with the specified number "
         "of peaks."},
@@ -1389,7 +1369,7 @@ static PyMethodDef Poly_methods[] = {
 		"Given a point exterior to the polygon, return the pair of "
         "vertex points from the polygon that define the tangent lines with "
 		"the specified point."},
-    {"from_points", (PyCFunction)Poly_new_from_points, METH_CLASS | METH_O, 
+    {"from_points", (PyCFunction)Poly_create_new_from_points, METH_CLASS | METH_O, 
 		"Create a new Polygon from an iterable of points"},
 	{"contains_point", (PyCFunction)Poly_contains_point, METH_O,
 		"Return True if the specified point is inside the polygon."},
@@ -1444,7 +1424,7 @@ PyTypeObject PlanarPolygonType = {
 	0,                      /*tp_dictoffset*/
 	0,                      /*tp_init*/
 	0,    /*tp_alloc*/
-	(newfunc)Poly_new,      /*tp_new*/
+	(newfunc)Poly_create_new,      /*tp_new*/
 	0,                      /*tp_free*/
 	0,                      /*tp_is_gc*/
 };

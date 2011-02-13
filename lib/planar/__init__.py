@@ -38,7 +38,7 @@ __version__ = '.'.join(str(n) for n in __versioninfo__)
 try: # pragma: no cover
     # Default to C implementation
     from planar.c import _set_epsilon, Vec2, Vec2Array, Seq2, Affine, \
-        BoundingBox, TransformNotInvertibleError
+        BoundingBox, Polygon, TransformNotInvertibleError
 
     __implementation__ = 'C'
 except ImportError: # pragma: no cover
@@ -46,6 +46,7 @@ except ImportError: # pragma: no cover
     from planar.vector import Vec2, Vec2Array, Seq2
     from planar.transform import Affine
     from planar.box import BoundingBox
+    from planar.polygon import Polygon
 
     class TransformNotInvertibleError(Exception):
         """The transform could not be inverted"""
