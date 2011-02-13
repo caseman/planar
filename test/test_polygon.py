@@ -687,11 +687,10 @@ class PolygonBaseTestCase(object):
         poly = self.Polygon(list(hull))
         assert poly.is_convex, hull
         for pt in hull:
-            if pt not in points:
-                assert False, "Hull pt %r not in points" % pt
+            assert pt in points, "Hull pt %r not in points" % pt
         for pt in points:
-            if not poly.contains_point(pt) and pt not in hull:
-                assert False, "Pt %r outside hull %r" % (pt, hull)
+            assert poly.contains_point(pt) or pt in hull, (
+                "Pt %r outside hull %r" % (pt, hull))
 
     def test_convex_hull_random_points(self):
         points = [(55,27), (53,95), (57,15), (55,24), (54,0), (3,28), (21,93),
@@ -712,10 +711,27 @@ class PolygonBaseTestCase(object):
         hull = self.Polygon.convex_hull(points)
         self.confirm_hull(points, hull)
 
-    def test_convex_hull_convex_input(self):
+    def test_convex_hull_convex_input_ordered(self):
         points = self.Polygon.regular(33, 5)
         hull = self.Polygon.convex_hull(points)
         assert points == hull, (list(points), list(hull))
+
+    def test_convex_hull_almost_convex_input_unordered(self):
+        points = [(-1.57211, 1.23632), (1.16011, -1.62915), 
+            (1.85674, -0.743325), (-1.77767, 0.916453), (1.85674, 0.743325),
+            (-1.77767, -0.916453), (1.44747, -1.38016), (0.471518, 1.94362),
+            (-1.30972, 1.5115), (2, 0), (1.96386, 0.378502), 
+            (-1.99094, -0.190112), (1.16011, 1.62915), (0.0951638, -1.99773), 
+            (1.96386, -0.378502), (-1, -1.73205), (-0.28463, 1.97964), 
+            (0.0951638, 1.99773), (-0.28463, -1.97964), (0.471518, -1.94362), 
+            (-1.91899, -0.563465), (1.44747, 1.38016), (1.44747, 1.379), 
+            (-0.654136, 1.89), (-1.99094, 0.190112), (-1.57211, -1.23632), 
+            (-1.91899, 0.563465), (0.83083, -1.81926), (1.68251, 1.08128), 
+            (-1.30972, -1.5115), (-1, 1.73205), (-0.654136, -1.89), 
+            (0.83083, 1.81926), (1.68251, -1.08128),]
+        hull = self.Polygon.convex_hull(points)
+        assert len(hull) == len(points) - 1, (len(hull), len(points))
+        self.confirm_hull(points, hull)
 
     def test_convex_hull_degenerate(self):
         points = [(0,1), (2,1), (5,1), (7,1), (12,1)]
