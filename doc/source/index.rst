@@ -26,6 +26,8 @@ Reference
    vectorref
    vec2arrayref
    affineref
+   bboxref
+   polygonref
 
 Release Notes
 -------------

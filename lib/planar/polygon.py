@@ -328,7 +328,7 @@ class Polygon(planar.Seq2):
         If this is unknown then it is calculated from the vertices
         of the polygon and cached. 
         Runtime complexity: O(n) convex,
-        O(nlogn) expected for most non-convex cases, 
+        O(n log n) expected for most non-convex cases, 
         O(n^2) worst case non-convex
         """
         if self._simple is _unknown:
@@ -366,7 +366,7 @@ class Polygon(planar.Seq2):
 
         We use a simplified plane sweep algorithm. Worst case, it still takes
         O(n^2) time like a brute force intersection test, but it will typically
-        be O(nlogn) for common simple non-convex polygons. It should
+        be O(n log n) for common simple non-convex polygons. It should
         also quickly identify self-intersecting polygons in most cases,
         although it is slower for severely self-intersecting cases due to
         its startup cost.
@@ -405,7 +405,7 @@ class Polygon(planar.Seq2):
         If the centroid is unknown, it is calculated from the vertices and
         cached. If the polygon is known to be simple, this takes O(n) time. If
         not, then the simple polygon check is also performed, which has an
-        expected complexity of O(nlogn).
+        expected complexity of O(n log n).
         """
         if self._centroid is _unknown:
             if self.is_simple:
