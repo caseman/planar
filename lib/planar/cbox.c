@@ -470,6 +470,62 @@ static PyMethodDef BBox_methods[] = {
     {NULL, NULL}
 };
 
+/* Arithmetic Operations */
+
+static PyObject *
+BBox__mul__(PyObject *a, PyObject *b)
+{
+    PlanarBBoxObject *box;
+    PlanarAffineObject *t;
+	int rectilinear;
+    double ta, tb, tc, td, te, tf;
+	planar_vec2_t p0, p1;
+
+    if (PlanarBBox_Check(a) && PlanarAffine_Check(b)) {
+		box = (PlanarBBoxObject *)a;
+		t = (PlanarAffineObject *)b;
+    } else if (PlanarBBox_Check(b) && PlanarAffine_Check(a)) {
+		box = (PlanarBBoxObject *)b;
+		t = (PlanarAffineObject *)a;
+    } else {
+		/* We support only transform operations */
+		Py_INCREF(Py_NotImplemented);
+		return Py_NotImplemented;
+    }
+    ta = t->a;
+    tb = t->b;
+    tc = t->c;
+    td = t->d;
+    te = t->e;
+    tf = t->f;
+
+	rectilinear = ((almost_eq(ta, 0.0) && almost_eq(te, 0.0))
+        || (almost_eq(td, 0.0) && almost_eq(tb, 0.0)));
+	if (rectilinear) {
+		p0.x = box->min.x*ta + box->min.y*td + tc;
+		p0.y = box->min.x*tb + box->min.y*te + tf;
+		p1.x = box->max.x*ta + box->max.y*td + tc;
+		p1.y = box->max.x*tb + box->max.y*te + tf;
+		box = (PlanarBBoxObject *)BBox_alloc(Py_TYPE(box), 0);
+		if (box != NULL) {
+			box->min.x = MIN(p0.x, p1.x);
+			box->min.y = MIN(p0.y, p1.y);
+			box->max.x = MAX(p0.x, p1.x);
+			box->max.y = MAX(p0.y, p1.y);
+		}
+		return (PyObject *)box;
+	} else {
+		return PyNumber_Multiply(
+			(PyObject *)BBox_to_polygon(box), (PyObject *)t);
+	}
+}
+
+static PyNumberMethods BBox_as_number = {
+    0,       /* binaryfunc nb_add */
+    0,       /* binaryfunc nb_subtract */
+    (binaryfunc)BBox__mul__,       /* binaryfunc nb_multiply */
+};
+
 PyDoc_STRVAR(BBox_doc, 
     "An axis-aligned immutable rectangular shape.\n\n"
     "BoundingBox(points)"
@@ -486,7 +542,7 @@ PyTypeObject PlanarBBoxType = {
     0,                    /* tp_setattr */
     0,                    /* reserved */
     0, // (reprfunc)BBox_repr,  /* tp_repr */
-    0,                    /* tp_as_number */
+    &BBox_as_number,      /* tp_as_number */
     0,                    /* tp_as_sequence */
     0,                    /* tp_as_mapping */
     0,                    /* tp_hash */

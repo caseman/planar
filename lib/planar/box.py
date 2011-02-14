@@ -221,6 +221,19 @@ class BoundingBox(object):
             self._max, (self._max.x, self._min.y)],
             is_convex=True)
 
+    def __mul__(self, other):
+        try:
+            rectilinear = other.is_rectilinear
+        except AttributeError:
+            return NotImplemented
+        if rectilinear:
+            return self.from_points(
+                [self._min * other, self._max * other])
+        else:
+            return self.to_polygon() * other
+
+    __rmul__ = __mul__
+
 
 # vim: ai ts=4 sts=4 et sw=4 tw=78
 

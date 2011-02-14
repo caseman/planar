@@ -234,14 +234,48 @@ class BoundingBoxBaseTestCase(object):
         assert poly.is_convex
         assert_equal(tuple(poly), ((-2,-4), (-2,0), (5,0), (5,-4)))
 
+    def test_mul_by_translating_transform(self):
+        import planar
+        a = self.BoundingBox([(-1,0), (0,1)])
+        b = a * self.Affine.translation((1, 0))
+        assert isinstance(b, self.BoundingBox)
+        assert b is not a
+        assert_equal(b.min_point, (0, 0))
+        assert_equal(b.max_point, (1, 1))
+
+    def test_mul_by_rectilinear_transform(self):
+        import planar
+        a = self.BoundingBox([(-2,-1), (2,1)])
+        t = self.Affine.rotation(90) * self.Affine.scale(2)
+        assert t.is_rectilinear
+        b = a * t
+        assert isinstance(b, self.BoundingBox)
+        assert b is not a
+        assert_equal(b.min_point, (-2,-4))
+        assert_equal(b.max_point, (2, 4))
+
+    def test_mul_by_transform(self):
+        import planar
+        a = self.BoundingBox([(-2,-1), (2,1)])
+        t = self.Affine.rotation(45)
+        assert not t.is_rectilinear
+        b = a * t
+        assert isinstance(b, planar.Polygon)
+        print(b)
+
+    @raises(TypeError)
+    def test_mul_incompatible(self):
+        a = self.BoundingBox([(-1,0), (0,1)]) * 2
+
 
 class PyBoundingBoxTestCase(BoundingBoxBaseTestCase, unittest.TestCase):
     from planar.vector import Vec2, Seq2
     from planar.box import BoundingBox
+    from planar.transform import Affine
 
 
 class CBoundingBoxTestCase(BoundingBoxBaseTestCase, unittest.TestCase):
-    from planar.c import Vec2, Seq2, BoundingBox
+    from planar.c import Vec2, Seq2, BoundingBox, Affine
 
 
 if __name__ == '__main__':
