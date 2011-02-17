@@ -1104,10 +1104,12 @@ Seq2__mul__(PyObject *a, PyObject *b)
     if (dst == NULL) {
 		return NULL;
     }
+	srcv = src->vec;
     dstv = dst->vec;
     while (size--) {
-		dstv->x = dstv->x*ta + dstv->y*td + tc;
-		dstv->y = dstv->x*tb + dstv->y*te + tf;
+		dstv->x = srcv->x*ta + srcv->y*td + tc;
+		dstv->y = srcv->x*tb + srcv->y*te + tf;
+		++srcv;
 		++dstv;
     }
     return (PyObject *)dst;
@@ -1120,7 +1122,7 @@ Seq2__imul__(PyObject *a, PyObject *b)
     PlanarAffineObject *t;
     planar_vec2_t *sv;
     Py_ssize_t size;
-    double ta, tb, tc, td, te, tf;
+    double ta, tb, tc, td, te, tf, x, y;
 
     if (PlanarSeq2_Check(a) && PlanarAffine_Check(b)) {
 		s = (PlanarSeq2Object *)a;
@@ -1145,8 +1147,10 @@ Seq2__imul__(PyObject *a, PyObject *b)
     }
     sv = s->vec;
     while (size--) {
-		sv->x = sv->x*ta + sv->y*td + tc;
-		sv->y = sv->x*tb + sv->y*te + tf;
+		x = sv->x*ta + sv->y*td + tc;
+		y = sv->x*tb + sv->y*te + tf;
+		sv->x = x;
+		sv->y = y;
 		++sv;
     }
     Py_INCREF(s);

@@ -6,6 +6,11 @@ import math
 import unittest
 from nose.tools import assert_equal, assert_almost_equal, raises
 
+def seq_almost_equal(t1, t2, error=0.00001):
+    assert len(t1) == len(t2), "%r != %r" % (t1, t2)
+    for m1, m2 in zip(t1, t2):
+        assert abs(m1 - m2) <= error, "%r != %r" % (t1, t2)
+
 
 class BoundingBoxBaseTestCase(object):
 
@@ -256,12 +261,13 @@ class BoundingBoxBaseTestCase(object):
 
     def test_mul_by_transform(self):
         import planar
-        a = self.BoundingBox([(-2,-1), (2,1)])
+        a = self.BoundingBox([(0,0), (2,1)])
         t = self.Affine.rotation(45)
         assert not t.is_rectilinear
         b = a * t
         assert isinstance(b, planar.Polygon)
-        print(b)
+        s45 = math.sin(math.radians(45))
+        seq_almost_equal(b, [(0,0), (-s45,s45), (s45, s45*3), (s45*2, s45*2)])
 
     @raises(TypeError)
     def test_mul_incompatible(self):

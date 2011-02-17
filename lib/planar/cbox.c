@@ -477,6 +477,7 @@ BBox__mul__(PyObject *a, PyObject *b)
 {
     PlanarBBoxObject *box;
     PlanarAffineObject *t;
+	PyObject *p, *p_xform;
 	int rectilinear;
     double ta, tb, tc, td, te, tf;
 	planar_vec2_t p0, p1;
@@ -515,8 +516,13 @@ BBox__mul__(PyObject *a, PyObject *b)
 		}
 		return (PyObject *)box;
 	} else {
-		return PyNumber_Multiply(
-			(PyObject *)BBox_to_polygon(box), (PyObject *)t);
+		p = (PyObject *)BBox_to_polygon(box);
+		if (p == NULL) {
+			return NULL;
+		}
+		p_xform = PyNumber_InPlaceMultiply(p, (PyObject *)t);
+		Py_DECREF(p);
+		return p_xform;
 	}
 }
 

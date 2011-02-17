@@ -7,7 +7,7 @@ Transform objects are a mathematical mapping from one coordinate system
 to another. The coordinate systems can differ in terms of position (i.e.,
 location of the origin), scale, axis direction and relative axis orientation.
 Transform objects can be applied to other transforms, vectors, or
-shape objectss to map them between coordinate systems. 
+shape objects to map them between coordinate systems. 
 
 Transforming between coordinate systems may not, at first glance, appear to
 have a lot of practical value.  The value is in realizing that mapping an
@@ -27,7 +27,7 @@ Affine Transforms
 
 Affine transforms in ``planar`` can represent a variety of linear
 transformations in 2D space. Specifically, an affine transform can represent
-any combination of translation, scale, rotation and shear operations.
+a combination of translation, scale, rotation and shear operations.
 
 .. image:: _static/transforms.png
 

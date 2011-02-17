@@ -221,6 +221,14 @@ class BoundingBox(object):
             self._max, (self._max.x, self._min.y)],
             is_convex=True)
 
+    def __repr__(self):
+        """Precise string representation."""
+        return "BoundingBox([(%r, %r), (%r, %r)])" % (
+            self.min_point.x, self.min_point.y, 
+            self.max_point.x, self.max_point.y)
+
+    __str__ = __repr__
+
     def __mul__(self, other):
         try:
             rectilinear = other.is_rectilinear
@@ -230,7 +238,9 @@ class BoundingBox(object):
             return self.from_points(
                 [self._min * other, self._max * other])
         else:
-            return self.to_polygon() * other
+            p = self.to_polygon()
+            p *= other
+            return p
 
     __rmul__ = __mul__
 
