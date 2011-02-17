@@ -134,6 +134,18 @@ BBox_dealloc(PlanarBBoxObject *self)
     }
 }
 
+
+static PyObject *
+BBox_repr(PlanarBBoxObject *self)
+{
+    char buf[255];
+    buf[0] = 0; /* paranoid */
+    PyOS_snprintf(buf, 255, "BoundingBox([(%lg, %lg), (%lg, %lg)])",
+		self->min.x, self->min.y, self->max.x, self->max.y);
+    return PyUnicode_FromString(buf);
+}
+
+
 /* Property descriptors */
 
 static PlanarVec2Object *
@@ -547,13 +559,13 @@ PyTypeObject PlanarBBoxType = {
     0,                    /* tp_getattr */
     0,                    /* tp_setattr */
     0,                    /* reserved */
-    0, // (reprfunc)BBox_repr,  /* tp_repr */
+    (reprfunc)BBox_repr,  /* tp_repr */
     &BBox_as_number,      /* tp_as_number */
     0,                    /* tp_as_sequence */
     0,                    /* tp_as_mapping */
     0,                    /* tp_hash */
     0,                    /* tp_call */
-    0, //(reprfunc)BBox_str,   /* tp_str */
+    (reprfunc)BBox_repr,  /* tp_str */
     0,                    /* tp_getattro */
     0,                    /* tp_setattro */
     0,                    /* tp_as_buffer */

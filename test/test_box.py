@@ -273,6 +273,11 @@ class BoundingBoxBaseTestCase(object):
     def test_mul_incompatible(self):
         a = self.BoundingBox([(-1,0), (0,1)]) * 2
 
+    def test_str_and_repr(self):
+        bbox = self.BoundingBox([(-1.1, 0.1), (-1.5, 0.5)])
+        assert_equal(str(bbox), 'BoundingBox([(-1.5, 0.1), (-1.1, 0.5)])')
+        assert_equal(repr(bbox), str(bbox))
+
 
 class PyBoundingBoxTestCase(BoundingBoxBaseTestCase, unittest.TestCase):
     from planar.vector import Vec2, Seq2
