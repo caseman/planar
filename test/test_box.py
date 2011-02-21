@@ -274,8 +274,8 @@ class BoundingBoxBaseTestCase(object):
         a = self.BoundingBox([(-1,0), (0,1)]) * 2
 
     def test_str_and_repr(self):
-        bbox = self.BoundingBox([(-1.1, 0.1), (-1.5, 0.5)])
-        assert_equal(str(bbox), 'BoundingBox([(-1.5, 0.1), (-1.1, 0.5)])')
+        bbox = self.BoundingBox([(-1.25, 0.25), (-1.5, 0.5)])
+        assert_equal(str(bbox), 'BoundingBox([(-1.5, 0.25), (-1.25, 0.5)])')
         assert_equal(repr(bbox), str(bbox))
 
 
