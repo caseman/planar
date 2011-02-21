@@ -242,7 +242,7 @@ class BoundingBoxBaseTestCase(object):
     def test_mul_by_translating_transform(self):
         import planar
         a = self.BoundingBox([(-1,0), (0,1)])
-        b = a * self.Affine.translation((1, 0))
+        b = a * planar.Affine.translation((1, 0))
         assert isinstance(b, self.BoundingBox)
         assert b is not a
         assert_equal(b.min_point, (0, 0))
@@ -251,7 +251,7 @@ class BoundingBoxBaseTestCase(object):
     def test_mul_by_rectilinear_transform(self):
         import planar
         a = self.BoundingBox([(-2,-1), (2,1)])
-        t = self.Affine.rotation(90) * self.Affine.scale(2)
+        t = planar.Affine.rotation(90) * planar.Affine.scale(2)
         assert t.is_rectilinear
         b = a * t
         assert isinstance(b, self.BoundingBox)
@@ -262,7 +262,7 @@ class BoundingBoxBaseTestCase(object):
     def test_mul_by_transform(self):
         import planar
         a = self.BoundingBox([(0,0), (2,1)])
-        t = self.Affine.rotation(45)
+        t = planar.Affine.rotation(45)
         assert not t.is_rectilinear
         b = a * t
         assert isinstance(b, planar.Polygon)
@@ -282,11 +282,10 @@ class BoundingBoxBaseTestCase(object):
 class PyBoundingBoxTestCase(BoundingBoxBaseTestCase, unittest.TestCase):
     from planar.vector import Vec2, Seq2
     from planar.box import BoundingBox
-    from planar.transform import Affine
 
 
 class CBoundingBoxTestCase(BoundingBoxBaseTestCase, unittest.TestCase):
-    from planar.c import Vec2, Seq2, BoundingBox, Affine
+    from planar.c import Vec2, Seq2, BoundingBox
 
 
 if __name__ == '__main__':

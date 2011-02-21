@@ -473,36 +473,36 @@ Affine_itransform(PlanarAffineObject *self, PyObject *seq)
 	    varray->vec[i].y = x*b + y*e + f;
 	}
     } else {
-	/* General vector sequence */
-	len = PySequence_Length(seq);
-	if (len == -1) {
-	    PyErr_SetString(PyExc_TypeError, 
-		"Affine.itransform(): Cannot transform non-sequence");
-		    return NULL;
-	}
-	for (i = 0; i < len; i++) {
-	    point = PySequence_GetItem(seq, i);
-	    if (point == NULL) {
-		return NULL;
-	    }
-	    if (!PlanarVec2_Parse(point, &x, &y)) {
-		Py_DECREF(point);
-		PyErr_Format(PyExc_TypeError, 
-		    "Affine.itransform(): "
-		    "Element at position %lu is not a valid vector", i);
-		return NULL;
-	    }
-	    Py_DECREF(point);
-	    point = (PyObject *)PlanarVec2_FromDoubles(x*a + y*d + c, x*b + y*e + f);
-	    if (point == NULL) {
-		return NULL;
-	    }
-	    if (PySequence_SetItem(seq, i, point) < 0) {
-		Py_DECREF(point);
-		return NULL;
-	    }
-	    Py_DECREF(point);
-	}
+		/* General vector sequence */
+		len = PySequence_Length(seq);
+		if (len == -1) {
+			PyErr_SetString(PyExc_TypeError, 
+			"Affine.itransform(): Cannot transform non-sequence");
+			return NULL;
+		}
+		for (i = 0; i < len; i++) {
+			point = PySequence_GetItem(seq, i);
+			if (point == NULL) {
+				return NULL;
+			}
+			if (!PlanarVec2_Parse(point, &x, &y)) {
+				Py_DECREF(point);
+				PyErr_Format(PyExc_TypeError, 
+					"Affine.itransform(): "
+					"Element at position %lu is not a valid vector", i);
+				return NULL;
+			}
+			Py_DECREF(point);
+			point = (PyObject *)PlanarVec2_FromDoubles(x*a + y*d + c, x*b + y*e + f);
+			if (point == NULL) {
+				return NULL;
+			}
+			if (PySequence_SetItem(seq, i, point) < 0) {
+			Py_DECREF(point);
+				return NULL;
+			}
+			Py_DECREF(point);
+		}
     }
     Py_INCREF(Py_None);
     return Py_None;
