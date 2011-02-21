@@ -841,6 +841,18 @@ Seq2_new_from_points(PyTypeObject *type, PyObject *points)
     Py_ssize_t size;
     Py_ssize_t i;
 
+	assert(PyType_IsSubtype(type, &PlanarSeq2Type));
+	/* This check is a bit of a hack to prevent
+	   bugs in user code from crashing the interpreter
+	   by "forcing" this to be called with known
+	   incompatible subclasses
+	*/
+	if (PyType_IsSubtype(type, &PlanarPolygonType)) {
+		PyErr_Format(PyExc_TypeError,
+			"Cannot call Seq2.from_points() on %.200s class",
+			type->tp_name);
+		return NULL;
+	}
     if (PlanarSeq2_Check(points)) {
 		/* Copy existing Seq2 (optimized) */
 		varray = Seq2_New(type, Py_SIZE(points));

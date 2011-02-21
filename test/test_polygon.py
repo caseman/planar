@@ -799,7 +799,7 @@ class PolygonBaseTestCase(object):
             @classmethod
             def from_points(cls, points):
                 cls.from_points_called = True
-                return super(self.Polygon, cls).from_points(points)
+                return super(PolySubclass, cls).from_points(points)
 
         a = PolySubclass([(0,1), (1,2), (3,4)])
         assert not PolySubclass.from_points_called
