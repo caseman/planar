@@ -19,7 +19,7 @@ points::
 	>>> from planar import BoundingBox
 	>>> bbox = BoundingBox([(0,0), (1,2), (-5,6), (-3,2), (0.5,-1)])
 	>>> print(bbox)
-	BoundingBox([(-5.0, -1.0), (1.0, 6.0)])
+	BoundingBox([(-5, -1), (1, 6)])
 
 Note that even bounding box instances have a ``bounding_box`` attribute, since
 they are themselves finite shapes. The bounding box of a bounding box is just
@@ -36,7 +36,7 @@ The resulting bounding box encloses all of the shapes provided::
 	... ]
 	>>> bbox = BoundingBox.from_shapes(shapes)
 	>>> print(bbox)
-	BoundingBox([(-2.0, -2.0), (7.0, 7.0)])
+	BoundingBox([(-2, -2), (7, 7)])
 
 It is also possible to create a ``BoundingBox`` from a center point,
 specifying its width and height explicitly::
@@ -44,7 +44,7 @@ specifying its width and height explicitly::
 	>>> from planar import BoundingBox
 	>>> bbox = BoundingBox.from_center((2,2), width=4, height=9)
 	>>> print(bbox)
-	BoundingBox([(0.0, -2.5), (4.0, 6.5)])
+	BoundingBox([(0, -2.5), (4, 6.5)])
 
 BoundingBox Attributes
 ----------------------
