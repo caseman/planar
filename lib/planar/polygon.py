@@ -123,7 +123,7 @@ class Polygon(planar.Seq2):
 
     @classmethod
     def star(cls, peak_count, radius1, radius2, center=(0, 0), angle=0):
-        """Create a circular pointed star polygon with the specified number
+        """Create a radial pointed star polygon with the specified number
         of peaks.
 
         :param peak_count: The number of peaks. The resulting polygon will
