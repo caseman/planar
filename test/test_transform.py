@@ -287,6 +287,16 @@ class AffineBaseTestCase(object):
     def test_mul_wrong_type(self):
         self.Affine(1,2,3,4,5,6) * None
 
+    @raises(TypeError)
+    def test_mul_sequence_wrong_member_types(self):
+        class NotPtSeq:
+            @classmethod
+            def from_points(cls, points):
+                list(points)
+            def __iter__(self):
+                yield 0
+        self.Affine(1,2,3,4,5,6) * NotPtSeq()
+        
     def test_rmul_vector(self):
         import planar
         t = self.Affine.rotation(-5)

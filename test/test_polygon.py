@@ -404,6 +404,12 @@ class PolygonBaseTestCase(object):
         assert not poly.contains_point((-100, 100))
         assert not poly.contains_point((100, 100))
 
+    def test_contains_point_triangle_with_mutation(self):
+        poly = self.Polygon([(0,0), (1, -1), (0.5,0.5)])
+        assert poly.contains_point((0.5, -0.1))
+        poly[1] = (1, 0)
+        assert not poly.contains_point((0.5, -0.1))
+
     def test_contains_point_degenerate_triangle(self):
         poly = self.Polygon([(2,3), (2,0), (2,5)])
         assert not poly.contains_point((0,0))
@@ -411,6 +417,12 @@ class PolygonBaseTestCase(object):
         assert not poly.contains_point((2,4))
         assert not poly.contains_point((0,4))
         assert not poly.contains_point((2.1,4))
+
+    def test_contains_point_null_triangle(self):
+        poly = self.Polygon([(1,1), (1,1), (1,1)])
+        assert not poly.contains_point((0,0))
+        assert not poly.contains_point((1,1))
+        assert not poly.contains_point((2,2))
 
     def test_contains_point_convex_no_centroid(self):
         poly = self.Polygon(
@@ -659,10 +671,33 @@ class PolygonBaseTestCase(object):
             (self.Vec2.polar(12, 2), self.Vec2.polar(168, 2)))
         assert_equal(poly.tangents_to_point((0,5)), 
             (self.Vec2.polar(24, 2), self.Vec2.polar(156, 2)))
+        assert_equal(poly.tangents_to_point((10,10)), 
+            (self.Vec2.polar(-36, 2), self.Vec2.polar(132, 2)))
         assert_equal(poly.tangents_to_point((2,2)), 
             (self.Vec2.polar(0, 2), self.Vec2.polar(96, 2)))
         assert_equal(poly.tangents_to_point((-2,-2)), 
             (self.Vec2.polar(180, 2), self.Vec2.polar(-84, 2)))
+        assert_equal(poly.tangents_to_point((-2,-20)), 
+            (self.Vec2.polar(180, 2), self.Vec2.polar(-12, 2)))
+        assert_equal(poly.tangents_to_point((5,20)), 
+            (self.Vec2.polar(-12, 2), self.Vec2.polar(156, 2)))
+
+    def test_tangents_to_point_convex_reverse_wound(self):
+        poly = self.Polygon(reversed(self.Polygon.regular(30, 2)))
+        assert_equal(poly.tangents_to_point((0,10)), 
+            (self.Vec2.polar(12, 2), self.Vec2.polar(168, 2)))
+        assert_equal(poly.tangents_to_point((0,-5)), 
+            (self.Vec2.polar(-156, 2), self.Vec2.polar(-24, 2)))
+        assert_equal(poly.tangents_to_point((10,10)), 
+            (self.Vec2.polar(-36, 2), self.Vec2.polar(132, 2)))
+        assert_equal(poly.tangents_to_point((2,2)), 
+            (self.Vec2.polar(0, 2), self.Vec2.polar(96, 2)))
+        assert_equal(poly.tangents_to_point((-2,-2)), 
+            (self.Vec2.polar(180, 2), self.Vec2.polar(-84, 2)))
+        assert_equal(poly.tangents_to_point((-2,-20)), 
+            (self.Vec2.polar(180, 2), self.Vec2.polar(-12, 2)))
+        assert_equal(poly.tangents_to_point((5,20)), 
+            (self.Vec2.polar(-12, 2), self.Vec2.polar(156, 2)))
 
     def test_tangents_to_point_non_convex(self):
         poly = self.Polygon([(1,-1), (0,-3), (-1,3), (0,1), (2,2), (2,-2)])
