@@ -16,7 +16,7 @@ for ver in 2.6 2.7 3.1; do
 		# pass in -UNDEBUG to ensure assertions are enabled in C-extensions
 		SETUP_PY_CFLAGS="-UNDEBUG" python${ver} setup.py build && \
 		python${ver} -m nose.core \
-			-d -w build/lib.*${ver}/ --with-coverage $@ || error=1
+			-d -w build/lib.*${ver}/ --with-coverage --cover-erase $@ || error=1
 	else
 		echo >&2 "!!! Python ${ver} not found !!!"
 		error=1
