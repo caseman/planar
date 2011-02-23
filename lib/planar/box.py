@@ -214,7 +214,7 @@ class BoundingBox(object):
         """Return a rectangular :class:`~planar.Polygon` object with the same
         vertices as the bounding box.
 
-        :rtype: :class`~planar.Polygon`
+        :rtype: :class:`~planar.Polygon`
         """
         return planar.Polygon([
             self._min, (self._min.x, self._max.y), 
