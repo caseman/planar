@@ -70,25 +70,26 @@ with the largest x and y value.
 "Hit" Testing
 -------------
 
-All closed shapes, including bounding boxes, have a ``contains_point()``
-method for testing if a point is inside or outside of the shape. For bounding
-boxes, this is an extremely simple, and fast test so often a hit test of a
-complex shape will first do a test against the shape's bounding box to quickly
-eliminate points that are not near the shape at all. This is done
-automatically by built-in ``planar`` shapes where appropriate, but you can
-employ this strategy yourself if you create your own custom shape classes with
-``planar`` primitives.
+All closed shapes, including bounding boxes, have a
+:meth:`~planar.BoundingBox.contains_point()` method for testing if a point is
+inside or outside of the shape. For bounding boxes, this is an extremely
+simple, and fast test so often a hit test of a complex shape will first do a
+test against the shape's bounding box to quickly eliminate points that are not
+near the shape at all. This is done automatically by built-in ``planar``
+shapes where appropriate, but you can employ this strategy yourself if you
+create your own custom shape classes with ``planar`` primitives.
 
-``contains_point()`` has special semantics for properly handling shapes that
-share edges. If you have multiple non-overlapping shapes that share edges, the
-method will return ``True`` for, at most, one shape for any given test point.
-This means that for any single shape, some edge points are considered "inside"
-the shape, whereas others are not. If all edge points were considered
-"inside", then points along a shared edge would be considered inside both
-shapes. On the other hand, if all edge points were considered "outside" then
-there would be a gap along the shared edges. Since neither of these results is
-satisfactory, ``planar`` instead ensures that points along the edge belong
-only to the shape with the coincident edge to the "left" or "below".
+:meth:`~planar.BoundingBox.contains_point()` has special semantics for
+properly handling shapes that share edges. If you have multiple
+non-overlapping shapes that share edges, the method will return ``True`` for,
+at most, one shape for any given test point.  This means that for any single
+shape, some edge points are considered "inside" the shape, whereas others are
+not. If all edge points were considered "inside", then points along a shared
+edge would be considered inside both shapes. On the other hand, if all edge
+points were considered "outside" then there would be a gap along the shared
+edges. Since neither of these results is satisfactory, ``planar`` instead
+ensures that points along the edge belong only to the shape with the
+coincident edge to the "left" or "below".
 
 BoundingBox Operations
 ----------------------
@@ -136,10 +137,11 @@ Since bounding boxes are often used to "frame" other shapes, there are a
 couple of methods that are useful for manipulating shapes within a frame. 
 
 You can shrink and expand a bounding box about its center point by an absolute
-amount using the ``inflate()`` method. This method allows you to derive a new
-bounding box that is wider or higher than an existing one by fixed values. You
-can provide a single number to ``inflate()`` to change the width and height by
-the same absolute amount. Positive amounts increase the size while negative
+amount using the :meth:`~planar.BoundingBox.inflate()` method. This method
+allows you to derive a new bounding box that is wider or higher than an
+existing one by fixed values. You can provide a single number to
+:meth:`~planar.BoundingBox.inflate()` to change the width and height by the
+same absolute amount. Positive amounts increase the size while negative
 amounts decrease it. You can alter the width and height independently by
 providing a sequence of two numbers, such as a tuple, or :class:`~planar.Vec2`
 object::
@@ -153,7 +155,8 @@ object::
 
 The second useful "framing" method allows you to derive a shape fitted to a
 bounding box from an existing arbitrary shape. The
-:class:`~planar.BoundingBox` ``fit()`` method takes an input shape and creates
-a transformed version that is translated and scaled so that it fits in the
-bounding box. The input shape is scaled evenly to preserve its aspect ratio.
+:class:`~planar.BoundingBox` :meth:`~planar.BoundingBox.fit()` method takes an
+input shape and creates a transformed version that is translated and scaled so
+that it fits in the bounding box. The input shape is scaled evenly to preserve
+its aspect ratio.
 
