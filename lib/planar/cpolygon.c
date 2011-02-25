@@ -786,13 +786,15 @@ Poly_left_tan_convex(PlanarPolygonObject *self, planar_vec2_t *pt)
 	long down_c;
 	DUP_FIRST_VERT(self);
 	DUP_LAST_VERT(self);
+	Py_ssize_t limit;
 	
 	a = self->vert - 1;
 	b = self->vert + Py_SIZE(self) - 1;
 	if ((SIDE(pt, a + 1, a) >= 0.0) & (SIDE(pt, b - 1, b) > 0.0)) {
 		return b;
 	}
-	while (a < b) {
+	limit = Py_SIZE(self);
+	while (limit--) {
 		c = a + (b - a) / 2;
 		down_c = SIDE(pt, c + 1, c) < 0.0;
 		if ((!down_c) & (SIDE(pt, c - 1, c) > 0.0)) {
@@ -812,7 +814,7 @@ Poly_left_tan_convex(PlanarPolygonObject *self, planar_vec2_t *pt)
 			}
 		}
 	}
-	return a; /* should not happen */
+	return a; /* probably got an interior point */
 }
 
 static planar_vec2_t *
@@ -822,13 +824,15 @@ Poly_right_tan_convex(PlanarPolygonObject *self, planar_vec2_t *pt)
 	long down_c;
 	DUP_FIRST_VERT(self);
 	DUP_LAST_VERT(self);
+	Py_ssize_t limit;
 	
 	a = self->vert - 1;
 	b = self->vert + Py_SIZE(self) - 1;
 	if ((SIDE(pt, a + 1, a) < 0.0) & (SIDE(pt, b - 1, b) <= 0.0)) {
 		return b;
 	}
-	while (a < b) {
+	limit = Py_SIZE(self);
+	while (limit--) {
 		c = a + (b - a) / 2;
 		down_c = SIDE(pt, c + 1, c) < 0.0;
 		if ((down_c) & (SIDE(pt, c - 1, c) <= 0.0)) {
@@ -848,7 +852,7 @@ Poly_right_tan_convex(PlanarPolygonObject *self, planar_vec2_t *pt)
 			}
 		}
 	}
-	return a; /* should not happen */
+	return a; /* probably got an interior point */
 }
 
 static PyObject *

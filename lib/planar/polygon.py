@@ -745,7 +745,8 @@ class Polygon(planar.Seq2):
 
         a = -1
         b = len(self) - 1
-        while a < b: # Avoid inf loop if polygon is not actually convex
+        limit = len(self)
+        while limit:
             c = (a + b) // 2
             down_c = below(point, self[c+1], self[c])
             if not down_c and above(point, self[c-1], self[c]):
@@ -761,6 +762,8 @@ class Polygon(planar.Seq2):
                     a = c
                 else:
                     b = c
+            limit -= 1
+        return a # Interior point
 
     def _right_tan_i_convex(self, point):
         """Return the right tangent index to the given exterior point for a 
@@ -776,7 +779,8 @@ class Polygon(planar.Seq2):
 
         a = -1
         b = len(self) - 1
-        while a < b: # Avoid inf loop if polygon is not actually convex
+        limit = len(self)
+        while limit:
             c = (a + b) // 2
             down_c = below(point, self[c+1], self[c])
             if down_c and not above(point, self[c-1], self[c]):
@@ -792,6 +796,8 @@ class Polygon(planar.Seq2):
                     a = c
                 else:
                     b = c
+            limit -= 1
+        return a # Interior point
 
     def tangents_to_point(self, point):
         """Given a point **exterior** to the polygon, return the pair of
