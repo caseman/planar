@@ -7,6 +7,8 @@ Bounding boxes are axis-aligned rectangles. They are the simplest closed shape
 type in ``planar``, represented by two points containing the minimum and
 maximum coordinates for each axis.
 
+.. image:: _static/bbox.png
+
 Bounding boxes can be useful as standalone shapes, but they are primarily used
 for approximating more complex shapes to speed operations such as containment
 checks and intersection. To facilitate this, all finite shapes defined by
@@ -21,7 +23,7 @@ points::
 	>>> print(bbox)
 	BoundingBox([(-5, -1), (1, 6)])
 
-Note that even bounding box instances have a ``bounding_box`` attribute, since
+Even bounding box instances have a ``bounding_box`` attribute, since
 they are themselves finite shapes. The bounding box of a bounding box is just
 itself, which may seem silly, but it lets you include ``BoundingBox``
 instances in collections of other shapes without special casing them. For
@@ -151,7 +153,7 @@ object::
 
 The second useful "framing" method allows you to derive a shape fitted to a
 bounding box from an existing arbitrary shape. The
-:class:`~planar.BoundingBox` ``fit()`` method takes an input shape and create
+:class:`~planar.BoundingBox` ``fit()`` method takes an input shape and creates
 a transformed version that is translated and scaled so that it fits in the
 bounding box. The input shape is scaled evenly to preserve its aspect ratio.
 
