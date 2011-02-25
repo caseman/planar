@@ -16,6 +16,7 @@ Planar was created for use by the `Grease game framework <http://www.pygamesf.or
    vectors
    transforms
    bbox
+   polygon
 
 Reference
 ---------

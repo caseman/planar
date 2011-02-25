@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="508.59927"
+   height="131.91629"
+   id="svg4926"
+   version="1.1"
+   inkscape:version="0.47pre3 r22311"
+   sodipodi:docname="polystar.svg"
+   inkscape:export-filename="/Users/casey/hg/planar/doc/source/_static/polystar.png"
+   inkscape:export-xdpi="71.872246"
+   inkscape:export-ydpi="71.872246">
+  <defs
+     id="defs4928">
+    <inkscape:perspective
+       sodipodi:type="inkscape:persp3d"
+       inkscape:vp_x="0 : 526.18109 : 1"
+       inkscape:vp_y="0 : 1000 : 0"
+       inkscape:vp_z="744.09448 : 526.18109 : 1"
+       inkscape:persp3d-origin="372.04724 : 350.78739 : 1"
+       id="perspective4934" />
+  </defs>
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="1"
+     inkscape:cx="204.25345"
+     inkscape:cy="63.524152"
+     inkscape:document-units="px"
+     inkscape:current-layer="layer1"
+     showgrid="false"
+     inkscape:window-width="1112"
+     inkscape:window-height="615"
+     inkscape:window-x="153"
+     inkscape:window-y="397"
+     inkscape:window-maximized="0" />
+  <metadata
+     id="metadata4931">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title></dc:title>
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     inkscape:label="Layer 1"
+     inkscape:groupmode="layer"
+     id="layer1"
+     transform="translate(-26.988872,-368.77402)">
+    <path
+       sodipodi:type="star"
+       style="fill:#d7eef4;fill-opacity:1;stroke:#000000;stroke-width:1.19787085;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       id="path4936"
+       sodipodi:sides="4"
+       sodipodi:cx="117"
+       sodipodi:cy="425.36218"
+       sodipodi:r1="59.539902"
+       sodipodi:r2="18.571337"
+       sodipodi:arg1="1.3089969"
+       sodipodi:arg2="2.0943951"
+       inkscape:flatsided="false"
+       inkscape:rounded="0"
+       inkscape:randomized="0"
+       d="m 132.41006,482.87331 -24.69573,-41.42788 -48.225458,-0.67318 41.427878,-24.69574 0.67319,-48.22546 24.69573,41.42788 48.22546,0.67319 -41.42788,24.69573 -0.67319,48.22546 z"
+       transform="matrix(0.83481458,0,0,0.83481458,-22.173306,65.263631)" />
+    <path
+       sodipodi:type="star"
+       style="fill:#d7eef4;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       id="path5958"
+       sodipodi:sides="5"
+       sodipodi:cx="236"
+       sodipodi:cy="419.36218"
+       sodipodi:r1="51.088158"
+       sodipodi:r2="24.709787"
+       sodipodi:arg1="1.5707963"
+       sodipodi:arg2="2.1991148"
+       inkscape:flatsided="false"
+       inkscape:rounded="0"
+       inkscape:randomized="0"
+       d="M 236,470.45034 221.47595,439.35282 187.41228,435.14929 212.4996,411.72644 205.97113,378.031 236,394.6524 l 30.02886,-16.62141 -6.52846,33.69545 25.08733,23.42285 -34.06368,4.20353 L 236,470.45034 z"
+       transform="translate(-24.333328,-3.8784845)" />
+    <path
+       d="m 236,470.45034 -8.5725,-36.24016 -35.67114,10.69608 27.09865,-25.54408 -27.09865,-25.54408 35.67114,10.69608 8.5725,-36.24016 8.5725,36.24016 35.67114,-10.69608 -27.09865,25.54408 27.09865,25.54408 L 244.5725,434.21018 236,470.45034 z"
+       inkscape:randomized="0"
+       inkscape:rounded="0"
+       inkscape:flatsided="false"
+       sodipodi:arg2="2.0943951"
+       sodipodi:arg1="1.5707963"
+       sodipodi:r2="17.144993"
+       sodipodi:r1="51.088158"
+       sodipodi:cy="419.36218"
+       sodipodi:cx="236"
+       sodipodi:sides="6"
+       id="path5960"
+       style="fill:#d7eef4;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       sodipodi:type="star"
+       transform="translate(111.83334,1)" />
+    <path
+       transform="translate(248,1)"
+       sodipodi:type="star"
+       style="fill:#d7eef4;fill-opacity:1;stroke:#000000;stroke-width:1;stroke-linecap:butt;stroke-linejoin:miter;stroke-miterlimit:4;stroke-opacity:1;stroke-dasharray:none;stroke-dashoffset:0"
+       id="path5962"
+       sodipodi:sides="8"
+       sodipodi:cx="236"
+       sodipodi:cy="419.36218"
+       sodipodi:r1="51.088158"
+       sodipodi:r2="40.958927"
+       sodipodi:arg1="1.5707963"
+       sodipodi:arg2="1.9634954"
+       inkscape:flatsided="false"
+       inkscape:rounded="0"
+       inkscape:randomized="0"
+       d="m 236,470.45034 -15.6743,-13.24704 -20.45048,-1.71633 -1.71633,-20.45048 -13.24705,-15.67431 13.24705,-15.6743 1.71633,-20.45048 20.45048,-1.71633 15.6743,-13.24705 15.6743,13.24705 20.45048,1.71633 1.71633,20.45048 13.24705,15.6743 -13.24705,15.6743 -1.71633,20.45048 L 251.6743,457.2033 236,470.45034 z" />
+    <text
+       xml:space="preserve"
+       style="font-size:16px;font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;text-align:center;line-height:100%;writing-mode:lr-tb;text-anchor:middle;fill:#000000;fill-opacity:1;stroke:none;font-family:Sans;-inkscape-font-specification:Sans"
+       x="280.89789"
+       y="493.36218"
+       id="text5964"
+       sodipodi:linespacing="100%"
+       inkscape:export-filename="/Users/casey/hg/planar/doc/source/_static/polystar.png"
+       inkscape:export-xdpi="100"
+       inkscape:export-ydpi="100"><tspan
+         sodipodi:role="line"
+         id="tspan5966"
+         x="280.89789"
+         y="493.36218">Star Polygons</tspan></text>
+  </g>
+</svg>
