@@ -1,3 +1,9 @@
+Release 0.3 (2/26/2011)
+-----------------------
+- Added BoundingBox type
+- Added Polygon type
+- Added py namespace module
+
 Release 0.2.1 (8/24/2010)
 -------------------------
 - Fix broken C assertions in Vec2Array. Thanks to Jonathan Hartley!
