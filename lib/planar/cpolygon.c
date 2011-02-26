@@ -43,7 +43,7 @@ Poly_create_new(PyTypeObject *type, PyObject *args, PyObject *kwargs)
 	if (poly == NULL) {
 		goto error;
 	}
-	if (is_convex_arg != NULL && PyObject_IsTrue(is_convex_arg) > 0 
+	if ((is_convex_arg != NULL && PyObject_IsTrue(is_convex_arg) > 0)
 		|| size == 3) {
 		poly->flags = (POLY_CONVEX_FLAG | POLY_CONVEX_KNOWN_FLAG 
 			| POLY_SIMPLE_FLAG | POLY_SIMPLE_KNOWN_FLAG);
@@ -350,7 +350,7 @@ compare_vec_triples_reverse(const void *a, const void *b)
 
 static int
 Poly_compare_eq(PlanarPolygonObject *a, PlanarPolygonObject *b) {
-	Py_ssize_t i, eq_count, ai, bi;
+	Py_ssize_t i;
 	planar_vec2_t *a_vert, *b_vert;
 	planar_vec2_t **a_triples = NULL, **b_triples = NULL;
 	const planar_vec2_t *a_end = a->vert + Py_SIZE(a);
@@ -461,7 +461,6 @@ static void
 Poly_classify(PlanarPolygonObject *self) 
 {
 	int dir_changes = 0;
-	int angle_sign = 0;
 	Py_ssize_t count = 0;
 	int same_turns = 1;
 	Py_ssize_t i;
@@ -725,7 +724,7 @@ Poly_getitem(PlanarPolygonObject *self, Py_ssize_t index)
     return NULL;
 }
 
-static int
+static void
 clear_cached_properties(PlanarPolygonObject *self)
 {
 	self->flags = 0;
@@ -934,7 +933,7 @@ split_y_polylines(PlanarPolygonObject *self)
 	if (self->lt_y_poly == NULL) {
 		return -1;
 	}
-	min = max = self->vert;
+	min = max = left = right = self->vert;
 	min_y = max_y = self->vert[0].y;
 	min_x = max_x = self->vert[0].x;
 	v_end = self->vert + Py_SIZE(self) - 1;
@@ -1128,7 +1127,6 @@ static PyObject *
 Poly__repr__(PlanarPolygonObject *self)
 {
 	char props[256];
-	int is_convex;
 	
 	props[0] = 0;
 	if (self->flags & POLY_CONVEX_KNOWN_FLAG) {
@@ -1158,6 +1156,7 @@ ahull_partition_points(planar_vec2_t **hull, planar_vec2_t **pts,
 	Py_ssize_t left_count, right_count, max_partition;
 
 	/* Find point furthest from line p0->p1 as partition point */
+	partition_pt = *pts;
 	for (p = pts; p < pts + size; ++p) {
 		dist = (p1->x - p0->x)*((*p)->y - p0->y) 
 			- ((*p)->x - p0->x)*(p1->y - p0->y);

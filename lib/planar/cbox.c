@@ -107,7 +107,6 @@ BBox_init(PlanarBBoxObject *self, PyObject *args)
 static PyObject *
 BBox_alloc(PyTypeObject *type, Py_ssize_t nitems)
 {
-    int i;
     PlanarBBoxObject *box;
 
     assert(PyType_IsSubtype(type, &PlanarBBoxType));
@@ -373,7 +372,6 @@ BBox_contains_point(PlanarBBoxObject *self, PyObject *other)
     double px, py;
     int contains;
     PyObject *r = NULL;
-    PlanarBBoxObject *bbox;
 
     assert(PlanarBBox_Check(self));
     if (PlanarVec2_Parse(other, &px, &py)) {
