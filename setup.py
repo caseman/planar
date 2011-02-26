@@ -33,7 +33,7 @@ if 'SETUP_PY_CFLAGS' in os.environ:
 
 setup(
     name='planar',
-    version='0.2.1', # *** REMEMBER TO UPDATE __init__.py ***
+    version='0.3', # *** REMEMBER TO UPDATE __init__.py ***
     description='2D planar geometry library for Python.',
     long_description=read('README.txt'),
     provides=['planar'],

@@ -30,9 +30,9 @@
 """2d planar geometry library for Python"""
 
 __all__ = ('TransformNotInvertibleError', 'set_epsilon', 
-    'Vec2', 'Point', 'Affine', 'BoundingBox')
+    'Vec2', 'Point', 'Affine', 'BoundingBox', 'Polygon')
 
-__versioninfo__ = (0, 2, 1)
+__versioninfo__ = (0, 3, 0)
 __version__ = '.'.join(str(n) for n in __versioninfo__)
 
 try: # pragma: no cover
