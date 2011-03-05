@@ -198,6 +198,17 @@ class Line(LinearGeometry):
         offset_distance = point.dot(self._normal) - self.offset
         return point - 2.0 * self._normal * offset_distance
 
+    def __imul__(self, other):
+        p1, p2 = self.points
+        try:
+            p1 *= other
+            p2 *= other
+        except TypeError:
+            return NotImplemented
+        self.direction = p2 - p1
+        self.offset = p1.dot(self.normal)
+        return self
+
     def __eq__(self, other):
         return (self.__class__ is other.__class__ 
             and self.offset == other.offset
@@ -338,6 +349,17 @@ class Ray(LinearGeometry):
         else:
             # Point "behind" ray
             return self._anchor
+
+    def __imul__(self, other):
+        p1, p2 = self.points
+        try:
+            p1 *= other
+            p2 *= other
+        except TypeError:
+            return NotImplemented
+        self.direction = p2 - p1
+        self.anchor = p1
+        return self
 
     def __eq__(self, other):
         return (self.__class__ is other.__class__ 

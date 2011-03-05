@@ -292,6 +292,23 @@ class LineBaseTestCase(object):
         assert line.almost_equals(line)
         assert not line.almost_equals(self.Line((1,-1.99), (2, 5)))
 
+    def test_transform(self):
+        line = self.Line((0, 0), (-2, 1))
+        line2 = line * self.Affine.rotation(-90, pivot=(-4, 2))
+        assert isinstance(line2, self.Line)
+        assert line2 is not line
+        assert line2.direction.almost_equals(
+            self.Vec2(1, 2).normalized())
+        assert line2.contains_point((-4, 2))
+
+    def test_itransform(self):
+        line = orig = self.Line((0, 0), (1, 1))
+        line *= self.Affine.translation((-1,1)) * self.Affine.scale((1, 0.5))
+        assert line is orig
+        assert line.direction.almost_equals(
+            self.Vec2(1, 0.5).normalized())
+        assert line.contains_point((-1, 1))
+
     def test_str(self):
         line = self.Line((0.55, 0), (0, 1))
         assert_equal(str(line), "Line((0.55, 0.0), (0.0, 1.0))")
@@ -413,6 +430,23 @@ class RayBaseTestCase(object):
         assert ray.project(self.Vec2(3, 2)).almost_equals((1.5, 3.5))
         assert ray.project((-1,-3)).almost_equals((0,2))
 
+    def test_transform(self):
+        ray = self.Ray((0, 0), (2, 1))
+        ray2 = ray * self.Affine.rotation(-90, pivot=(4, 2))
+        assert isinstance(ray2, self.Ray)
+        assert ray2 is not ray
+        assert ray2.direction.almost_equals(
+            self.Vec2(1, -2).normalized())
+        assert ray2.contains_point((4, 2))
+
+    def test_itransform(self):
+        ray = orig = self.Ray((0, 0), (1, 1))
+        ray *= self.Affine.translation((-1,1)) * self.Affine.scale((1, 0.5))
+        assert ray is orig
+        assert ray.direction.almost_equals(
+            self.Vec2(1, 0.5).normalized())
+        assert ray.contains_point((-1, 1))
+
     def test_equals(self):
         ray = self.Ray((1,-2), (2, 5))
         assert ray == ray
@@ -449,12 +483,14 @@ class RayBaseTestCase(object):
 class PyLineTestCase(LinearBaseTestCase, LineBaseTestCase, unittest.TestCase):
     from planar.vector import Vec2
     from planar.line import Line
+    from planar.transform import Affine
     LinearType = Line
 
 
 class PyRayTestCase(LinearBaseTestCase, RayBaseTestCase, unittest.TestCase):
     from planar.vector import Vec2
     from planar.line import Ray, Line
+    from planar.transform import Affine
     LinearType = Ray
 
 

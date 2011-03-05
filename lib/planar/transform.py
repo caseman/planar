@@ -260,10 +260,11 @@ class Affine(tuple):
         elif hasattr(other, 'from_points'):
             # Point/vector array
             Point = planar.Point
+            points = getattr(other, 'points', other)
             try:
                 return other.from_points(
                     Point(px*sa + py*sd + sc, px*sb + py*se + sf)
-                    for px, py in other)
+                    for px, py in points)
             except TypeError:
                 return NotImplemented
         else:
