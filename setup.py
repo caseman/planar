@@ -65,6 +65,7 @@ setup(
 			['lib/planar/cmodule.c', 
 			 'lib/planar/cvector.c',
 			 'lib/planar/ctransform.c',
+			 'lib/planar/cline.c',
 			 'lib/planar/cbox.c',
 			 'lib/planar/cpolygon.c',
 			], 

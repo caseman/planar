@@ -93,7 +93,7 @@ class Line(LinearGeometry):
             start = end = planar.Vec2(*points.next())
             while end == start:
                 end = planar.Vec2(*points.next())
-        except (StopIteration, TypeError):
+        except StopIteration:
             raise ValueError("Expected iterable of 2 or more distinct points")
         line = object.__new__(cls)
         line.direction = end - start
@@ -120,7 +120,7 @@ class Line(LinearGeometry):
         return line
     
     offset = 0
-    """Distance from the origin to the line"""
+    """Distance from the origin to the line."""
 
     @property
     def points(self):
@@ -263,7 +263,7 @@ class Ray(LinearGeometry):
             start = end = planar.Vec2(*points.next())
             while end == start:
                 end = planar.Vec2(*points.next())
-        except (StopIteration, TypeError):
+        except StopIteration:
             raise ValueError("Expected iterable of 2 or more distinct points")
         ray = object.__new__(cls)
         ray.direction = end - start

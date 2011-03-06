@@ -810,31 +810,6 @@ PyTypeObject PlanarVec2Type = {
 /***************************************************************************/
 
 static PlanarSeq2Object *
-Seq2_New(PyTypeObject *type, Py_ssize_t size)
-{
-    PlanarSeq2Object *varray = 
-		(PlanarSeq2Object *)type->tp_alloc(type, size);
-    if (varray == NULL) {
-		return NULL;
-    }
-	Py_SIZE(varray) = size;
-	if (type->tp_itemsize == 0) {
-		/* We assume this means that the items are
-		   externally allocated */
-		varray->vec = PyMem_Malloc(size * sizeof(planar_vec2_t));
-		if (varray->vec == NULL) {
-			Py_DECREF(varray);
-			return (PlanarSeq2Object *)PyErr_NoMemory();
-		}
-		varray->allocated = size;
-    } else {
-		/* Items allocated inline */
-		varray->vec = varray->data;
-    }
-    return varray;
-}
-
-static PlanarSeq2Object *
 Seq2_new_from_points(PyTypeObject *type, PyObject *points)
 {
 	PlanarSeq2Object *varray;

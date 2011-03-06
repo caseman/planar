@@ -36,7 +36,7 @@ class LinearBaseTestCase(object):
     def test_from_points_not_iterable(self):
         self.LinearType.from_points(100)
 
-    @raises(ValueError)
+    @raises(TypeError)
     def test_from_points_wrong_iterable(self):
         self.LinearType.from_points("foo")
 
@@ -123,7 +123,7 @@ class LinearBaseTestCase(object):
         lg.normal = (0, 0)
 
 
-class LineBaseTestCase(object):
+class LineBaseTestCase(LinearBaseTestCase):
 
     @raises(TypeError)
     def test_from_normal_no_args(self):
@@ -309,16 +309,8 @@ class LineBaseTestCase(object):
             self.Vec2(1, 0.5).normalized())
         assert line.contains_point((-1, 1))
 
-    def test_str(self):
-        line = self.Line((0.55, 0), (0, 1))
-        assert_equal(str(line), "Line((0.55, 0.0), (0.0, 1.0))")
-        
-    def test_repr(self):
-        line = self.Line((0.55, 0), (0, 1))
-        assert_equal(repr(line), "Line((0.55, 0.0), (0.0, 1.0))")
 
-
-class RayBaseTestCase(object):
+class RayBaseTestCase(LinearBaseTestCase):
     
     def test_from_points_many_collinear(self):
         ray = self.Ray.from_points(
@@ -480,14 +472,35 @@ class RayBaseTestCase(object):
         assert_equal(repr(ray), "Ray((0.55, 0.0), (0.0, 1.0))")
 
 
-class PyLineTestCase(LinearBaseTestCase, LineBaseTestCase, unittest.TestCase):
+class PyLineTestCase(LineBaseTestCase, unittest.TestCase):
     from planar.vector import Vec2
     from planar.line import Line
     from planar.transform import Affine
     LinearType = Line
 
+    def test_str(self):
+        line = self.Line((0.55, 0), (0, 1))
+        assert_equal(str(line), "Line((0.55, 0.0), (0.0, 1.0))")
+        
+    def test_repr(self):
+        line = self.Line((0.55, 0), (0, 1))
+        assert_equal(repr(line), "Line((0.55, 0.0), (0.0, 1.0))")
 
-class PyRayTestCase(LinearBaseTestCase, RayBaseTestCase, unittest.TestCase):
+
+class CLineTestCase(LineBaseTestCase, unittest.TestCase):
+    from planar.c import Vec2, Line, Affine
+    LinearType = Line
+
+    def test_str(self):
+        line = self.Line((0.55, 0), (0, 1))
+        assert_equal(str(line), "Line((0.55, -0), (0, 1))")
+        
+    def test_repr(self):
+        line = self.Line((0.55, 0), (0, 1))
+        assert_equal(repr(line), "Line((0.55, -0), (0, 1))")
+
+
+class PyRayTestCase(RayBaseTestCase, unittest.TestCase):
     from planar.vector import Vec2
     from planar.line import Ray, Line
     from planar.transform import Affine

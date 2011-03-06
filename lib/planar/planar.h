@@ -160,6 +160,12 @@ typedef struct {
 #define POLY_CENTROID_KNOWN_FLAG 0x100
 #define POLY_RADIUS_KNOWN_FLAG 0x200
 
+typedef struct {
+    PyObject_HEAD
+	planar_vec2_t normal;
+	double offset;
+} PlanarLineObject;
+
 /* Geometry utils */
 
 /* Return 1 if the line segment a->b intersects with line segment c->d */
@@ -273,6 +279,7 @@ extern PyTypeObject PlanarVec2Type;
 extern PyTypeObject PlanarSeq2Type;
 extern PyTypeObject PlanarVec2ArrayType;
 extern PyTypeObject PlanarAffineType;
+extern PyTypeObject PlanarLineType;
 extern PyTypeObject PlanarBBoxType;
 extern PyTypeObject PlanarPolygonType;
 
@@ -430,6 +437,31 @@ done:
 #define PlanarSeq2_Check(op) PyObject_TypeCheck(op, &PlanarSeq2Type)
 #define PlanarSeq2_CheckExact(op) (Py_TYPE(op) == &PlanarSeq2Type)
 
+static PlanarSeq2Object *
+Seq2_New(PyTypeObject *type, Py_ssize_t size)
+{
+    PlanarSeq2Object *varray = 
+		(PlanarSeq2Object *)type->tp_alloc(type, size);
+    if (varray == NULL) {
+		return NULL;
+    }
+	Py_SIZE(varray) = size;
+	if (type->tp_itemsize == 0) {
+		/* We assume this means that the items are
+		   externally allocated */
+		varray->vec = PyMem_Malloc(size * sizeof(planar_vec2_t));
+		if (varray->vec == NULL) {
+			Py_DECREF(varray);
+			return (PlanarSeq2Object *)PyErr_NoMemory();
+		}
+		varray->allocated = size;
+    } else {
+		/* Items allocated inline */
+		varray->vec = varray->data;
+    }
+    return varray;
+}
+
 /* Vec2Array utils */
 
 #define PlanarVec2Array_Check(op) PyObject_TypeCheck(op, &PlanarVec2ArrayType)
@@ -522,5 +554,10 @@ Poly_new(PyTypeObject *type, Py_ssize_t size)
 
 #define PlanarPolygon_Check(op) PyObject_TypeCheck(op, &PlanarPolygonType)
 #define PlanarPolygon_CheckExact(op) (Py_TYPE(op) == &PlanarPolygonType)
+
+/* Line utils */
+
+#define PlanarLine_Check(op) PyObject_TypeCheck(op, &PlanarLineType)
+#define PlanarLine_CheckExact(op) (Py_TYPE(op) == &PlanarLineType)
 
 #endif /* #ifdef PY_PLANAR_H */
