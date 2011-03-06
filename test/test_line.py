@@ -262,7 +262,7 @@ class LineBaseTestCase(LinearBaseTestCase):
 
     def test_reflect_point(self):
         line = self.Line((2, 0), (1,1))
-        assert line.reflect((0,0)).almost_equals((2, -2))
+        assert line.reflect((0,0)).almost_equals((2, -2)), line.reflect((0,0))
         assert line.reflect((-76.3,76.3)).almost_equals((78.3, -78.3))
         assert line.reflect(self.Vec2(3, -1)).almost_equals((1, 1))
         assert line.reflect((-1,-3)).almost_equals((-1, -3))
@@ -306,7 +306,7 @@ class LineBaseTestCase(LinearBaseTestCase):
         line *= self.Affine.translation((-1,1)) * self.Affine.scale((1, 0.5))
         assert line is orig
         assert line.direction.almost_equals(
-            self.Vec2(1, 0.5).normalized())
+            self.Vec2(1, 0.5).normalized()), (line.direction, self.Vec2(1, 0.5).normalized())
         assert line.contains_point((-1, 1))
 
 

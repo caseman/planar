@@ -149,6 +149,51 @@ Line_repr(PlanarLineObject *self)
     return PyUnicode_FromString(buf);
 }
 
+static PyObject *
+Line_compare(PyObject *a, PyObject *b, int op)
+{
+    PlanarLineObject *line1, *line2;
+
+	if (PlanarLine_Check(a) && PlanarLine_Check(b)) {
+        line1 = (PlanarLineObject *)a;
+        line2 = (PlanarLineObject *)b;
+		switch (op) {
+			case Py_EQ:
+                return Py_BOOL(
+                    line1->normal.x == line2->normal.x &&
+                    line1->normal.y == line2->normal.y &&
+                    line1->offset == line2->offset);
+            case Py_NE:
+                return Py_BOOL(
+                    line1->normal.x != line2->normal.x ||
+                    line1->normal.y != line2->normal.y ||
+                    line1->offset != line2->offset);
+			default:
+				/* Only == and != are defined */
+                RETURN_NOT_IMPLEMENTED;
+		}
+	} else {
+		switch (op) {
+			case Py_EQ:
+				Py_RETURN_FALSE;
+			case Py_NE:
+				Py_RETURN_TRUE;
+			default:
+				/* Only == and != are defined */
+				RETURN_NOT_IMPLEMENTED;
+		}
+	}
+}
+
+static PyObject *
+Line_almost_equals(PlanarLineObject *self, PlanarLineObject *other)
+{
+    return Py_BOOL(
+        almost_eq(self->normal.x, other->normal.x) &&
+        almost_eq(self->normal.y, other->normal.y) &&
+        almost_eq(self->offset, other->offset));
+}
+
 static PlanarLineObject *
 Line_new_from_points(PyTypeObject *type, PyObject *points) 
 {
@@ -180,8 +225,8 @@ Line_new_from_points(PyTypeObject *type, PyObject *points)
         }
         if (L < PLANAR_EPSILON2) goto tooShort;
         while (++i < size) {
-            d = vec[i].x * -dy + vec[i].y * dx;
-            if ((d < -PLANAR_EPSILON) | (d > PLANAR_EPSILON)) {
+            d = (vec[i].x - x) * dy + (vec[i].y - y) * -dx;
+            if (!almost_eq(d, 0.0)) {
                 goto notCollinear;
             }
         }
@@ -210,20 +255,23 @@ Line_new_from_points(PyTypeObject *type, PyObject *points)
             L = dx*dx + dy*dy;
             if (L > PLANAR_EPSILON2) break;
         }
+        if (L < PLANAR_EPSILON2) {
+            Py_DECREF(points);
+            goto tooShort;
+        }
         while (++i < size) {
             if (!PlanarVec2_Parse(
                 PySequence_Fast_GET_ITEM(points, i), &px, &py)) {
                 Py_DECREF(points);
                 goto wrongType;
             }
-            d = px * dy + py * -dx;
-            if ((d < -PLANAR_EPSILON) | (d > PLANAR_EPSILON)) {
+            d = (px - x) * dy + (py - y) * -dx;
+            if (!almost_eq(d, 0.0)) {
                 Py_DECREF(points);
                 goto notCollinear;
             }
         }
         Py_DECREF(points);
-        if (L < PLANAR_EPSILON2) goto tooShort;
     }
     L = sqrt(L);
     line->normal.x = dy / L;
@@ -275,6 +323,7 @@ Line_distance_to(PlanarLineObject *self, PyObject *pt)
 {
     double px, py;
 
+    assert(PlanarLine_Check(self));
     if (!PlanarVec2_Parse(pt, &px, &py)) {
         return NULL;
     }
@@ -287,6 +336,7 @@ Line_point_left(PlanarLineObject *self, PyObject *pt)
 {
     double px, py, d;
 
+    assert(PlanarLine_Check(self));
     if (!PlanarVec2_Parse(pt, &px, &py)) {
         return NULL;
     }
@@ -299,6 +349,7 @@ Line_point_right(PlanarLineObject *self, PyObject *pt)
 {
     double px, py, d;
 
+    assert(PlanarLine_Check(self));
     if (!PlanarVec2_Parse(pt, &px, &py)) {
         return NULL;
     }
@@ -311,11 +362,79 @@ Line_contains_point(PlanarLineObject *self, PyObject *pt)
 {
     double px, py, d;
 
+    assert(PlanarLine_Check(self));
     if (!PlanarVec2_Parse(pt, &px, &py)) {
         return NULL;
     }
     d = self->normal.x * px + self->normal.y * py - self->offset;
     return Py_BOOL((d < PLANAR_EPSILON) & (d > -PLANAR_EPSILON));
+}
+
+static PlanarVec2Object *
+Line_project(PlanarLineObject *self, PyObject *pt)
+{
+    double px, py, s;
+
+    assert(PlanarLine_Check(self));
+    if (!PlanarVec2_Parse(pt, &px, &py)) {
+        return NULL;
+    }
+    s = -self->normal.y * px + self->normal.x * py;
+    return PlanarVec2_FromDoubles(
+        -self->normal.y * s + self->normal.x * self->offset,
+        self->normal.x * s + self->normal.y * self->offset);
+}
+
+static PlanarVec2Object *
+Line_reflect(PlanarLineObject *self, PyObject *pt)
+{
+    double px, py, d;
+
+    assert(PlanarLine_Check(self));
+    if (!PlanarVec2_Parse(pt, &px, &py)) {
+        return NULL;
+    }
+    d = (self->normal.x * px + self->normal.y * py - self->offset) * 2.0;
+    return PlanarVec2_FromDoubles(
+        px - self->normal.x * d, py - self->normal.y * d);
+}
+
+static PlanarLineObject *
+Line_parallel(PlanarLineObject *self, PyObject *pt)
+{
+    double px, py, d;
+    PlanarLineObject *line;
+
+    assert(PlanarLine_Check(self));
+    if (!PlanarVec2_Parse(pt, &px, &py)) {
+        return NULL;
+    }
+    line = (PlanarLineObject *)PlanarLineType.tp_alloc(&PlanarLineType, 0);
+    if (line != NULL) {
+        line->normal.x = self->normal.x;
+        line->normal.y = self->normal.y;
+        line->offset = px * self->normal.x + py * self->normal.y;
+    }
+    return line;
+}
+
+static PlanarLineObject *
+Line_perpendicular(PlanarLineObject *self, PyObject *pt)
+{
+    double px, py, d;
+    PlanarLineObject *line;
+
+    assert(PlanarLine_Check(self));
+    if (!PlanarVec2_Parse(pt, &px, &py)) {
+        return NULL;
+    }
+    line = (PlanarLineObject *)PlanarLineType.tp_alloc(&PlanarLineType, 0);
+    if (line != NULL) {
+        line->normal.x = -self->normal.y;
+        line->normal.y = self->normal.x;
+        line->offset = px * line->normal.x + py * line->normal.y;
+    }
+    return line;
 }
 
 static PyMethodDef Line_methods[] = {
@@ -335,15 +454,156 @@ static PyMethodDef Line_methods[] = {
         "to the right of the line."},
     {"contains_point", (PyCFunction)Line_contains_point, METH_O,
         "Return True if the specified point is on the line."},
+    {"project", (PyCFunction)Line_project, METH_O,
+        "Compute the projection of a point onto the line. This "
+        "is the closest point on the line to the specified point."},
+    {"reflect", (PyCFunction)Line_reflect, METH_O,
+        "Reflect a point across the line."},
+    {"perpendicular", (PyCFunction)Line_perpendicular, METH_O,
+        "Return a line perpendicular to this one that passes through the "
+        "given point."},
+    {"parallel", (PyCFunction)Line_parallel, METH_O,
+        "Return a line parallel to this one that passes through the "
+        "given point."},
+    {"almost_equals", (PyCFunction)Line_almost_equals, METH_O,
+        "Return True if this line is approximately equal to "
+        "another line, within precision limits."},
     {NULL, NULL}
 };
 
 /* Arithmetic Operations */
 
+static void
+Line_transform(PlanarLineObject *src_line, 
+    PlanarLineObject *dst_line, PlanarAffineObject *t)
+{
+    planar_vec2_t p1, p2, t1, t2;
+    double ta, tb, tc, td, te, tf, dx, dy, L;
+    ta = t->a;
+    tb = t->b;
+    tc = t->c;
+    td = t->d;
+    te = t->e;
+    tf = t->f;
+
+    p1.x = src_line->normal.x * src_line->offset;
+    p1.y = src_line->normal.y * src_line->offset;
+    p2.x = p1.x + src_line->normal.y;
+    p2.y = p1.y + -src_line->normal.x;
+    t1.x = p1.x*ta + p1.y*td + tc;
+    t1.y = p1.x*tb + p1.y*te + tf;
+    t2.x = p2.x*ta + p2.y*td + tc;
+    t2.y = p2.x*tb + p2.y*te + tf;
+    dx = t2.x - t1.x;
+    dy = t2.y - t1.y;
+    L = sqrt(dx*dx + dy*dy);
+    if (L < PLANAR_EPSILON) {
+        PyErr_SetString(PyExc_ValueError, 
+            "Line direction vector must not be null");
+    }
+    dst_line->normal.x = -dy / L;
+    dst_line->normal.y = dx / L;
+    dst_line->offset = dst_line->normal.x * t1.x + dst_line->normal.y * t1.y;
+}
+
+static PyObject *
+Line__imul__(PyObject *a, PyObject *b)
+{
+    PlanarLineObject *line;
+    PlanarAffineObject *t;
+
+    if (PlanarLine_Check(a) && PlanarAffine_Check(b)) {
+		line = (PlanarLineObject *)a;
+		t = (PlanarAffineObject *)b;
+    } else if (PlanarLine_Check(b) && PlanarAffine_Check(a)) {
+		line = (PlanarLineObject *)b;
+		t = (PlanarAffineObject *)a;
+    } else {
+		/* We support only transform operations */
+		RETURN_NOT_IMPLEMENTED;
+    }
+
+    Line_transform(line, line, t);
+    Py_INCREF(line);
+    return (PyObject *)line;
+}
+
+static PyObject *
+Line__mul__(PyObject *a, PyObject *b)
+{
+    PlanarLineObject *src_line, *dst_line;
+    PlanarAffineObject *t;
+
+    if (PlanarLine_Check(a) && PlanarAffine_Check(b)) {
+		src_line = (PlanarLineObject *)a;
+		t = (PlanarAffineObject *)b;
+    } else if (PlanarLine_Check(b) && PlanarAffine_Check(a)) {
+		src_line = (PlanarLineObject *)b;
+		t = (PlanarAffineObject *)a;
+    } else {
+		/* We support only transform operations */
+		RETURN_NOT_IMPLEMENTED;
+    }
+
+    dst_line = (PlanarLineObject *)Py_TYPE(src_line)->tp_alloc(
+        Py_TYPE(src_line), 0);
+    if (dst_line != NULL) {
+        Line_transform(src_line, dst_line, t);
+    }
+    return (PyObject *)dst_line;
+}
+
 static PyNumberMethods Line_as_number = {
     0,       /* binaryfunc nb_add */
     0,       /* binaryfunc nb_subtract */
-    0,       /* binaryfunc nb_multiply */
+    (binaryfunc)Line__mul__,       /* binaryfunc nb_multiply */
+#if PY_MAJOR_VERSION < 3
+    0,       /* binaryfunc nb_div */
+#endif
+    0,       /* binaryfunc nb_remainder */
+    0,       /* binaryfunc nb_divmod */
+    0,       /* ternaryfunc nb_power */
+    0,       /* unaryfunc nb_negative */
+    0,       /* unaryfunc nb_positive */
+    0,       /* unaryfunc nb_absolute */
+    0,       /* inquiry nb_bool */
+    0,       /* unaryfunc nb_invert */
+    0,       /* binaryfunc nb_lshift */
+    0,       /* binaryfunc nb_rshift */
+    0,       /* binaryfunc nb_and */
+    0,       /* binaryfunc nb_xor */
+    0,       /* binaryfunc nb_or */
+#if PY_MAJOR_VERSION < 3
+    0,       /* coercion nb_coerce */
+#endif
+    0,       /* unaryfunc nb_int */
+    0,       /* void *nb_reserved */
+    0,       /* unaryfunc nb_float */
+#if PY_MAJOR_VERSION < 3
+    0,       /* binaryfunc nb_oct */
+    0,       /* binaryfunc nb_hex */
+#endif
+
+    0,       /* binaryfunc nb_inplace_add */
+    0,       /* binaryfunc nb_inplace_subtract */
+    (binaryfunc)Line__imul__,       /* binaryfunc nb_inplace_multiply */
+#if PY_MAJOR_VERSION < 3
+    0,       /* binaryfunc nb_inplace_divide */
+#endif
+    0,       /* binaryfunc nb_inplace_remainder */
+    0,       /* ternaryfunc nb_inplace_power */
+    0,       /* binaryfunc nb_inplace_lshift */
+    0,       /* binaryfunc nb_inplace_rshift */
+    0,       /* binaryfunc nb_inplace_and */
+    0,       /* binaryfunc nb_inplace_xor */
+    0,       /* binaryfunc nb_inplace_or */
+
+    0,       /* binaryfunc nb_floor_divide */
+    0,       /* binaryfunc nb_true_divide */
+    0,       /* binaryfunc nb_inplace_floor_divide */
+    0,       /* binaryfunc nb_inplace_true_divide */
+
+    0,       /* unaryfunc nb_index */
 };
 
 PyDoc_STRVAR(Line_doc, 
@@ -375,7 +635,7 @@ PyTypeObject PlanarLineType = {
     Line_doc,             /* tp_doc */
     0,                    /* tp_traverse */
     0,                    /* tp_clear */
-    0, //Line_compare,         /* tp_richcompare */
+    Line_compare,         /* tp_richcompare */
     0,                    /* tp_weaklistoffset */
     0,                    /* tp_iter */
     0,                    /* tp_iternext */
