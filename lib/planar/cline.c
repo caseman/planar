@@ -189,6 +189,7 @@ static PyObject *
 Line_almost_equals(PlanarLineObject *self, PlanarLineObject *other)
 {
     return Py_BOOL(
+		PlanarLine_Check(self) && PlanarLine_Check(other) &&
         almost_eq(self->normal.x, other->normal.x) &&
         almost_eq(self->normal.y, other->normal.y) &&
         almost_eq(self->offset, other->offset));

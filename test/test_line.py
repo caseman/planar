@@ -291,6 +291,7 @@ class LineBaseTestCase(LinearBaseTestCase):
         assert line.almost_equals(self.Line.from_points([(-1,-7), (5,8)]))
         assert line.almost_equals(line)
         assert not line.almost_equals(self.Line((1,-1.99), (2, 5)))
+        assert not line.almost_equals(None)
 
     def test_transform(self):
         line = self.Line((0, 0), (-2, 1))
@@ -301,13 +302,18 @@ class LineBaseTestCase(LinearBaseTestCase):
             self.Vec2(1, 2).normalized())
         assert line2.contains_point((-4, 2))
 
-    def test_itransform(self):
+    def test_imul_transform(self):
         line = orig = self.Line((0, 0), (1, 1))
         line *= self.Affine.translation((-1,1)) * self.Affine.scale((1, 0.5))
         assert line is orig
         assert line.direction.almost_equals(
             self.Vec2(1, 0.5).normalized()), (line.direction, self.Vec2(1, 0.5).normalized())
         assert line.contains_point((-1, 1))
+
+    @raises(TypeError)
+    def test_imul_incompatible(self):
+        line = self.Line((0, 0), (1, 1))
+        line *= 2
 
 
 class RayBaseTestCase(LinearBaseTestCase):
@@ -431,13 +437,18 @@ class RayBaseTestCase(LinearBaseTestCase):
             self.Vec2(1, -2).normalized())
         assert ray2.contains_point((4, 2))
 
-    def test_itransform(self):
+    def test_imul_transform(self):
         ray = orig = self.Ray((0, 0), (1, 1))
         ray *= self.Affine.translation((-1,1)) * self.Affine.scale((1, 0.5))
         assert ray is orig
         assert ray.direction.almost_equals(
             self.Vec2(1, 0.5).normalized())
         assert ray.contains_point((-1, 1))
+
+    @raises(TypeError)
+    def test_imul_incompatible(self):
+        ray = self.Ray((0, 0), (1, 1)) 
+        ray *= 2
 
     def test_equals(self):
         ray = self.Ray((1,-2), (2, 5))

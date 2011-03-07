@@ -200,10 +200,9 @@ class Line(LinearGeometry):
 
     def __imul__(self, other):
         p1, p2 = self.points
-        try:
-            p1 *= other
-            p2 *= other
-        except TypeError:
+        p1 = other.__mul__(p1)
+        p2 = other.__mul__(p2)
+        if p1 is NotImplemented or p2 is NotImplemented:
             return NotImplemented
         self.direction = p2 - p1
         self.offset = p1.dot(self.normal)
@@ -352,10 +351,9 @@ class Ray(LinearGeometry):
 
     def __imul__(self, other):
         p1, p2 = self.points
-        try:
-            p1 *= other
-            p2 *= other
-        except TypeError:
+        p1 = other.__mul__(p1)
+        p2 = other.__mul__(p2)
+        if p1 is NotImplemented or p2 is NotImplemented:
             return NotImplemented
         self.direction = p2 - p1
         self.anchor = p1
