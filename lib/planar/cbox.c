@@ -230,6 +230,56 @@ BBox_new_from_points(PyTypeObject *type, PyObject *points)
     }
 }
 
+static PyObject *
+BBox_compare(PyObject *a, PyObject *b, int op)
+{
+    PlanarBBoxObject *box1, *box2;
+
+	if (PlanarBBox_Check(a) && PlanarBBox_Check(b)) {
+        box1 = (PlanarBBoxObject *)a;
+        box2 = (PlanarBBoxObject *)b;
+		switch (op) {
+			case Py_EQ:
+                return Py_BOOL(
+                    box1->min.x == box2->min.x &&
+                    box1->min.y == box2->min.y &&
+                    box1->max.x == box2->max.x &&
+                    box1->max.y == box2->max.y);
+            case Py_NE:
+                return Py_BOOL(
+                    box1->min.x != box2->min.x ||
+                    box1->min.y != box2->min.y ||
+                    box1->max.x != box2->max.x ||
+                    box1->max.y != box2->max.y);
+			default:
+				/* Only == and != are defined */
+                RETURN_NOT_IMPLEMENTED;
+		}
+	} else {
+		switch (op) {
+			case Py_EQ:
+				Py_RETURN_FALSE;
+			case Py_NE:
+				Py_RETURN_TRUE;
+			default:
+				/* Only == and != are defined */
+				RETURN_NOT_IMPLEMENTED;
+		}
+	}
+}
+
+static PyObject *
+BBox_almost_equals(PlanarBBoxObject *self, PlanarBBoxObject *other)
+{
+	return Py_BOOL(
+		PlanarBBox_Check(self) && PlanarBBox_Check(other) &&
+		almost_eq(self->min.x, other->min.x) &&
+		almost_eq(self->min.y, other->min.y) &&
+		almost_eq(self->max.x, other->max.x) &&
+		almost_eq(self->max.y, other->max.y));
+}
+
+
 static PlanarBBoxObject *
 get_bounding_box(PyObject *shape)
 {
@@ -477,6 +527,9 @@ static PyMethodDef BBox_methods[] = {
     {"to_polygon", (PyCFunction)BBox_to_polygon, METH_NOARGS, 
 		"Return a rectangular Polygon object with the same "
         "vertices as the bounding box."},
+    {"almost_equals", (PyCFunction)BBox_almost_equals, METH_O,
+        "Return True if this bounding box is approximately equal to "
+        "another box, within precision limits."},
     {NULL, NULL}
 };
 
@@ -571,7 +624,7 @@ PyTypeObject PlanarBBoxType = {
     BBox_doc,             /* tp_doc */
     0,                    /* tp_traverse */
     0,                    /* tp_clear */
-    0, //BBox_compare,         /* tp_richcompare */
+    BBox_compare,         /* tp_richcompare */
     0,                    /* tp_weaklistoffset */
     0,                    /* tp_iter */
     0,                    /* tp_iternext */

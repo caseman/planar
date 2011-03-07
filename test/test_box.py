@@ -273,6 +273,36 @@ class BoundingBoxBaseTestCase(object):
     def test_mul_incompatible(self):
         a = self.BoundingBox([(-1,0), (0,1)]) * 2
 
+    def test_equals(self):
+        a = self.BoundingBox([(-4,0), (-6,2)])
+        assert a == a
+        assert a == self.BoundingBox([(-6,0), (-4,2), (-5,0)])
+        assert not a == self.BoundingBox([(-6,0), (-4,2), (0,0)])
+        assert not a == self.BoundingBox([(1,1), (2,2)])
+        assert not a == self.BoundingBox([(-4,0), (-5,2)])
+        assert not a == None
+
+    def test_not_equals(self):
+        a = self.BoundingBox([(-4,0), (-6,2)])
+        assert not a != a
+        assert not a != self.BoundingBox([(-6,0), (-4,2), (-5,0)])
+        assert a != self.BoundingBox([(-6,0), (-4,2), (0,0)])
+        assert a != self.BoundingBox([(1,1), (2,2)])
+        assert a != self.BoundingBox([(-4,0), (-5,2)])
+        assert a != None
+
+    def test_almost_equals(self):
+        import planar
+        a = self.BoundingBox([(-4,0), (-6,2)])
+        assert a.almost_equals(a)
+        assert a.almost_equals(self.BoundingBox([(-6,0), (-4,2), (-5,0)]))
+        assert a.almost_equals(self.BoundingBox(
+            [(-4 + planar.EPSILON / 2, 0), (-6,2 - planar.EPSILON / 2)]))
+        assert not a.almost_equals(self.BoundingBox(
+            [(-4 + planar.EPSILON, 0), (-6,2)]))
+        assert not a.almost_equals(self.BoundingBox([(-4,0), (-5,2)]))
+        assert not a.almost_equals(None)
+
     def test_str_and_repr(self):
         bbox = self.BoundingBox([(-1.25, 0.25), (-1.5, 0.5)])
         assert_equal(str(bbox), 'BoundingBox([(-1.5, 0.25), (-1.25, 0.5)])')

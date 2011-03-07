@@ -221,6 +221,22 @@ class BoundingBox(object):
             self._max, (self._max.x, self._min.y)],
             is_convex=True)
 
+    def __eq__(self, other):
+        return (self.__class__ is other.__class__
+            and self.min_point == other.min_point
+            and self.max_point == other.max_point)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def almost_equals(self, other):
+        """Return True if this bounding box is approximately equal to another
+        box, within precision limits.
+        """
+        return (self.__class__ is other.__class__
+            and self.min_point.almost_equals(other.min_point)
+            and self.max_point.almost_equals(other.max_point))
+
     def __repr__(self):
         """Precise string representation."""
         return "BoundingBox([(%r, %r), (%r, %r)])" % (
