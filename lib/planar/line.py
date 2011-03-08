@@ -236,7 +236,7 @@ class Line(LinearGeometry):
 
 
 class Ray(LinearGeometry):
-    """Directed ray anchored by a single point
+    """Directed ray anchored by a single point.
     
     :param anchor: The anchor point of the ray.
     :type anchor: Vec2
@@ -297,7 +297,7 @@ class Ray(LinearGeometry):
     def distance_to(self, point):
         """Return the distance between the given point and the ray."""
         to_point = planar.Vec2(*point) - self._anchor
-        if self.direction.dot(to_point) > -planar.EPSILON:
+        if self.direction.dot(to_point) >= 0.0:
             # Point "beside" ray
             return abs(to_point.dot(self._normal))
         else:

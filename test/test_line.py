@@ -518,6 +518,19 @@ class PyRayTestCase(RayBaseTestCase, unittest.TestCase):
     LinearType = Ray
 
 
+class CRayTestCase(RayBaseTestCase, unittest.TestCase):
+    from planar.c import Vec2, Ray, Line, Affine
+    LinearType = Ray
+
+    def test_str(self):
+        ray = self.Ray((0.55, 0), (0, 1))
+        assert_equal(str(ray), "Ray((0.55, 0), (0, 1))")
+        
+    def test_repr(self):
+        ray = self.Ray((0.55, 0), (0, 1))
+        assert_equal(repr(ray), "Ray((0.55, 0), (0, 1))")
+
+
 if __name__ == '__main__':
     unittest.main()
 

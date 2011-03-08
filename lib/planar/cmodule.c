@@ -88,6 +88,7 @@ initc(void)
     Py_INCREF((PyObject *)&PlanarAffineType);
     Py_INCREF((PyObject *)&PlanarBBoxType);
     Py_INCREF((PyObject *)&PlanarLineType);
+    Py_INCREF((PyObject *)&PlanarRayType);
     Py_INCREF((PyObject *)&PlanarPolygonType);
 
     INIT_TYPE(PlanarVec2Type, "Vec2");
@@ -98,6 +99,7 @@ initc(void)
     INIT_TYPE(PlanarAffineType, "Affine");
     INIT_TYPE(PlanarBBoxType, "BoundingBox");
     INIT_TYPE(PlanarLineType, "Line");
+    INIT_TYPE(PlanarRayType, "Ray");
     INIT_TYPE(PlanarPolygonType, "Polygon");
 
 	PlanarTransformNotInvertibleError = PyErr_NewException(
@@ -123,6 +125,7 @@ fail:
     Py_DECREF((PyObject *)&PlanarAffineType);
     Py_DECREF((PyObject *)&PlanarBBoxType);
     Py_DECREF((PyObject *)&PlanarLineType);
+    Py_DECREF((PyObject *)&PlanarRayType);
     Py_DECREF((PyObject *)&PlanarPolygonType);
     Py_DECREF(module);
     INITERROR;

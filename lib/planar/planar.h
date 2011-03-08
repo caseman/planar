@@ -163,7 +163,11 @@ typedef struct {
 typedef struct {
     PyObject_HEAD
 	planar_vec2_t normal;
-	double offset;
+	union {
+		double offset;
+		double length;
+	};
+	planar_vec2_t anchor;
 } PlanarLineObject;
 
 /* Geometry utils */
@@ -280,6 +284,7 @@ extern PyTypeObject PlanarSeq2Type;
 extern PyTypeObject PlanarVec2ArrayType;
 extern PyTypeObject PlanarAffineType;
 extern PyTypeObject PlanarLineType;
+extern PyTypeObject PlanarRayType;
 extern PyTypeObject PlanarBBoxType;
 extern PyTypeObject PlanarPolygonType;
 
@@ -559,5 +564,7 @@ Poly_new(PyTypeObject *type, Py_ssize_t size)
 
 #define PlanarLine_Check(op) PyObject_TypeCheck(op, &PlanarLineType)
 #define PlanarLine_CheckExact(op) (Py_TYPE(op) == &PlanarLineType)
+#define PlanarRay_Check(op) PyObject_TypeCheck(op, &PlanarRayType)
+#define PlanarRay_CheckExact(op) (Py_TYPE(op) == &PlanarRayType)
 
 #endif /* #ifdef PY_PLANAR_H */

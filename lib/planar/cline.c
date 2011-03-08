@@ -120,20 +120,20 @@ static PyGetSetDef Line_getset[] = {
 static int
 Line_init(PlanarLineObject *self, PyObject *args)
 {
-    double px, py;
-
     assert(PlanarLine_Check(self));
     if (PyTuple_GET_SIZE(args) != 2) {
         PyErr_SetString(PyExc_TypeError, "Line: wrong number of arguments");
         return -1;
     }
-    if (!PlanarVec2_Parse(PyTuple_GET_ITEM(args, 0), &px, &py)) {
+    if (!PlanarVec2_Parse(PyTuple_GET_ITEM(args, 0), 
+        &self->anchor.x, &self->anchor.y)) {
         return -1;
     }
     if (Line_set_direction(self, PyTuple_GET_ITEM(args, 1), NULL) == -1) {
         return -1;
     }
-    self->offset = px * self->normal.x + py * self->normal.y;
+    self->offset = self->anchor.x * self->normal.x 
+        + self->anchor.y * self->normal.y;
     return 0;
 }
 
@@ -143,7 +143,7 @@ Line_repr(PlanarLineObject *self)
     char buf[255];
 
     buf[0] = 0; /* paranoid */
-    PyOS_snprintf(buf, 255, "Line((%g, %g), (%g, %g))",
+    PyOS_snprintf(buf, 255, "Line((%g, %g), (%g, %g))", 
         self->normal.x * self->offset, self->normal.y * self->offset, 
         -self->normal.y, self->normal.x);
     return PyUnicode_FromString(buf);
@@ -275,6 +275,8 @@ Line_new_from_points(PyTypeObject *type, PyObject *points)
         Py_DECREF(points);
     }
     L = sqrt(L);
+    line->anchor.x = x;
+    line->anchor.y = y;
     line->normal.x = dy / L;
     line->normal.y = -dx / L;
     line->offset = line->normal.x * x + line->normal.y * y;
@@ -282,13 +284,16 @@ Line_new_from_points(PyTypeObject *type, PyObject *points)
 
 wrongType:
     PyErr_SetString(PyExc_TypeError, "expected iterable of Vec2 objects");
+    Py_DECREF(line);
     return NULL;
 tooShort:
     PyErr_SetString(PyExc_ValueError,
         "Expected iterable of 2 or more distinct points");
+    Py_DECREF(line);
     return NULL;
 notCollinear:
     PyErr_SetString(PyExc_ValueError, "All points provided must be collinear");
+    Py_DECREF(line);
     return NULL;
 }
 
@@ -643,6 +648,290 @@ PyTypeObject PlanarLineType = {
     Line_methods,         /* tp_methods */
     Line_members,         /* tp_members */
     Line_getset,          /* tp_getset */
+    0,                    /* tp_base */
+    0,                    /* tp_dict */
+    0,                    /* tp_descr_get */
+    0,                    /* tp_descr_set */
+    0,                    /* tp_dictoffset */
+    (initproc)Line_init,  /* tp_init */
+    0,                    /* tp_alloc */
+    0,                    /* tp_new */
+    0,                    /* tp_free */
+};
+
+/***************************************************************************/
+
+static PyObject *
+Ray_repr(PlanarLineObject *self)
+{
+    char buf[255];
+
+    buf[0] = 0; /* paranoid */
+    PyOS_snprintf(buf, 255, "Ray((%g, %g), (%g, %g))", 
+        self->anchor.x, self->anchor.y, -self->normal.y, self->normal.x);
+    return PyUnicode_FromString(buf);
+}
+
+static PyObject *
+Ray_compare(PyObject *a, PyObject *b, int op)
+{
+    PlanarLineObject *ray1, *ray2;
+
+	if (PlanarRay_Check(a) && PlanarRay_Check(b)) {
+        ray1 = (PlanarLineObject *)a;
+        ray2 = (PlanarLineObject *)b;
+		switch (op) {
+			case Py_EQ:
+                return Py_BOOL(
+                    ray1->normal.x == ray2->normal.x &&
+                    ray1->normal.y == ray2->normal.y &&
+                    ray1->anchor.x == ray2->anchor.x &&
+                    ray1->anchor.y == ray2->anchor.y);
+            case Py_NE:
+                return Py_BOOL(
+                    ray1->normal.x != ray2->normal.x ||
+                    ray1->normal.y != ray2->normal.y ||
+                    ray1->anchor.x != ray2->anchor.x ||
+                    ray1->anchor.y != ray2->anchor.y);
+			default:
+				/* Only == and != are defined */
+                RETURN_NOT_IMPLEMENTED;
+		}
+	} else {
+		switch (op) {
+			case Py_EQ:
+				Py_RETURN_FALSE;
+			case Py_NE:
+				Py_RETURN_TRUE;
+			default:
+				/* Only == and != are defined */
+				RETURN_NOT_IMPLEMENTED;
+		}
+	}
+}
+
+static PyObject *
+Ray_almost_equals(PlanarLineObject *self, PlanarLineObject *other)
+{
+    return Py_BOOL(
+        PlanarRay_Check(self) && PlanarRay_Check(other) &&
+        almost_eq(self->normal.x, other->normal.x) &&
+        almost_eq(self->normal.y, other->normal.y) &&
+        almost_eq(self->anchor.x, other->anchor.x) &&
+        almost_eq(self->anchor.y, other->anchor.y));
+}
+
+static PlanarVec2Object *
+Ray_get_anchor(PlanarLineObject *self) {
+    return PlanarVec2_FromStruct(&self->anchor);
+}
+
+static int
+Ray_set_anchor(PlanarLineObject *self, PyObject *value, void *closure)
+{
+    if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete anchor attribute");
+        return -1;
+    }
+    if (!PlanarVec2_Parse(value, &self->anchor.x, &self->anchor.y)) {
+        PyErr_SetString(PyExc_TypeError, "Expected Vec2 for anchor");
+        return -1;
+    }
+    self->offset = self->normal.x * self->anchor.x 
+        + self->normal.y * self->anchor.y;
+    return 0;
+}
+
+static PlanarSeq2Object *
+Ray_get_points(PlanarLineObject *self) {
+    PlanarSeq2Object *seq;
+
+    seq = Seq2_New(&PlanarSeq2Type, 2);
+    if (seq != NULL) {
+        seq->vec[0].x = self->anchor.x;
+        seq->vec[0].y = self->anchor.y;
+        seq->vec[1].x = self->anchor.x + -self->normal.y;
+        seq->vec[1].y = self->anchor.y + self->normal.x;
+    }
+    return seq;
+}
+
+static PlanarLineObject *
+Ray_get_line(PlanarLineObject *self) {
+    PlanarLineObject *line;
+
+    line = (PlanarLineObject *)PlanarLineType.tp_alloc(&PlanarLineType, 0);
+    if (line != NULL) {
+        line->normal.x = self->normal.x;
+        line->normal.y = self->normal.y;
+        line->anchor.x = self->anchor.x;
+        line->anchor.y = self->anchor.y;
+        line->offset = self->normal.x * self->anchor.x 
+            + self->normal.y * self->anchor.y;
+    }
+    return line;
+}
+
+static PyGetSetDef Ray_getset[] = {
+    {"direction", (getter)Line_get_direction, (setter)Line_set_direction, 
+        "Direction of the ray as a unit vector.", NULL},
+    {"normal", (getter)Line_get_normal, (setter)Line_set_normal, 
+        "Normal unit vector perpendicular to the ray.", NULL},
+    {"anchor", (getter)Ray_get_anchor, (setter)Ray_set_anchor, 
+        "The anchor, or starting point of the ray.", NULL},
+    {"points", (getter)Ray_get_points, NULL, 
+        "Two distinct points along the ray.", NULL},
+    {"line", (getter)Ray_get_line, NULL, 
+        "Return a line collinear with this ray.", NULL},
+    {NULL}
+};
+
+static PyObject *
+Ray_distance_to(PlanarLineObject *self, PyObject *pt)
+{
+    double px, py, d;
+
+    assert(PlanarRay_Check(self));
+    if (!PlanarVec2_Parse(pt, &px, &py)) {
+        return NULL;
+    }
+    px -= self->anchor.x;
+    py -= self->anchor.y;
+    if (px * -self->normal.y + py * self->normal.x > -PLANAR_EPSILON) {
+        /* point beside ray */
+        return PyFloat_FromDouble(
+            fabs(px * self->normal.x + py * self->normal.y));
+    } else {
+        /* point behind ray */
+        return PyFloat_FromDouble(sqrt(px*px + py*py));
+    }
+}
+
+static PyObject *
+Ray_point_behind(PlanarLineObject *self, PyObject *pt)
+{
+    double px, py, d;
+
+    assert(PlanarRay_Check(self));
+    if (!PlanarVec2_Parse(pt, &px, &py)) {
+        return NULL;
+    }
+    px -= self->anchor.x;
+    py -= self->anchor.y;
+    d = px * -self->normal.y + py * self->normal.x;
+    return Py_BOOL(d <= -PLANAR_EPSILON);
+}
+
+static PyObject *
+Ray_point_left(PlanarLineObject *self, PyObject *pt)
+{
+    double px, py, b, d;
+
+    assert(PlanarRay_Check(self));
+    if (!PlanarVec2_Parse(pt, &px, &py)) {
+        return NULL;
+    }
+    px -= self->anchor.x;
+    py -= self->anchor.y;
+    b = px * -self->normal.y + py * self->normal.x;
+    d = self->normal.x * px + self->normal.y * py;
+    return Py_BOOL((b > -PLANAR_EPSILON) & (d <= -PLANAR_EPSILON));
+}
+
+static PyObject *
+Ray_point_right(PlanarLineObject *self, PyObject *pt)
+{
+    double px, py, b, d;
+
+    assert(PlanarRay_Check(self));
+    if (!PlanarVec2_Parse(pt, &px, &py)) {
+        return NULL;
+    }
+    px -= self->anchor.x;
+    py -= self->anchor.y;
+    b = px * -self->normal.y + py * self->normal.x;
+    d = self->normal.x * px + self->normal.y * py;
+    return Py_BOOL((b > -PLANAR_EPSILON) & (d >= PLANAR_EPSILON));
+}
+
+static PyObject *
+Ray_contains_point(PlanarLineObject *self, PyObject *pt)
+{
+    double px, py, b, d;
+
+    assert(PlanarRay_Check(self));
+    if (!PlanarVec2_Parse(pt, &px, &py)) {
+        return NULL;
+    }
+    px -= self->anchor.x;
+    py -= self->anchor.y;
+    if (px * -self->normal.y + py * self->normal.x >= 0.0) {
+        d = self->normal.x * px + self->normal.y * py;
+    } else {
+        d = sqrt(px*px + py*py);
+    }
+    return Py_BOOL((d < PLANAR_EPSILON) & (d > -PLANAR_EPSILON));
+
+}
+
+static PyMethodDef Ray_methods[] = {
+    {"from_points", (PyCFunction)Line_new_from_points, METH_CLASS | METH_O, 
+        "Create a ray from two or more collinear points."},
+    {"distance_to", (PyCFunction)Ray_distance_to, METH_O,
+        "Return the signed distance from the line to the specified point."},
+    {"point_behind", (PyCFunction)Ray_point_behind, METH_O,
+        "Return True if the specified point is behind the anchor point with "
+        "respect to the direction of the ray."},
+    {"point_left", (PyCFunction)Ray_point_left, METH_O,
+        "Return True if the specified point is in the space "
+        "to the left of, but not behind the ray."},
+    {"point_right", (PyCFunction)Ray_point_right, METH_O,
+        "Return True if the specified point is in the space "
+        "to the right of, but not behind the ray."},
+    {"contains_point", (PyCFunction)Ray_contains_point, METH_O,
+        "Return True if the specified point is on the ray."},
+    {"almost_equals", (PyCFunction)Ray_almost_equals, METH_O,
+        "Return True if this ray is approximately equal to "
+        "another ray, within precision limits."},
+    {NULL, NULL}
+};
+
+PyDoc_STRVAR(Ray_doc, 
+    "Directed ray anchored by a single point.\n\n"
+    "Ray(anchor, direction)"
+);
+
+PyTypeObject PlanarRayType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    "planar.Ray",     /* tp_name */
+    sizeof(PlanarLineObject), /* tp_basicsize */
+    0,                    /* tp_itemsize */
+    0,                    /* tp_dealloc */
+    0,                    /* tp_print */
+    0,                    /* tp_getattr */
+    0,                    /* tp_setattr */
+    0,                    /* reserved */
+    (reprfunc)Ray_repr,   /* tp_repr */
+    0, //&Line_as_number,      /* tp_as_number */
+    0,                    /* tp_as_sequence */
+    0,                    /* tp_as_mapping */
+    0,                    /* tp_hash */
+    0,                    /* tp_call */
+    (reprfunc)Ray_repr,   /* tp_str */
+    0,                    /* tp_getattro */
+    0,                    /* tp_setattro */
+    0,                    /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_CHECKTYPES,   /* tp_flags */
+    Ray_doc,              /* tp_doc */
+    0,                    /* tp_traverse */
+    0,                    /* tp_clear */
+    Ray_compare,          /* tp_richcompare */
+    0,                    /* tp_weaklistoffset */
+    0,                    /* tp_iter */
+    0,                    /* tp_iternext */
+    Ray_methods,          /* tp_methods */
+    0,                    /* tp_members */
+    Ray_getset,           /* tp_getset */
     0,                    /* tp_base */
     0,                    /* tp_dict */
     0,                    /* tp_descr_get */
