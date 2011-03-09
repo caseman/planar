@@ -120,7 +120,7 @@ static PyGetSetDef Line_getset[] = {
 static int
 Line_init(PlanarLineObject *self, PyObject *args)
 {
-    assert(PlanarLine_Check(self));
+    assert(PlanarLine_Check(self) || PlanarRay_Check(self));
     if (PyTuple_GET_SIZE(args) != 2) {
         PyErr_SetString(PyExc_TypeError, "Line: wrong number of arguments");
         return -1;
@@ -204,7 +204,8 @@ Line_new_from_points(PyTypeObject *type, PyObject *points)
     int i;
     double x, y, dx, dy, px, py, d, L;
 
-    assert(PyType_IsSubtype(type, &PlanarLineType));
+    assert(PyType_IsSubtype(type, &PlanarLineType)
+        || PyType_IsSubtype(type, &PlanarRayType));
     line = (PlanarLineObject *)type->tp_alloc(type, 0);
     if (line == NULL) {
         return NULL;
@@ -874,6 +875,24 @@ Ray_contains_point(PlanarLineObject *self, PyObject *pt)
 
 }
 
+static PlanarVec2Object *
+Ray_project(PlanarLineObject *self, PyObject *pt)
+{
+    double px, py, s;
+
+    assert(PlanarRay_Check(self));
+    if (!PlanarVec2_Parse(pt, &px, &py)) {
+        return NULL;
+    }
+    px -= self->anchor.x;
+    py -= self->anchor.y;
+    s = -self->normal.y * px + self->normal.x * py;
+    s = s > 0.0 ? s : 0.0;
+    return PlanarVec2_FromDoubles(
+        -self->normal.y * s + self->anchor.x,
+        self->normal.x * s + self->anchor.y);
+}
+
 static PyMethodDef Ray_methods[] = {
     {"from_points", (PyCFunction)Line_new_from_points, METH_CLASS | METH_O, 
         "Create a ray from two or more collinear points."},
@@ -890,10 +909,149 @@ static PyMethodDef Ray_methods[] = {
         "to the right of, but not behind the ray."},
     {"contains_point", (PyCFunction)Ray_contains_point, METH_O,
         "Return True if the specified point is on the ray."},
+    {"project", (PyCFunction)Ray_project, METH_O,
+        "Compute the projection of a point onto the ray. This "
+        "is the closest point on the ray to the specified point."},
     {"almost_equals", (PyCFunction)Ray_almost_equals, METH_O,
         "Return True if this ray is approximately equal to "
         "another ray, within precision limits."},
     {NULL, NULL}
+};
+
+/* Arithmetic Operations */
+
+static void
+Ray_transform(PlanarLineObject *src_ray, 
+    PlanarLineObject *dst_ray, PlanarAffineObject *t)
+{
+    planar_vec2_t p1, p2, t1, t2;
+    double ta, tb, tc, td, te, tf, dx, dy, L;
+    ta = t->a;
+    tb = t->b;
+    tc = t->c;
+    td = t->d;
+    te = t->e;
+    tf = t->f;
+
+    p1.x = src_ray->anchor.x;
+    p1.y = src_ray->anchor.y;
+    p2.x = p1.x + src_ray->normal.y;
+    p2.y = p1.y + -src_ray->normal.x;
+    t1.x = p1.x*ta + p1.y*td + tc;
+    t1.y = p1.x*tb + p1.y*te + tf;
+    t2.x = p2.x*ta + p2.y*td + tc;
+    t2.y = p2.x*tb + p2.y*te + tf;
+    dx = t2.x - t1.x;
+    dy = t2.y - t1.y;
+    L = sqrt(dx*dx + dy*dy);
+    if (L < PLANAR_EPSILON) {
+        PyErr_SetString(PyExc_ValueError, 
+            "Ray direction vector must not be null");
+    }
+    dst_ray->normal.x = -dy / L;
+    dst_ray->normal.y = dx / L;
+    dst_ray->anchor.x = t1.x;
+    dst_ray->anchor.y = t1.y;
+}
+
+static PyObject *
+Ray__imul__(PyObject *a, PyObject *b)
+{
+    PlanarLineObject *ray;
+    PlanarAffineObject *t;
+
+    if (PlanarRay_Check(a) && PlanarAffine_Check(b)) {
+		ray = (PlanarLineObject *)a;
+		t = (PlanarAffineObject *)b;
+    } else if (PlanarRay_Check(b) && PlanarAffine_Check(a)) {
+		ray = (PlanarLineObject *)b;
+		t = (PlanarAffineObject *)a;
+    } else {
+		/* We support only transform operations */
+		RETURN_NOT_IMPLEMENTED;
+    }
+
+    Ray_transform(ray, ray, t);
+    Py_INCREF(ray);
+    return (PyObject *)ray;
+}
+
+static PyObject *
+Ray__mul__(PyObject *a, PyObject *b)
+{
+    PlanarLineObject *src_ray, *dst_ray;
+    PlanarAffineObject *t;
+
+    if (PlanarRay_Check(a) && PlanarAffine_Check(b)) {
+		src_ray = (PlanarLineObject *)a;
+		t = (PlanarAffineObject *)b;
+    } else if (PlanarRay_Check(b) && PlanarAffine_Check(a)) {
+		src_ray = (PlanarLineObject *)b;
+		t = (PlanarAffineObject *)a;
+    } else {
+		/* We support only transform operations */
+		RETURN_NOT_IMPLEMENTED;
+    }
+
+    dst_ray = (PlanarLineObject *)Py_TYPE(src_ray)->tp_alloc(
+        Py_TYPE(src_ray), 0);
+    if (dst_ray != NULL) {
+        Ray_transform(src_ray, dst_ray, t);
+    }
+    return (PyObject *)dst_ray;
+}
+
+static PyNumberMethods Ray_as_number = {
+    0,       /* binaryfunc nb_add */
+    0,       /* binaryfunc nb_subtract */
+    (binaryfunc)Ray__mul__,       /* binaryfunc nb_multiply */
+#if PY_MAJOR_VERSION < 3
+    0,       /* binaryfunc nb_div */
+#endif
+    0,       /* binaryfunc nb_remainder */
+    0,       /* binaryfunc nb_divmod */
+    0,       /* ternaryfunc nb_power */
+    0,       /* unaryfunc nb_negative */
+    0,       /* unaryfunc nb_positive */
+    0,       /* unaryfunc nb_absolute */
+    0,       /* inquiry nb_bool */
+    0,       /* unaryfunc nb_invert */
+    0,       /* binaryfunc nb_lshift */
+    0,       /* binaryfunc nb_rshift */
+    0,       /* binaryfunc nb_and */
+    0,       /* binaryfunc nb_xor */
+    0,       /* binaryfunc nb_or */
+#if PY_MAJOR_VERSION < 3
+    0,       /* coercion nb_coerce */
+#endif
+    0,       /* unaryfunc nb_int */
+    0,       /* void *nb_reserved */
+    0,       /* unaryfunc nb_float */
+#if PY_MAJOR_VERSION < 3
+    0,       /* binaryfunc nb_oct */
+    0,       /* binaryfunc nb_hex */
+#endif
+
+    0,       /* binaryfunc nb_inplace_add */
+    0,       /* binaryfunc nb_inplace_subtract */
+    (binaryfunc)Ray__imul__,       /* binaryfunc nb_inplace_multiply */
+#if PY_MAJOR_VERSION < 3
+    0,       /* binaryfunc nb_inplace_divide */
+#endif
+    0,       /* binaryfunc nb_inplace_remainder */
+    0,       /* ternaryfunc nb_inplace_power */
+    0,       /* binaryfunc nb_inplace_lshift */
+    0,       /* binaryfunc nb_inplace_rshift */
+    0,       /* binaryfunc nb_inplace_and */
+    0,       /* binaryfunc nb_inplace_xor */
+    0,       /* binaryfunc nb_inplace_or */
+
+    0,       /* binaryfunc nb_floor_divide */
+    0,       /* binaryfunc nb_true_divide */
+    0,       /* binaryfunc nb_inplace_floor_divide */
+    0,       /* binaryfunc nb_inplace_true_divide */
+
+    0,       /* unaryfunc nb_index */
 };
 
 PyDoc_STRVAR(Ray_doc, 
@@ -912,7 +1070,7 @@ PyTypeObject PlanarRayType = {
     0,                    /* tp_setattr */
     0,                    /* reserved */
     (reprfunc)Ray_repr,   /* tp_repr */
-    0, //&Line_as_number,      /* tp_as_number */
+    &Ray_as_number,       /* tp_as_number */
     0,                    /* tp_as_sequence */
     0,                    /* tp_as_mapping */
     0,                    /* tp_hash */

@@ -475,12 +475,12 @@ class RayBaseTestCase(LinearBaseTestCase):
         assert not ray.almost_equals(self.Ray((1,-1.99), (2, 5)))
 
     def test_str(self):
-        ray = self.Ray((0.55, 0), (0, 1))
-        assert_equal(str(ray), "Ray((0.55, 0.0), (0.0, 1.0))")
+        ray = self.Ray((0.37, 0), (0, 1))
+        assert_equal(str(ray), "Ray((0.37, 0.0), (0.0, 1.0))")
         
     def test_repr(self):
-        ray = self.Ray((0.55, 0), (0, 1))
-        assert_equal(repr(ray), "Ray((0.55, 0.0), (0.0, 1.0))")
+        ray = self.Ray((0.37, 0), (0, 1))
+        assert_equal(repr(ray), "Ray((0.37, 0.0), (0.0, 1.0))")
 
 
 class PyLineTestCase(LineBaseTestCase, unittest.TestCase):
@@ -490,12 +490,12 @@ class PyLineTestCase(LineBaseTestCase, unittest.TestCase):
     LinearType = Line
 
     def test_str(self):
-        line = self.Line((0.55, 0), (0, 1))
-        assert_equal(str(line), "Line((0.55, 0.0), (0.0, 1.0))")
+        line = self.Line((0.37, 0), (0, 1))
+        assert_equal(str(line), "Line((0.37, 0.0), (0.0, 1.0))")
         
     def test_repr(self):
-        line = self.Line((0.55, 0), (0, 1))
-        assert_equal(repr(line), "Line((0.55, 0.0), (0.0, 1.0))")
+        line = self.Line((0.37, 0), (0, 1))
+        assert_equal(repr(line), "Line((0.37, 0.0), (0.0, 1.0))")
 
 
 class CLineTestCase(LineBaseTestCase, unittest.TestCase):
@@ -503,12 +503,12 @@ class CLineTestCase(LineBaseTestCase, unittest.TestCase):
     LinearType = Line
 
     def test_str(self):
-        line = self.Line((0.55, 0), (0, 1))
-        assert_equal(str(line), "Line((0.55, -0), (0, 1))")
+        line = self.Line((0.37, 0), (0, 1))
+        assert_equal(str(line), "Line((0.37, -0), (0, 1))")
         
     def test_repr(self):
-        line = self.Line((0.55, 0), (0, 1))
-        assert_equal(repr(line), "Line((0.55, -0), (0, 1))")
+        line = self.Line((0.37, 0), (0, 1))
+        assert_equal(repr(line), "Line((0.37, -0), (0, 1))")
 
 
 class PyRayTestCase(RayBaseTestCase, unittest.TestCase):
@@ -523,12 +523,12 @@ class CRayTestCase(RayBaseTestCase, unittest.TestCase):
     LinearType = Ray
 
     def test_str(self):
-        ray = self.Ray((0.55, 0), (0, 1))
-        assert_equal(str(ray), "Ray((0.55, 0), (0, 1))")
+        ray = self.Ray((0.37, 0), (0, 1))
+        assert_equal(str(ray), "Ray((0.37, 0), (0, 1))")
         
     def test_repr(self):
-        ray = self.Ray((0.55, 0), (0, 1))
-        assert_equal(repr(ray), "Ray((0.55, 0), (0, 1))")
+        ray = self.Ray((0.37, 0), (0, 1))
+        assert_equal(repr(ray), "Ray((0.37, 0), (0, 1))")
 
 
 if __name__ == '__main__':
