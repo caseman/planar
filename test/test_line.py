@@ -606,9 +606,9 @@ class BaseLineSegmentTestCase(LinearBaseTestCase):
         assert_equal(line.mid, self.Vec2(-1.5, 0))
 
     def test_line(self):
-        import planar
         segment = self.LineSegment((-4,3), (11, -1))
         line = segment.line
+        assert isinstance(line, self.Line)
         assert_equal(segment.direction, line.direction)
         assert line.contains_point(segment.start)
         assert line.contains_point(segment.end)
@@ -802,7 +802,7 @@ class CRayTestCase(RayBaseTestCase, unittest.TestCase):
 
 class PySegmentTestCase(BaseLineSegmentTestCase, unittest.TestCase):
     from planar.vector import Vec2
-    from planar.line import LineSegment
+    from planar.line import LineSegment, Line
     from planar.transform import Affine
     LinearType = LineSegment
 
