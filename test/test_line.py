@@ -483,6 +483,267 @@ class RayBaseTestCase(LinearBaseTestCase):
         assert_equal(repr(ray), "Ray((0.37, 0.0), (0.0, 1.0))")
 
 
+class BaseLineSegmentTestCase(LinearBaseTestCase):
+
+    def test_null_direction(self):
+        line = self.LineSegment((1,0), (0,0))
+        assert_equal(line.length, 0)
+        assert_equal(line.direction, self.Vec2(1, 0))
+
+    @raises(TypeError)
+    def test_from_normal_no_args(self):
+        self.LineSegment.from_normal()
+
+    @raises(TypeError)
+    def test_from_normal_wrong_arg_types(self):
+        self.LineSegment.from_normal(0, "baz", 0, 0)
+
+    @raises(ValueError)
+    def test_from_normal_null(self):
+        self.LineSegment.from_normal((0,0), 1, 0, 0)
+
+    def test_from_normal(self):
+        line = self.LineSegment.from_normal((0.25,0.5), 3, -0.5, 1)
+        assert_equal(line.direction, self.Vec2(-2,1).normalized())
+        assert_equal(line.normal, self.Vec2(1,2).normalized())
+        assert_equal(line.length, 1.5)
+
+    def test_from_points_many_collinear(self):
+        line = self.LineSegment.from_points(
+            [(-7,-21), (-3,-9), (1, 3), (1003,3009), (5,15)])
+        assert_equal(line.direction, self.Vec2(1,3).normalized())
+        assert_equal(line.normal, self.Vec2(3,-1).normalized())
+        assert_equal(line.anchor, self.Vec2(-7, -21))
+        assert_equal(line.end, self.Vec2(1003, 3009))
+        assert line.contains_point((0,0))
+
+    def test_from_points_degenerate(self):
+        line = self.LineSegment.from_points([(2,1), (2,1), (2,1)])
+        assert_equal(line.direction, self.Vec2(1,0))
+        assert_equal(line.anchor, self.Vec2(2,1))
+        assert_equal(line.end, self.Vec2(2,1))
+        assert_equal(line.length, 0)
+
+    def test_from_points_too_few_distinct(self):
+        """Test is n/a to LineSegment"""
+
+    @raises(ValueError)
+    def test_from_points_too_few(self):
+        self.LinearType.from_points([])
+
+    def test_points(self):
+        line = self.LineSegment((2,-3), (-1, 4.5))
+        start, end = line.points
+        assert_equal(start, self.Vec2(2, -3))
+        assert_equal(end, self.Vec2(1, 1.5))
+
+    def test_set_anchor(self):
+        import planar
+        line = self.LineSegment((2,-3), (-1, 4.5))
+        line.anchor = (0, -2)
+        assert isinstance(line.anchor, planar.Vec2)
+        assert_equal(line.anchor, self.Vec2(0, -2))
+        assert_equal(line.anchor, line.start)
+        assert_equal(line.end, self.Vec2(1, 1.5))
+        line.anchor = self.Vec2(2.5, 4)
+        assert isinstance(line.anchor, planar.Vec2)
+        assert_equal(line.anchor, self.Vec2(2.5, 4))
+        assert_equal(line.end, self.Vec2(1, 1.5))
+        assert_equal(line.anchor, line.start)
+        line.start = (0, 0)
+        assert_equal(line.start, self.Vec2(0, 0))
+        assert_equal(line.anchor, line.start)
+        
+    @raises(TypeError)
+    def test_set_anchor_wrong_type(self):
+        line = self.LineSegment((1, 2), (2, 3))
+        line.anchor = 'yo'
+
+    def test_set_vector(self):
+        import planar
+        line = self.LineSegment((5,-1), (-3, 3))
+        assert_equal(line.vector, self.Vec2(-3, 3))
+        line.vector = (7, -1)
+        assert isinstance(line.vector, planar.Vec2)
+        assert_equal(line.vector, self.Vec2(7, -1))
+        assert_equal(line.start, self.Vec2(5, -1))
+        assert_equal(line.end, self.Vec2(12, -2))
+        line.vector = self.Vec2(0, 0)
+        assert isinstance(line.vector, planar.Vec2)
+        assert_equal(line.vector, self.Vec2(0, 0))
+        assert_equal(line.start, self.Vec2(5, -1))
+        assert_equal(line.end, self.Vec2(5, -1))
+    
+    @raises(TypeError)
+    def test_set_vector_wrong_type(self):
+        line = self.LineSegment((1, 2), (2, 3))
+        line.vector = 'mama'
+    
+    def test_set_end(self):
+        import planar
+        line = self.LineSegment((5,-1), (-3, 3))
+        assert_equal(line.end, self.Vec2(2, 2))
+        line.end = (11, -3)
+        assert isinstance(line.end, planar.Vec2)
+        assert_equal(line.start, self.Vec2(5, -1))
+        assert_equal(line.end, self.Vec2(11, -3))
+        assert_equal(line.vector, self.Vec2(6, -2))
+        line.end = self.Vec2(-1, -1)
+        assert isinstance(line.end, planar.Vec2)
+        assert_equal(line.start, self.Vec2(5, -1))
+        assert_equal(line.end, self.Vec2(-1, -1))
+        assert_equal(line.vector, self.Vec2(-6, 0))
+
+    @raises(TypeError)
+    def test_set_end_wrong_type(self):
+        line = self.LineSegment((1, 2), (2, 3))
+        line.end = None
+
+    def test_mid(self):
+        import planar
+        line = self.LineSegment((-7, 3), (11, -6))
+        assert isinstance(line.mid, planar.Vec2)
+        assert_equal(line.mid, self.Vec2(-1.5, 0))
+
+    def test_distance_to(self):
+        line = self.LineSegment((-1, 1), (1, 1))
+        assert_almost_equal(line.distance_to((0,0)), math.sqrt(2))
+        assert_almost_equal(line.distance_to((0,1)), math.sqrt(2) / 2)
+        assert_almost_equal(line.distance_to(
+            self.Vec2(1,5)), (self.Vec2(1,5) - self.Vec2(0,2)).length)
+        assert_almost_equal(line.distance_to((-0.5, 1.5)), 0)
+        assert_almost_equal(line.distance_to((-3, -1)), 2 * math.sqrt(2))
+
+    def test_contains_point(self):
+        import planar
+        line = self.LineSegment((5, -2), (13, 7))
+        assert line.contains_point((5, -2))
+        assert line.contains_point((5, -2 + planar.EPSILON / 2))
+        assert line.contains_point((5, -2 - planar.EPSILON / 2))
+        assert line.contains_point((18, 5))
+        assert line.contains_point((18, 5 + planar.EPSILON / 2))
+        assert line.contains_point((11.5, 1.5))
+        assert line.contains_point(self.Vec2(5, -2))
+        assert not line.contains_point((-8, -9))
+        assert not line.contains_point((5, -2.01))
+        assert not line.contains_point((5, -1.99))
+        assert not line.contains_point(self.Vec2(0, 0))
+        assert not line.contains_point((-100000, 50000))
+
+    def test_point_behind(self):
+        import planar
+        line = self.LineSegment((2, -3), (1, 20))
+        assert line.point_behind((2, -3 - planar.EPSILON * 2))
+        assert line.point_behind((1, -23))
+        assert line.point_behind((-10, -3.1))
+        assert line.point_behind(self.Vec2(10, -3.5))
+        assert not line.point_behind((2, -3))
+        assert not line.point_behind((3, 17))
+        assert not line.point_behind((-2, 22))
+        assert not line.point_behind((3, -2))
+        assert not line.point_behind((1, -2))
+
+    def test_point_ahead(self):
+        import planar
+        line = self.LineSegment((-20, -3), (19, 3))
+        assert line.point_ahead((-1 + planar.EPSILON * 2, 0))
+        assert line.point_ahead((0, 0))
+        assert line.point_ahead((0, -3.1))
+        assert line.point_ahead(self.Vec2(10, -3.5))
+        assert not line.point_ahead((-2, -3))
+        assert not line.point_ahead((-20, -3))
+        assert not line.point_ahead(line.end)
+        assert not line.point_ahead((-30, 0))
+
+    def test_point_right(self):
+        import planar
+        line = self.LineSegment((-1,2), (-1,30))
+        assert line.point_right((0, 3))
+        assert line.point_right(self.Vec2(-0.9, 2.1))
+        assert line.point_right((50, 10))
+        assert not line.point_right((0, 0))
+        assert not line.point_right((-1.1, 2))
+        assert not line.point_right((-1,2))
+        assert not line.point_right(
+            (-1 + planar.EPSILON / 2,2 + planar.EPSILON / 2))
+        assert not line.point_right((-4,8))
+        assert not line.point_right((-100000, -2000))
+
+    def test_point_left(self):
+        import planar
+        line = self.LineSegment((-3,-1), (40,1))
+        assert line.point_left((0, 0))
+        assert line.point_left((10, 400))
+        assert not line.point_left(self.Vec2(-3.1, -1))
+        assert not line.point_left((0, -1))
+        assert not line.point_left((-3, -1))
+        assert not line.point_left((-3 + planar.EPSILON / 2, -1))
+        assert not line.point_left((37, 0))
+        assert not line.point_left((-10000, -4000))
+
+    def test_project_point(self):
+        line = self.LineSegment((0, 2), (4,4))
+        assert line.project((0,0)).almost_equals((0, 2))
+        assert line.project((-1,1)).almost_equals((0, 2))
+        assert line.project((-5,4)).almost_equals((0, 2))
+        assert line.project((0,2)).almost_equals((0, 2))
+        assert line.project((0,4)).almost_equals((1, 3)),line.project((0,4))
+        assert line.project(self.Vec2(3, 2)).almost_equals((1.5, 3.5))
+        assert line.project((-1,-3)).almost_equals((0,2))
+        assert line.project((4,6)).almost_equals((4,6))
+        assert line.project((5,6)).almost_equals((4,6))
+        assert line.project((4.1, 6.1)).almost_equals((4,6))
+
+    def test_transform(self):
+        line = self.LineSegment((0, 0), (4, 2))
+        line2 = line * self.Affine.rotation(-90, pivot=(4, 2))
+        assert isinstance(line2, self.LineSegment)
+        assert line2 is not line
+        assert line2.direction.almost_equals(
+            self.Vec2(1, -2).normalized())
+        assert line2.vector.almost_equals((2, -4)), line2.vector
+        assert line2.start.almost_equals((2, 6)), line2.start
+        assert line2.end.almost_equals((4, 2))
+
+    def test_imul_transform(self):
+        line = orig = self.LineSegment((0, 0), (1, 1))
+        line *= self.Affine.translation((-1,1)) * self.Affine.scale((1, 0.5))
+        assert line is orig
+        assert line.vector.almost_equals((1, 0.5)), line.vector
+        assert line.start.almost_equals((-1, 1))
+        assert line.end.almost_equals((0, 1.5)), line.end
+
+    @raises(TypeError)
+    def test_imul_incompatible(self):
+        line = self.LineSegment((0, 0), (1, 1)) 
+        line *= 2
+
+    def test_equals(self):
+        line = self.LineSegment((1,-2), (2, 5))
+        assert line == line
+        assert line == self.LineSegment((1,-2), (2, 5))
+        assert not line == self.LineSegment((1,-1), (2, 5))
+        assert not line == self.LineSegment((1, -2), (2, 4))
+        assert not line == None
+        assert not line == ((1,-2), (2, 5))
+
+    def test_not_equals(self):
+        line = self.LineSegment((1,-2), (2, 5))
+        assert not line != line
+        assert not line != self.LineSegment((1,-2), (2, 5))
+        assert line != self.LineSegment((3,-2), (2, 5))
+        assert line != self.LineSegment((1,-2), (0, 5))
+        assert line != None
+        assert line != ((1,-2), (2, 5))
+
+    def test_almost_equals(self):
+        line = self.LineSegment((1,-2), (2, 5))
+        assert line.almost_equals(
+            self.LineSegment.from_points([(1,-2), (3,3)]))
+        assert line.almost_equals(line)
+        assert not line.almost_equals(self.LineSegment((1,-1.99), (2, 5)))
+
+
 class PyLineTestCase(LineBaseTestCase, unittest.TestCase):
     from planar.vector import Vec2
     from planar.line import Line
@@ -529,6 +790,21 @@ class CRayTestCase(RayBaseTestCase, unittest.TestCase):
     def test_repr(self):
         ray = self.Ray((0.37, 0), (0, 1))
         assert_equal(repr(ray), "Ray((0.37, 0), (0, 1))")
+
+
+class PySegmentTestCase(BaseLineSegmentTestCase, unittest.TestCase):
+    from planar.vector import Vec2
+    from planar.line import LineSegment
+    from planar.transform import Affine
+    LinearType = LineSegment
+
+    def test_str(self):
+        line = self.LineSegment((0.37, 0), (2, 23.5))
+        assert_equal(str(line), "LineSegment((0.37, 0.0), (2.0, 23.5))")
+        
+    def test_repr(self):
+        line = self.LineSegment((0.37, 0), (2, 23.5))
+        assert_equal(repr(line), "LineSegment((0.37, 0.0), (2.0, 23.5))")
 
 
 if __name__ == '__main__':

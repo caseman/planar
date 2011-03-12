@@ -28,6 +28,7 @@
 
 from __future__ import division
 import planar
+import math
 
 
 class LinearGeometry(object):
@@ -95,7 +96,7 @@ class Line(LinearGeometry):
                 end = planar.Vec2(*points.next())
         except StopIteration:
             raise ValueError("Expected iterable of 2 or more distinct points")
-        line = object.__new__(cls)
+        line = LinearGeometry.__new__(cls)
         line.direction = end - start
         line.offset = start.dot(line.normal)
         for p in points:
@@ -111,16 +112,16 @@ class Line(LinearGeometry):
         :param normal: A non-null vector perpendicular to the line.
             Does not need to be unit-length.
         :type normal: Vec2
-        :param offset: The distance from the line to the origin.
+        :param offset: The signed distance from the line to the origin.
         :type offset: float
         """
-        line = object.__new__(cls)
+        line = LinearGeometry.__new__(cls)
         line.normal = normal
-        line.offset = offset
+        line.offset = offset * 1.0
         return line
     
-    offset = 0
-    """Distance from the origin to the line."""
+    offset = 0.0
+    """The signed distance from the origin to the line."""
 
     @property
     def points(self):
@@ -238,7 +239,7 @@ class Line(LinearGeometry):
 class Ray(LinearGeometry):
     """Directed ray anchored by a single point.
     
-    :param anchor: The anchor point of the ray.
+    :param anchor: The anchor, or starting point of the ray.
     :type anchor: Vec2
     :param direction: The direction of the ray as a vector, must not
         be null. Does not need to be unit-length.
@@ -264,7 +265,7 @@ class Ray(LinearGeometry):
                 end = planar.Vec2(*points.next())
         except StopIteration:
             raise ValueError("Expected iterable of 2 or more distinct points")
-        ray = object.__new__(cls)
+        ray = LinearGeometry.__new__(cls)
         ray.direction = end - start
         ray.anchor = start
         for p in points:
@@ -288,6 +289,9 @@ class Ray(LinearGeometry):
     @anchor.setter
     def anchor(self, value):
         self._anchor = planar.Vec2(*value)
+
+    start = anchor
+    """The starting point of the ray. Alias for ``anchor``"""
 
     @property
     def line(self):
@@ -384,6 +388,251 @@ class Ray(LinearGeometry):
         """Precise string representation."""
         return "Ray(%r, %r)" % (
             tuple(self.anchor), tuple(self.direction))
+
+
+class LineSegment(LinearGeometry):
+    """Directed line segment between two points.
+    
+    :param anchor: The anchor, or starting point of the line segment.
+    :type anchor: Vec2
+    :param vector: The direction and magnitude vector of the line segment,
+        must not be null.
+    :param direction: Vec2
+    """
+    def __init__(self, anchor, vector):
+        self.vector = vector
+        self._anchor = planar.Vec2(*anchor)
+
+    @classmethod
+    def from_points(cls, points):
+        """Create a line segment from two or more collinear points.  The first
+        point is assumed to be the anchor.  The order of the remaining points
+        is unimportant, however they must all be collinear.  The furthest
+        point from the anchor determines the line segment's vector.
+        
+        :param points: Iterable of at least 2 distinct points.
+        """
+        points = iter(points)
+        try:
+            start = end = planar.Vec2(*points.next())
+        except StopIteration:
+            raise ValueError("Expected iterable of 1 or more points")
+        furthest = 0.0
+        pt_vectors = []
+        for p in points:
+            p = planar.Vec2(*p)
+            dist = (p - start).length2
+            if dist > furthest:
+                furthest = dist
+                end = p
+            pt_vectors.append(p)
+        segment = LinearGeometry.__new__(cls)
+        if end != start:
+            segment.vector = end - start
+        else:
+            # degenerate case
+            segment.direction = (1, 0)
+            segment.length = 0.0
+        segment._anchor = start
+        for p in pt_vectors:
+            if not segment.contains_point(p):
+                raise ValueError("All points provided must be collinear")
+        return segment
+
+    @classmethod
+    def from_normal(cls, normal, offset, start_distance, end_distance):
+        """Create a line segment from a normal vector perpendicular to the
+        line containing the segment, the offset distance from that line to
+        origin, and the signed distances along that line from the projection
+        of the origin to the start and end points of the segment respectively.
+
+        :param normal: A non-null vector perpendicular to the line segment.
+            Does not need to be unit-length.
+        :type normal: Vec2
+        :param offset: The signed distance from the line containing the
+            segment to the origin.
+        :type offset: float
+        :param start_distance: The signed distance along the segment's
+            containing line from the projection of the origin to the
+            segment's start (anchor) point.
+        :type start_distance: float
+        :param end_distance: The signed distance along the containing line
+            from the projection of the origin to the segment's end point.
+        :type end_distance: float
+        """
+        segment = LinearGeometry.__new__(cls)
+        segment.normal = normal
+        start_distance *= 1.0
+        segment._anchor = (segment.normal * offset 
+            + start_distance * segment.direction)
+        segment.length = end_distance - start_distance
+        return segment
+
+    length = 0.0
+    """The distance between the line segments endpoints"""
+
+    @property
+    def points(self):
+        """Return the two endpoints of the line segment as a sequence."""
+        return (self._anchor, self._anchor + self.direction * self.length)
+
+    @property
+    def anchor(self):
+        """The anchor, or starting point of the line segment."""
+        return self._anchor
+
+    @anchor.setter
+    def anchor(self, value):
+        end = self.end
+        self._anchor = planar.Vec2(*value)
+        self.vector = end - self._anchor
+
+    start = anchor
+    """The starting point of the line segment. Alias for ``anchor``"""
+
+    @property
+    def vector(self):
+        """The vector that comprises the length and direction of the 
+        line segment from its anchor point.
+        """
+        return self.direction * self.length
+ 
+    @vector.setter
+    def vector(self, value):
+        vector = planar.Vec2(*value)
+        length = vector.length
+        if length:
+            self.direction = vector
+        else:
+            self.direction = (1, 0)
+        self.length = vector.length
+
+    @property
+    def end(self):
+        """The end point of the line sequence."""
+        return self._anchor + self.direction * self.length
+
+    @end.setter
+    def end(self, value):
+        end = planar.Vec2(*value)
+        self.vector = end - self._anchor
+
+    @property
+    def mid(self):
+        """The midpoint of the line segment (read-only)."""
+        return self._anchor + self.direction * (self.length * 0.5)
+
+    @property
+    def line(self):
+        """Return a containing line collinear with this line segment."""
+        return Line(self._anchor, self.direction)
+
+    def distance_to(self, point):
+        """Return the distance between the given point and the ray."""
+        point = planar.Vec2(*point)
+        to_point = point - self._anchor
+        along = self.direction.dot(to_point)
+        if along < 0.0:
+            # Point "behind"
+            return to_point.length
+        if along > self.length:
+            # Point "ahead"
+            return (point - self.end).length
+        else:
+            # Point "beside" ray
+            return abs(to_point.dot(self._normal))
+
+    def contains_point(self, point):
+        """Return True if the specified point is on the line segment."""
+        return self.distance_to(point) < planar.EPSILON
+
+    def point_ahead(self, point):
+        """Return True if the specified point is ahead of the endpoint
+        of the line segment with respect to its direction.
+        """
+        to_point = planar.Vec2(*point) - self._anchor
+        return self.direction.dot(to_point) >= self.length + planar.EPSILON
+
+    def point_behind(self, point):
+        """Return True if the specified point is behind the anchor point with
+        respect to the direction of the line segment.
+        """
+        to_point = planar.Vec2(*point) - self._anchor
+        return self.direction.dot(to_point) <= -planar.EPSILON
+
+    def point_left(self, point):
+        """Return True if the specified point is in the space
+        to the left of, but not behind the ray.
+        """
+        to_point = planar.Vec2(*point) - self._anchor
+        along = self._direction.dot(to_point)
+        return (self.length + planar.EPSILON > along > -planar.EPSILON
+            and self._normal.dot(to_point) <= -planar.EPSILON)
+    
+    def point_right(self, point):
+        """Return True if the specified point is in the space
+        to the right of, but not behind the ray.
+        """
+        to_point = planar.Vec2(*point) - self._anchor
+        along = self._direction.dot(to_point)
+        return (self.length + planar.EPSILON > along > -planar.EPSILON
+            and self._normal.dot(to_point) >= planar.EPSILON)
+
+    def project(self, point):
+        """Compute the projection of a point onto the ray. This
+        is the closest point on the ray to the specified point.
+
+        :param point: The point to project.
+        :type point: Vec2
+        """
+        to_point = planar.Vec2(*point) - self._anchor
+        parallel = self.direction.project(to_point)
+        along = parallel.dot(self.direction)
+        if along <= -planar.EPSILON:
+            # Point "behind"
+            return self._anchor
+        elif along >= self.length + planar.EPSILON:
+            # Point "ahead"
+            return self.end
+        else:
+            # Point "beside"
+            return parallel + self._anchor
+
+    def __imul__(self, other):
+        p1, p2 = self.points
+        p1 = other.__mul__(p1)
+        p2 = other.__mul__(p2)
+        if p1 is NotImplemented or p2 is NotImplemented:
+            return NotImplemented
+        self.vector = p2 - p1
+        self._anchor = p1
+        return self
+
+    def __eq__(self, other):
+        return (self.__class__ is other.__class__ 
+            and self.anchor == other.anchor
+            and self.vector == other.vector)
+
+    def __ne__(self, other):
+        return not self.__eq__(other)
+
+    def almost_equals(self, other):
+        """Return True if this ray is approximately equal to
+        another ray, within precision limits.
+        """
+        return (self.__class__ is other.__class__
+            and self.anchor.almost_equals(other.anchor)
+            and self.vector.almost_equals(other.vector))
+
+    def __str__(self):
+        """Concise string representation."""
+        return "LineSegment(%s, %s)" % (
+            tuple(self.anchor), tuple(self.vector))
+
+    def __repr__(self):
+        """Precise string representation."""
+        return "LineSegment(%r, %r)" % (
+            tuple(self.anchor), tuple(self.vector))
 
 
 # vim: ai ts=4 sts=4 et sw=4 tw=78
