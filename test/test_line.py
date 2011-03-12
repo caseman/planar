@@ -605,6 +605,14 @@ class BaseLineSegmentTestCase(LinearBaseTestCase):
         assert isinstance(line.mid, planar.Vec2)
         assert_equal(line.mid, self.Vec2(-1.5, 0))
 
+    def test_line(self):
+        import planar
+        segment = self.LineSegment((-4,3), (11, -1))
+        line = segment.line
+        assert_equal(segment.direction, line.direction)
+        assert line.contains_point(segment.start)
+        assert line.contains_point(segment.end)
+
     def test_distance_to(self):
         line = self.LineSegment((-1, 1), (1, 1))
         assert_almost_equal(line.distance_to((0,0)), math.sqrt(2))
