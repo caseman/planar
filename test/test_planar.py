@@ -34,7 +34,7 @@ def test_py_imports():
 	import planar
 	import planar.py
 	from planar.py import (Vec2, Point, Vec2Array, Seq2, 
-		Affine, BoundingBox, Polygon)
+		Line, Ray, LineSegment, Affine, BoundingBox, Polygon)
 	assert set(planar.py.__all__).issubset(set(planar.__all__)), (
 		planar.py.__all__, planar.__all__)
 

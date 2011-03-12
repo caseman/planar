@@ -31,6 +31,7 @@
 
 __all__ = ('TransformNotInvertibleError', 'set_epsilon', 
     'Vec2', 'Point', 'Vec2Array', 'Seq2', 
+    'Line', 'Ray', 'LineSegment',
     'Affine', 'BoundingBox', 'Polygon')
 
 __versioninfo__ = (0, 3, 0)
@@ -44,10 +45,8 @@ try: # pragma: no cover
     __implementation__ = 'C'
 except ImportError: # pragma: no cover
     # Fall-back to Python implementation
-    from planar.vector import Vec2, Vec2Array, Seq2
-    from planar.transform import Affine
-    from planar.box import BoundingBox
-    from planar.polygon import Polygon
+    from planar.py import Vec2, Vec2Array, Seq2, Affine, \
+        Line, Ray, LineSegment, BoundingBox, Polygon
 
     class TransformNotInvertibleError(Exception):
         """The transform could not be inverted"""

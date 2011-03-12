@@ -30,10 +30,11 @@
 """Convenience namespace module for importing Python class implementations"""
 
 __all__ = ('Vec2', 'Point', 'Vec2Array', 'Seq2', 
-	'Affine', 'BoundingBox', 'Polygon')
+	'Affine', 'Line', 'Ray', 'LineSegment', 'BoundingBox', 'Polygon')
 
 from planar.vector import Vec2, Vec2Array, Seq2
 from planar.vector import Vec2 as Point
 from planar.transform import Affine
+from planar.line import Line, Ray, LineSegment
 from planar.box import BoundingBox
 from planar.polygon import Polygon
