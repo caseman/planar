@@ -542,17 +542,18 @@ class BaseLineSegmentTestCase(LinearBaseTestCase):
         line = self.LineSegment((2,-3), (-1, 4.5))
         line.anchor = (0, -2)
         assert isinstance(line.anchor, planar.Vec2)
-        assert_equal(line.anchor, self.Vec2(0, -2))
-        assert_equal(line.anchor, line.start)
-        assert_equal(line.end, self.Vec2(1, 1.5))
+        assert_almost_equal(line.anchor, self.Vec2(0, -2))
+        assert_almost_equal(line.anchor, line.start)
+        assert_almost_equal(line.end, self.Vec2(-1, 2.5))
         line.anchor = self.Vec2(2.5, 4)
         assert isinstance(line.anchor, planar.Vec2)
-        assert_equal(line.anchor, self.Vec2(2.5, 4))
-        assert_equal(line.end, self.Vec2(1, 1.5))
-        assert_equal(line.anchor, line.start)
+        assert_almost_equal(line.anchor, self.Vec2(2.5, 4))
+        assert_almost_equal(line.end, self.Vec2(1.5, 8.5))
+        assert_almost_equal(line.anchor, line.start)
         line.start = (0, 0)
-        assert_equal(line.start, self.Vec2(0, 0))
-        assert_equal(line.anchor, line.start)
+        assert_almost_equal(line.start, self.Vec2(0, 0))
+        assert_almost_equal(line.anchor, line.start)
+        assert_almost_equal(line.end, self.Vec2(-1, 4.5))
         
     @raises(TypeError)
     def test_set_anchor_wrong_type(self):
@@ -814,6 +815,18 @@ class PySegmentTestCase(BaseLineSegmentTestCase, unittest.TestCase):
         line = self.LineSegment((0.37, 0), (2, 23.5))
         assert_equal(repr(line), "LineSegment((0.37, 0.0), (2.0, 23.5))")
 
+
+class CSegmentTestCase(BaseLineSegmentTestCase, unittest.TestCase):
+    from planar.c import Vec2, LineSegment, Line, Affine
+    LinearType = LineSegment
+
+    def test_str(self):
+        line = self.LineSegment((0.37, 0), (2, 23.5))
+        assert_equal(str(line), "LineSegment((0.37, 0), (2, 23.5))")
+        
+    def test_repr(self):
+        line = self.LineSegment((0.37, 0), (2, 23.5))
+        assert_equal(repr(line), "LineSegment((0.37, 0), (2, 23.5))")
 
 if __name__ == '__main__':
     unittest.main()

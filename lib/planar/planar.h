@@ -285,6 +285,7 @@ extern PyTypeObject PlanarVec2ArrayType;
 extern PyTypeObject PlanarAffineType;
 extern PyTypeObject PlanarLineType;
 extern PyTypeObject PlanarRayType;
+extern PyTypeObject PlanarSegmentType;
 extern PyTypeObject PlanarBBoxType;
 extern PyTypeObject PlanarPolygonType;
 
@@ -566,5 +567,7 @@ Poly_new(PyTypeObject *type, Py_ssize_t size)
 #define PlanarLine_CheckExact(op) (Py_TYPE(op) == &PlanarLineType)
 #define PlanarRay_Check(op) PyObject_TypeCheck(op, &PlanarRayType)
 #define PlanarRay_CheckExact(op) (Py_TYPE(op) == &PlanarRayType)
+#define PlanarSegment_Check(op) PyObject_TypeCheck(op, &PlanarSegmentType)
+#define PlanarSegment_CheckExact(op) (Py_TYPE(op) == &PlanarSegmentType)
 
 #endif /* #ifdef PY_PLANAR_H */

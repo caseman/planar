@@ -1101,3 +1101,268 @@ PyTypeObject PlanarRayType = {
     0,                    /* tp_free */
 };
 
+/***************************************************************************/
+
+static PlanarVec2Object *
+Segment_get_vector(PlanarLineObject *self) {
+    return PlanarVec2_FromDoubles(
+        -self->normal.y * self->length, self->normal.x * self->length);
+}
+
+static int
+Segment_set_vector(PlanarLineObject *self, PyObject *value, void *closure)
+{
+    double dx, dy;
+
+    if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete vector attribute");
+        return -1;
+    }
+    if (!PlanarVec2_Parse(value, &dx, &dy)) {
+        PyErr_SetString(PyExc_TypeError, "Expected Vec2 for vector");
+        return -1;
+    }
+    self->length = sqrt(dx*dx + dy*dy);
+    if (self->length == 0.0) {
+        self->normal.x = 0.0;
+        self->normal.y = -1.0;
+    } else {
+        self->normal.x = dy / self->length;
+        self->normal.y = -dx / self->length;
+    }
+    return 0;
+}
+
+static PlanarVec2Object *
+Segment_get_anchor(PlanarLineObject *self) {
+    return PlanarVec2_FromStruct(&self->anchor);
+}
+
+static int
+Segment_set_anchor(PlanarLineObject *self, PyObject *value, void *closure)
+{
+    if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete anchor attribute");
+        return -1;
+    }
+    if (!PlanarVec2_Parse(value, &self->anchor.x, &self->anchor.y)) {
+        PyErr_SetString(PyExc_TypeError, "Expected Vec2 for anchor");
+        return -1;
+    }
+    return 0;
+}
+
+static PlanarVec2Object *
+Segment_get_end(PlanarLineObject *self) {
+    return PlanarVec2_FromDoubles(
+        self->anchor.x + -self->normal.y * self->length, 
+        self->anchor.y + self->normal.x * self->length);
+}
+
+static int
+Segment_set_end(PlanarLineObject *self, PyObject *value, void *closure)
+{
+    double ex, ey, dx, dy;
+
+    if (value == NULL) {
+        PyErr_SetString(PyExc_TypeError, "Cannot delete end attribute");
+        return -1;
+    }
+    if (!PlanarVec2_Parse(value, &ex, &ey)) {
+        PyErr_SetString(PyExc_TypeError, "Expected Vec2 for end");
+        return -1;
+    }
+    dx = ex - self->anchor.x;
+    dy = ey - self->anchor.y;
+    self->length = sqrt(dx*dx + dy*dy);
+    if (self->length == 0.0) {
+        self->normal.x = 0.0;
+        self->normal.y = -1.0;
+    } else {
+        self->normal.x = dy / self->length;
+        self->normal.y = -dx / self->length;
+    }
+    return 0;
+}
+
+static PlanarVec2Object *
+Segment_get_mid(PlanarLineObject *self) {
+    return PlanarVec2_FromDoubles(
+        self->anchor.x + -self->normal.y * self->length * 0.5, 
+        self->anchor.y + self->normal.x * self->length * 0.5);
+}
+
+static int
+Segment_init(PlanarLineObject *self, PyObject *args)
+{
+    assert(PlanarLine_Check(self) || PlanarRay_Check(self));
+    if (PyTuple_GET_SIZE(args) != 2) {
+        PyErr_SetString(PyExc_TypeError, 
+            "LineSegment: wrong number of arguments");
+        return -1;
+    }
+    if (!PlanarVec2_Parse(PyTuple_GET_ITEM(args, 0), 
+        &self->anchor.x, &self->anchor.y)) {
+        return -1;
+    }
+    if (Segment_set_vector(self, PyTuple_GET_ITEM(args, 1), NULL) == -1) {
+        return -1;
+    }
+    return 0;
+}
+
+static PyObject *
+Segment_repr(PlanarLineObject *self)
+{
+    char buf[255];
+
+    buf[0] = 0; /* paranoid */
+    PyOS_snprintf(buf, 255, "LineSegment((%g, %g), (%g, %g))", 
+        self->anchor.x, self->anchor.y, 
+        -self->normal.y * self->length,
+        self->normal.x * self->length);
+    return PyUnicode_FromString(buf);
+}
+
+static PyObject *
+Segment_compare(PyObject *a, PyObject *b, int op)
+{
+    PlanarLineObject *seg1, *seg2;
+
+	if (PlanarSegment_Check(a) && PlanarSegment_Check(b)) {
+        seg1 = (PlanarLineObject *)a;
+        seg2 = (PlanarLineObject *)b;
+		switch (op) {
+			case Py_EQ:
+                return Py_BOOL(
+                    seg1->length == seg2->length &&
+                    seg1->normal.x == seg2->normal.x &&
+                    seg1->normal.y == seg2->normal.y &&
+                    seg1->anchor.x == seg2->anchor.x &&
+                    seg1->anchor.y == seg2->anchor.y);
+            case Py_NE:
+                return Py_BOOL(
+                    seg1->length != seg2->length &&
+                    seg1->normal.x != seg2->normal.x ||
+                    seg1->normal.y != seg2->normal.y ||
+                    seg1->anchor.x != seg2->anchor.x ||
+                    seg1->anchor.y != seg2->anchor.y);
+			default:
+				/* Only == and != are defined */
+                RETURN_NOT_IMPLEMENTED;
+		}
+	} else {
+		switch (op) {
+			case Py_EQ:
+				Py_RETURN_FALSE;
+			case Py_NE:
+				Py_RETURN_TRUE;
+			default:
+				/* Only == and != are defined */
+				RETURN_NOT_IMPLEMENTED;
+		}
+	}
+}
+
+static PyObject *
+Segment_almost_equals(PlanarLineObject *self, PlanarLineObject *other)
+{
+    return Py_BOOL(
+        PlanarSegment_Check(self) && PlanarSegment_Check(other) &&
+        almost_eq(self->length, other->length) &&
+        almost_eq(self->normal.x, other->normal.x) &&
+        almost_eq(self->normal.y, other->normal.y) &&
+        almost_eq(self->anchor.x, other->anchor.x) &&
+        almost_eq(self->anchor.y, other->anchor.y));
+}
+
+static PlanarSeq2Object *
+Segment_get_points(PlanarLineObject *self) {
+    PlanarSeq2Object *seq;
+
+    seq = Seq2_New(&PlanarSeq2Type, 2);
+    if (seq != NULL) {
+        seq->vec[0].x = self->anchor.x;
+        seq->vec[0].y = self->anchor.y;
+        seq->vec[1].x = self->anchor.x + -self->normal.y * self->length;
+        seq->vec[1].y = self->anchor.y + self->normal.x * self->length;
+    }
+    return seq;
+}
+
+static PyGetSetDef Segment_getset[] = {
+    {"direction", (getter)Line_get_direction, (setter)Line_set_direction, 
+        "Direction of the line segment as a unit vector.", NULL},
+    {"normal", (getter)Line_get_normal, (setter)Line_set_normal, 
+        "Normal unit vector perpendicular to the line segment.", NULL},
+    {"anchor", (getter)Segment_get_anchor, (setter)Segment_set_anchor, 
+        "The anchor, or starting point of the line segment.", NULL},
+    {"start", (getter)Segment_get_anchor, (setter)Segment_set_anchor, 
+        "The starting point of the line segment. Alias for anchor.", NULL},
+    {"mid", (getter)Segment_get_mid, NULL,
+        "The midpoint of the line segment (read-only).", NULL},
+    {"end", (getter)Segment_get_end, (setter)Segment_set_end, 
+        "The end point of the line sequence.", NULL},
+    {"vector", (getter)Segment_get_vector, (setter)Segment_set_vector, 
+        "The vector that comprises the length and direction of the "
+        "line segment from its anchor point.", NULL},
+    {"points", (getter)Segment_get_points, NULL, 
+        "Two distinct points along the line segment.", NULL},
+    {"line", (getter)Ray_get_line, NULL, 
+        "Return a line collinear with this line segment.", NULL},
+    {NULL}
+};
+
+static PyMemberDef Segment_members[] = {
+    {"length", T_DOUBLE, offsetof(PlanarLineObject, length), 0,
+        "The distance between the line segments endpoints."},
+    {NULL}
+};
+
+PyDoc_STRVAR(Segment_doc, 
+    "Directed ray anchored by a single point.\n\n"
+    "Ray(anchor, direction)"
+);
+
+PyTypeObject PlanarSegmentType = {
+    PyVarObject_HEAD_INIT(NULL, 0)
+    "planar.LineSegment",     /* tp_name */
+    sizeof(PlanarLineObject), /* tp_basicsize */
+    0,                    /* tp_itemsize */
+    0,                    /* tp_dealloc */
+    0,                    /* tp_print */
+    0,                    /* tp_getattr */
+    0,                    /* tp_setattr */
+    0,                    /* reserved */
+    (reprfunc)Segment_repr, /* tp_repr */
+    0, //&Segment_as_number,  /* tp_as_number */
+    0,                    /* tp_as_sequence */
+    0,                    /* tp_as_mapping */
+    0,                    /* tp_hash */
+    0,                    /* tp_call */
+    (reprfunc)Segment_repr,   /* tp_str */
+    0,                    /* tp_getattro */
+    0,                    /* tp_setattro */
+    0,                    /* tp_as_buffer */
+    Py_TPFLAGS_DEFAULT | Py_TPFLAGS_BASETYPE | Py_TPFLAGS_CHECKTYPES,   /* tp_flags */
+    Segment_doc,          /* tp_doc */
+    0,                    /* tp_traverse */
+    0,                    /* tp_clear */
+    Segment_compare,      /* tp_richcompare */
+    0,                    /* tp_weaklistoffset */
+    0,                    /* tp_iter */
+    0,                    /* tp_iternext */
+    0, //Segment_methods,      /* tp_methods */
+    Segment_members,      /* tp_members */
+    Segment_getset,       /* tp_getset */
+    0,                    /* tp_base */
+    0,                    /* tp_dict */
+    0,                    /* tp_descr_get */
+    0,                    /* tp_descr_set */
+    0,                    /* tp_dictoffset */
+    (initproc)Segment_init,  /* tp_init */
+    0,                    /* tp_alloc */
+    0,                    /* tp_new */
+    0,                    /* tp_free */
+};
+

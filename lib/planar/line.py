@@ -469,7 +469,7 @@ class LineSegment(LinearGeometry):
         return segment
 
     length = 0.0
-    """The distance between the line segments endpoints"""
+    """The distance between the line segments endpoints."""
 
     @property
     def points(self):
@@ -483,9 +483,7 @@ class LineSegment(LinearGeometry):
 
     @anchor.setter
     def anchor(self, value):
-        end = self.end
         self._anchor = planar.Vec2(*value)
-        self.vector = end - self._anchor
 
     start = anchor
     """The starting point of the line segment. Alias for ``anchor``"""
@@ -617,7 +615,7 @@ class LineSegment(LinearGeometry):
         return not self.__eq__(other)
 
     def almost_equals(self, other):
-        """Return True if this ray is approximately equal to
+        """Return True if this line segment is approximately equal to
         another ray, within precision limits.
         """
         return (self.__class__ is other.__class__
