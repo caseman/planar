@@ -45,8 +45,11 @@ try: # pragma: no cover
     __implementation__ = 'C'
 except ImportError: # pragma: no cover
     # Fall-back to Python implementation
-    from planar.py import Vec2, Vec2Array, Seq2, Affine, \
-        Line, Ray, LineSegment, BoundingBox, Polygon
+    from planar.vector import Vec2, Vec2Array, Seq2
+    from planar.transform import Affine
+    from planar.line import Line, Ray, LineSegment
+    from planar.box import BoundingBox
+    from planar.polygon import Polygon
 
     class TransformNotInvertibleError(Exception):
         """The transform could not be inverted"""

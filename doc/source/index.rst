@@ -28,6 +28,9 @@ Reference
    vectorref
    vec2arrayref
    affineref
+   lineref
+   rayref
+   segmentref
    bboxref
    polygonref
 
