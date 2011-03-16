@@ -31,7 +31,7 @@ import planar
 import math
 
 
-class LinearGeometry(object):
+class _LinearGeometry(object):
     """Abstract base class for linear shapes"""
 
     @property
@@ -68,7 +68,7 @@ class LinearGeometry(object):
         self._direction = normal.perpendicular()
 
 
-class Line(LinearGeometry):
+class Line(_LinearGeometry):
     """Infinite directed line.
 
     :param point: A point on the line.
@@ -96,7 +96,7 @@ class Line(LinearGeometry):
                 end = planar.Vec2(*points.next())
         except StopIteration:
             raise ValueError("Expected iterable of 2 or more distinct points")
-        line = LinearGeometry.__new__(cls)
+        line = _LinearGeometry.__new__(cls)
         line.direction = end - start
         line.offset = start.dot(line.normal)
         for p in points:
@@ -115,7 +115,7 @@ class Line(LinearGeometry):
         :param offset: The signed distance from the line to the origin.
         :type offset: float
         """
-        line = LinearGeometry.__new__(cls)
+        line = _LinearGeometry.__new__(cls)
         line.normal = normal
         line.offset = offset * 1.0
         return line
@@ -236,7 +236,7 @@ class Line(LinearGeometry):
             tuple(self.project((0,0))), tuple(self.direction))
 
 
-class Ray(LinearGeometry):
+class Ray(_LinearGeometry):
     """Directed ray anchored by a single point.
     
     :param anchor: The anchor, or starting point of the ray.
@@ -265,7 +265,7 @@ class Ray(LinearGeometry):
                 end = planar.Vec2(*points.next())
         except StopIteration:
             raise ValueError("Expected iterable of 2 or more distinct points")
-        ray = LinearGeometry.__new__(cls)
+        ray = _LinearGeometry.__new__(cls)
         ray.direction = end - start
         ray.anchor = start
         for p in points:
@@ -390,7 +390,7 @@ class Ray(LinearGeometry):
             tuple(self.anchor), tuple(self.direction))
 
 
-class LineSegment(LinearGeometry):
+class LineSegment(_LinearGeometry):
     """Directed line segment between two points.
     
     :param anchor: The anchor, or starting point of the line segment.
@@ -426,7 +426,7 @@ class LineSegment(LinearGeometry):
                 furthest = dist
                 end = p
             pt_vectors.append(p)
-        segment = LinearGeometry.__new__(cls)
+        segment = _LinearGeometry.__new__(cls)
         if end != start:
             segment.vector = end - start
         else:
@@ -460,7 +460,7 @@ class LineSegment(LinearGeometry):
             from the projection of the origin to the segment's end point.
         :type end_distance: float
         """
-        segment = LinearGeometry.__new__(cls)
+        segment = _LinearGeometry.__new__(cls)
         segment.normal = normal
         start_distance *= 1.0
         segment._anchor = (segment.normal * offset 
