@@ -517,6 +517,16 @@ class BaseLineSegmentTestCase(LinearBaseTestCase):
         assert_equal(line.end, self.Vec2(1003, 3009))
         assert line.contains_point((0,0))
 
+    def test_from_points_many_collinear_from_seq2(self):
+        import planar
+        line = self.LineSegment.from_points(
+            planar.Seq2([(-7,-21), (-3,-9), (1, 3), (1003,3009), (5,15)]))
+        assert_equal(line.direction, self.Vec2(1,3).normalized())
+        assert_equal(line.normal, self.Vec2(3,-1).normalized())
+        assert_equal(line.anchor, self.Vec2(-7, -21))
+        assert_equal(line.end, self.Vec2(1003, 3009))
+        assert line.contains_point((0,0))
+
     def test_from_points_degenerate(self):
         line = self.LineSegment.from_points([(2,1), (2,1), (2,1)])
         assert_equal(line.direction, self.Vec2(1,0))
@@ -615,13 +625,15 @@ class BaseLineSegmentTestCase(LinearBaseTestCase):
         assert line.contains_point(segment.end)
 
     def test_distance_to(self):
-        line = self.LineSegment((-1, 1), (1, 1))
+        line = self.LineSegment((-1, 1), (5, 5))
         assert_almost_equal(line.distance_to((0,0)), math.sqrt(2))
+        assert_almost_equal(line.distance_to((-1,-2)), 3)
         assert_almost_equal(line.distance_to((0,1)), math.sqrt(2) / 2)
         assert_almost_equal(line.distance_to(
-            self.Vec2(1,5)), (self.Vec2(1,5) - self.Vec2(0,2)).length)
+            self.Vec2(1,5)), (self.Vec2(1,5) - self.Vec2(2,4)).length)
         assert_almost_equal(line.distance_to((-0.5, 1.5)), 0)
         assert_almost_equal(line.distance_to((-3, -1)), 2 * math.sqrt(2))
+        assert_almost_equal(line.distance_to((4, 8)), 2)
 
     def test_contains_point(self):
         import planar

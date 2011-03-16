@@ -405,7 +405,7 @@ class LineSegment(LinearGeometry):
 
     @classmethod
     def from_points(cls, points):
-        """Create a line segment from two or more collinear points.  The first
+        """Create a line segment from one or more collinear points.  The first
         point is assumed to be the anchor.  The order of the remaining points
         is unimportant, however they must all be collinear.  The furthest
         point from the anchor determines the line segment's vector.
@@ -526,7 +526,7 @@ class LineSegment(LinearGeometry):
         return Line(self._anchor, self.direction)
 
     def distance_to(self, point):
-        """Return the distance between the given point and the ray."""
+        """Return the distance between the given point and the line segment."""
         point = planar.Vec2(*point)
         to_point = point - self._anchor
         along = self.direction.dot(to_point)

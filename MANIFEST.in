@@ -8,8 +8,8 @@ recursive-include examples *
 recursive-include doc *
 
 prune **/.hg
-prune doc/build/doctest/
-prune doc/build/doctrees/
+prune doc/build/doctest
+prune doc/build/doctrees
 global-exclude *.pyc 
 global-exclude *.pyo
 global-exclude *.o

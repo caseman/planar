@@ -226,7 +226,7 @@ Line_new_from_points(PyTypeObject *type, PyObject *points)
             if (L > PLANAR_EPSILON2) break;
         }
         if (L < PLANAR_EPSILON2) goto tooShort;
-        while (++i < size) {
+        while (++i < Py_SIZE(points)) {
             d = (vec[i].x - x) * dy + (vec[i].y - y) * -dx;
             if (!almost_eq(d, 0.0)) {
                 goto notCollinear;
@@ -798,7 +798,7 @@ Ray_distance_to(PlanarLineObject *self, PyObject *pt)
     }
     px -= self->anchor.x;
     py -= self->anchor.y;
-    if (px * -self->normal.y + py * self->normal.x > -PLANAR_EPSILON) {
+    if (px * -self->normal.y + py * self->normal.x >= 0.0) {
         /* point beside ray */
         return PyFloat_FromDouble(
             fabs(px * self->normal.x + py * self->normal.y));
@@ -1319,6 +1319,316 @@ static PyMemberDef Segment_members[] = {
     {NULL}
 };
 
+/* Methods */
+
+static PlanarLineObject *
+Segment_new_from_normal(PyTypeObject *type, PyObject *args)
+{
+    PlanarLineObject *line;
+    PyObject *normal_arg;
+    double offset, start_dist, end_dist;
+
+    assert(PyType_IsSubtype(type, &PlanarSegmentType));
+    if (!PyArg_ParseTuple(args, "Oddd:LineSegment.from_normal", 
+        &normal_arg, &offset, &start_dist, &end_dist)) {
+        return NULL;
+    }
+    line = (PlanarLineObject *)type->tp_alloc(type, 0);
+    if (line == NULL) {
+        return NULL;
+    }
+    if (Line_set_normal(line, normal_arg, NULL) == -1) {
+        Py_DECREF(line);
+        return NULL;
+    }
+    line->anchor.x = line->normal.x * offset + start_dist * -line->normal.y;
+    line->anchor.y = line->normal.y * offset + start_dist * line->normal.x;
+    line->length = end_dist - start_dist;
+    return line;
+}
+
+static PlanarLineObject *
+Segment_new_from_points(PyTypeObject *type, PyObject *points) 
+{
+    PlanarLineObject *line;
+    planar_vec2_t *vec, p1, p2;
+    Py_ssize_t size;
+    int i;
+    double furthest = 0.0;
+    double x, y, d, L;
+    double dx = 0.0;
+    double dy = 0.0;
+    double sx = 0.0;
+    double sy = 0.0;
+
+    assert(PyType_IsSubtype(type, &PlanarSegmentType));
+    line = (PlanarLineObject *)type->tp_alloc(type, 0);
+    if (line == NULL) {
+        return NULL;
+    }
+
+    if (PlanarSeq2_Check(points)) {
+        /* Optimized code path for Seq2 objects */
+        if (Py_SIZE(points) == 0) {
+            goto tooShort;
+        }
+        vec = ((PlanarSeq2Object *)points)->vec;
+        x = vec[0].x;
+        y = vec[0].y;
+        for (i = 1; i < Py_SIZE(points); ++i) {
+            dx = vec[i].x - x;
+            dy = vec[i].y - y;
+            if (!almost_eq(dx*sx + dy*sy, 0.0)) {
+                goto notCollinear;
+            }
+            L = dx*dx + dy*dy;
+            if (L > furthest) {
+                furthest = L;
+                sx = dy;
+                sy = -dx;
+            }
+        }
+    } else {
+        points = PySequence_Fast(points, "expected iterable of Vec2 objects");
+        if (points == NULL) {
+            return NULL;
+        }
+        size = PySequence_Fast_GET_SIZE(points);
+        if (Py_SIZE(points) == 0) {
+            Py_DECREF(points);
+            goto tooShort;
+        }
+        if (!PlanarVec2_Parse(PySequence_Fast_GET_ITEM(points, 0), &x, &y)) {
+            Py_DECREF(points);
+            goto wrongType;
+        }
+        for (i = 1; i < size; ++i) {
+            if (!PlanarVec2_Parse(
+                PySequence_Fast_GET_ITEM(points, i), &dx, &dy)) {
+                Py_DECREF(points);
+                goto wrongType;
+            }
+            dx -= x;
+            dy -= y;
+            if (!almost_eq(dx*sx + dy*sy, 0.0)) {
+                Py_DECREF(points);
+                goto notCollinear;
+            }
+            L = dx*dx + dy*dy;
+            if (L > furthest) {
+                furthest = L;
+                sx = dy;
+                sy = -dx;
+            }
+        }
+        Py_DECREF(points);
+    }
+    line->anchor.x = x;
+    line->anchor.y = y;
+    L = sqrt(furthest);
+    line->length = L;
+    if (L > 0.0) {
+        line->normal.x = sx / L;
+        line->normal.y = sy / L;
+    } else {
+        line->normal.x = 0.0;
+        line->normal.y = -1.0;
+    }
+    return line;
+
+wrongType:
+    PyErr_SetString(PyExc_TypeError, "expected iterable of Vec2 objects");
+    Py_DECREF(line);
+    return NULL;
+tooShort:
+    PyErr_SetString(PyExc_ValueError,
+        "Expected iterable of 1 or more points");
+    Py_DECREF(line);
+    return NULL;
+notCollinear:
+    PyErr_SetString(PyExc_ValueError, "All points provided must be collinear");
+    Py_DECREF(line);
+    return NULL;
+}
+
+static PyObject *
+Segment_distance_to(PlanarLineObject *self, PyObject *pt)
+{
+    double px, py, dx, dy, along, d;
+
+    assert(PlanarSegment_Check(self));
+    if (!PlanarVec2_Parse(pt, &px, &py)) {
+        return NULL;
+    }
+    dx = px - self->anchor.x;
+    dy = py - self->anchor.y;
+    along = dx * -self->normal.y + dy * self->normal.x;
+    if (along < 0.0) {
+        /* point behind */
+        return PyFloat_FromDouble(sqrt(dx*dx + dy*dy));
+    } else if (along > self->length) {
+        /* point ahead */
+        dx = px - (self->anchor.x + -self->normal.y * self->length); 
+        dy = py - (self->anchor.y + self->normal.x * self->length);
+        return PyFloat_FromDouble(sqrt(dx*dx + dy*dy));
+    } else {
+        /* point beside */
+        return PyFloat_FromDouble(
+            fabs(dx * self->normal.x + dy * self->normal.y));
+    }
+}
+
+static PyObject *
+Segment_point_ahead(PlanarLineObject *self, PyObject *pt)
+{
+    double px, py, d;
+
+    assert(PlanarSegment_Check(self));
+    if (!PlanarVec2_Parse(pt, &px, &py)) {
+        return NULL;
+    }
+    px -= self->anchor.x;
+    py -= self->anchor.y;
+    d = px * -self->normal.y + py * self->normal.x;
+    return Py_BOOL(d >= self->length + PLANAR_EPSILON);
+}
+
+static PyObject *
+Segment_point_behind(PlanarLineObject *self, PyObject *pt)
+{
+    double px, py, d;
+
+    assert(PlanarSegment_Check(self));
+    if (!PlanarVec2_Parse(pt, &px, &py)) {
+        return NULL;
+    }
+    px -= self->anchor.x;
+    py -= self->anchor.y;
+    d = px * -self->normal.y + py * self->normal.x;
+    return Py_BOOL(d <= -PLANAR_EPSILON);
+}
+
+static PyObject *
+Segment_point_left(PlanarLineObject *self, PyObject *pt)
+{
+    double px, py, b, d;
+
+    assert(PlanarSegment_Check(self));
+    if (!PlanarVec2_Parse(pt, &px, &py)) {
+        return NULL;
+    }
+    px -= self->anchor.x;
+    py -= self->anchor.y;
+    b = px * -self->normal.y + py * self->normal.x;
+    d = self->normal.x * px + self->normal.y * py;
+    return Py_BOOL((b > -PLANAR_EPSILON) & (b < self->length + PLANAR_EPSILON)
+        & (d <= -PLANAR_EPSILON));
+}
+
+static PyObject *
+Segment_point_right(PlanarLineObject *self, PyObject *pt)
+{
+    double px, py, b, d;
+
+    assert(PlanarSegment_Check(self));
+    if (!PlanarVec2_Parse(pt, &px, &py)) {
+        return NULL;
+    }
+    px -= self->anchor.x;
+    py -= self->anchor.y;
+    b = px * -self->normal.y + py * self->normal.x;
+    d = self->normal.x * px + self->normal.y * py;
+    return Py_BOOL((b > -PLANAR_EPSILON) & (b < self->length + PLANAR_EPSILON) 
+        & (d >= PLANAR_EPSILON));
+}
+
+static PyObject *
+Segment_contains_point(PlanarLineObject *self, PyObject *pt)
+{
+    double px, py, b, d;
+
+    assert(PlanarSegment_Check(self));
+    if (!PlanarVec2_Parse(pt, &px, &py)) {
+        return NULL;
+    }
+    px -= self->anchor.x;
+    py -= self->anchor.y;
+    if (px * -self->normal.y + py * self->normal.x >= 0.0) {
+        d = self->normal.x * px + self->normal.y * py;
+    } else {
+        d = sqrt(px*px + py*py);
+    }
+    return Py_BOOL((d < PLANAR_EPSILON) & (d > -PLANAR_EPSILON));
+
+}
+
+static PlanarVec2Object *
+Segment_project(PlanarLineObject *self, PyObject *pt)
+{
+    double px, py, along;
+
+    assert(PlanarSegment_Check(self));
+    if (!PlanarVec2_Parse(pt, &px, &py)) {
+        return NULL;
+    }
+    px -= self->anchor.x;
+    py -= self->anchor.y;
+    along = px * -self->normal.y + py * self->normal.x;
+    if (along < 0.0) {
+        /* point behind */
+        return PlanarVec2_FromStruct(&self->anchor);
+    } else if (along > self->length) {
+        /* point ahead */
+        return PlanarVec2_FromDoubles(
+            self->anchor.x + -self->normal.y * self->length,
+            self->anchor.y + self->normal.x * self->length);
+    } else {
+        /* point beside */
+        return PlanarVec2_FromDoubles(
+            self->anchor.x + -self->normal.y * along,
+            self->anchor.y + self->normal.x * along);
+    }
+}
+
+static PyMethodDef Segment_methods[] = {
+    {"from_normal", (PyCFunction)Segment_new_from_normal, 
+        METH_CLASS | METH_VARARGS, 
+        "Create a line segment from a normal vector perpendicular to the "
+        "line containing the segment, the offset distance from that line to "
+        "origin, and the signed distances along that line from the projection "
+        "of the origin to the start and end points of the segment "
+        "respectively."},
+    {"from_points", (PyCFunction)Segment_new_from_points, METH_CLASS | METH_O, 
+        "Create a line segment from one or more collinear points.  The first "
+        "point is assumed to be the anchor. The furthest point from the "
+        "anchor is the end point."},
+    {"distance_to", (PyCFunction)Segment_distance_to, METH_O,
+        "Return the distance from the line segment to the specified point."},
+    {"point_behind", (PyCFunction)Segment_point_behind, METH_O,
+        "Return True if the specified point is behind the anchor point with "
+        "respect to the direction of the line segment."},
+    {"point_ahead", (PyCFunction)Segment_point_ahead, METH_O,
+        "Return True if the specified point is ahead of the endpoint "
+        "of the line segment with respect to its direction."},
+    {"point_left", (PyCFunction)Segment_point_left, METH_O,
+        "Return True if the specified point is in the space "
+        "to the left of, but not behind the line segment."},
+    {"point_right", (PyCFunction)Segment_point_right, METH_O,
+        "Return True if the specified point is in the space "
+        "to the right of, but not behind the line segment."},
+    {"contains_point", (PyCFunction)Segment_contains_point, METH_O,
+        "Return True if the specified point is on the line segment."},
+    {"project", (PyCFunction)Segment_project, METH_O,
+        "Compute the projection of a point onto the line segment. This "
+        "is the closest point on the line segment to the specified point."},
+    /*
+    {"almost_equals", (PyCFunction)Ray_almost_equals, METH_O,
+        "Return True if this line segment is approximately equal to "
+        "another line segment, within precision limits."},
+    */
+    {NULL, NULL}
+};
+
 PyDoc_STRVAR(Segment_doc, 
     "Directed ray anchored by a single point.\n\n"
     "Ray(anchor, direction)"
@@ -1352,7 +1662,7 @@ PyTypeObject PlanarSegmentType = {
     0,                    /* tp_weaklistoffset */
     0,                    /* tp_iter */
     0,                    /* tp_iternext */
-    0, //Segment_methods,      /* tp_methods */
+    Segment_methods,      /* tp_methods */
     Segment_members,      /* tp_members */
     Segment_getset,       /* tp_getset */
     0,                    /* tp_base */
