@@ -616,7 +616,7 @@ class LineSegment(LinearGeometry):
 
     def almost_equals(self, other):
         """Return True if this line segment is approximately equal to
-        another ray, within precision limits.
+        another, within precision limits.
         """
         return (self.__class__ is other.__class__
             and self.anchor.almost_equals(other.anchor)

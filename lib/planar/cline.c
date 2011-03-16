@@ -1621,17 +1621,154 @@ static PyMethodDef Segment_methods[] = {
     {"project", (PyCFunction)Segment_project, METH_O,
         "Compute the projection of a point onto the line segment. This "
         "is the closest point on the line segment to the specified point."},
-    /*
-    {"almost_equals", (PyCFunction)Ray_almost_equals, METH_O,
+    {"almost_equals", (PyCFunction)Segment_almost_equals, METH_O,
         "Return True if this line segment is approximately equal to "
-        "another line segment, within precision limits."},
-    */
+        "another, within precision limits."},
     {NULL, NULL}
 };
 
+/* Arithmetic Operations */
+
+static void
+Segment_transform(PlanarLineObject *src_line, 
+    PlanarLineObject *dst_line, PlanarAffineObject *t)
+{
+    planar_vec2_t p1, p2, t1, t2;
+    double ta, tb, tc, td, te, tf, dx, dy, L;
+    ta = t->a;
+    tb = t->b;
+    tc = t->c;
+    td = t->d;
+    te = t->e;
+    tf = t->f;
+
+    p1.x = src_line->anchor.x;
+    p1.y = src_line->anchor.y;
+    p2.x = p1.x + src_line->normal.y * src_line->length;
+    p2.y = p1.y + -src_line->normal.x * src_line->length;
+    t1.x = p1.x*ta + p1.y*td + tc;
+    t1.y = p1.x*tb + p1.y*te + tf;
+    t2.x = p2.x*ta + p2.y*td + tc;
+    t2.y = p2.x*tb + p2.y*te + tf;
+    dx = t2.x - t1.x;
+    dy = t2.y - t1.y;
+    L = sqrt(dx*dx + dy*dy);
+    if (L < PLANAR_EPSILON) {
+        PyErr_SetString(PyExc_ValueError, 
+            "Segment direction vector must not be null");
+    }
+    dst_line->normal.x = -dy / L;
+    dst_line->normal.y = dx / L;
+    dst_line->anchor.x = t1.x;
+    dst_line->anchor.y = t1.y;
+    dst_line->end.x = t2.x;
+    dst_line->end.y = t2.y;
+    dst_line->length = L;
+}
+
+static PyObject *
+Segment__imul__(PyObject *a, PyObject *b)
+{
+    PlanarLineObject *line;
+    PlanarAffineObject *t;
+
+    if (PlanarSegment_Check(a) && PlanarAffine_Check(b)) {
+		line = (PlanarLineObject *)a;
+		t = (PlanarAffineObject *)b;
+    } else if (PlanarSegment_Check(b) && PlanarAffine_Check(a)) {
+		line = (PlanarLineObject *)b;
+		t = (PlanarAffineObject *)a;
+    } else {
+		/* We support only transform operations */
+		RETURN_NOT_IMPLEMENTED;
+    }
+
+    Segment_transform(line, line, t);
+    Py_INCREF(line);
+    return (PyObject *)line;
+}
+
+static PyObject *
+Segment__mul__(PyObject *a, PyObject *b)
+{
+    PlanarLineObject *src_line, *dst_line;
+    PlanarAffineObject *t;
+
+    if (PlanarSegment_Check(a) && PlanarAffine_Check(b)) {
+		src_line = (PlanarLineObject *)a;
+		t = (PlanarAffineObject *)b;
+    } else if (PlanarSegment_Check(b) && PlanarAffine_Check(a)) {
+		src_line = (PlanarLineObject *)b;
+		t = (PlanarAffineObject *)a;
+    } else {
+		/* We support only transform operations */
+		RETURN_NOT_IMPLEMENTED;
+    }
+
+    dst_line = (PlanarLineObject *)Py_TYPE(src_line)->tp_alloc(
+        Py_TYPE(src_line), 0);
+    if (dst_line != NULL) {
+        Segment_transform(src_line, dst_line, t);
+    }
+    return (PyObject *)dst_line;
+}
+
+static PyNumberMethods Segment_as_number = {
+    0,       /* binaryfunc nb_add */
+    0,       /* binaryfunc nb_subtract */
+    (binaryfunc)Segment__mul__,       /* binaryfunc nb_multiply */
+#if PY_MAJOR_VERSION < 3
+    0,       /* binaryfunc nb_div */
+#endif
+    0,       /* binaryfunc nb_remainder */
+    0,       /* binaryfunc nb_divmod */
+    0,       /* ternaryfunc nb_power */
+    0,       /* unaryfunc nb_negative */
+    0,       /* unaryfunc nb_positive */
+    0,       /* unaryfunc nb_absolute */
+    0,       /* inquiry nb_bool */
+    0,       /* unaryfunc nb_invert */
+    0,       /* binaryfunc nb_lshift */
+    0,       /* binaryfunc nb_rshift */
+    0,       /* binaryfunc nb_and */
+    0,       /* binaryfunc nb_xor */
+    0,       /* binaryfunc nb_or */
+#if PY_MAJOR_VERSION < 3
+    0,       /* coercion nb_coerce */
+#endif
+    0,       /* unaryfunc nb_int */
+    0,       /* void *nb_reserved */
+    0,       /* unaryfunc nb_float */
+#if PY_MAJOR_VERSION < 3
+    0,       /* binaryfunc nb_oct */
+    0,       /* binaryfunc nb_hex */
+#endif
+
+    0,       /* binaryfunc nb_inplace_add */
+    0,       /* binaryfunc nb_inplace_subtract */
+    (binaryfunc)Segment__imul__,       /* binaryfunc nb_inplace_multiply */
+#if PY_MAJOR_VERSION < 3
+    0,       /* binaryfunc nb_inplace_divide */
+#endif
+    0,       /* binaryfunc nb_inplace_remainder */
+    0,       /* ternaryfunc nb_inplace_power */
+    0,       /* binaryfunc nb_inplace_lshift */
+    0,       /* binaryfunc nb_inplace_rshift */
+    0,       /* binaryfunc nb_inplace_and */
+    0,       /* binaryfunc nb_inplace_xor */
+    0,       /* binaryfunc nb_inplace_or */
+
+    0,       /* binaryfunc nb_floor_divide */
+    0,       /* binaryfunc nb_true_divide */
+    0,       /* binaryfunc nb_inplace_floor_divide */
+    0,       /* binaryfunc nb_inplace_true_divide */
+
+    0,       /* unaryfunc nb_index */
+};
+
 PyDoc_STRVAR(Segment_doc, 
-    "Directed ray anchored by a single point.\n\n"
-    "Ray(anchor, direction)"
+    "Directed line segment between two points.\n\n"
+    "LineSegment(anchor, vector)"
 );
 
 PyTypeObject PlanarSegmentType = {
@@ -1645,7 +1782,7 @@ PyTypeObject PlanarSegmentType = {
     0,                    /* tp_setattr */
     0,                    /* reserved */
     (reprfunc)Segment_repr, /* tp_repr */
-    0, //&Segment_as_number,  /* tp_as_number */
+    &Segment_as_number,  /* tp_as_number */
     0,                    /* tp_as_sequence */
     0,                    /* tp_as_mapping */
     0,                    /* tp_hash */

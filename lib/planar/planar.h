@@ -163,11 +163,12 @@ typedef struct {
 typedef struct {
     PyObject_HEAD
 	planar_vec2_t normal;
+	planar_vec2_t anchor;
+	planar_vec2_t end;
 	union {
 		double offset;
 		double length;
 	};
-	planar_vec2_t anchor;
 } PlanarLineObject;
 
 /* Geometry utils */
