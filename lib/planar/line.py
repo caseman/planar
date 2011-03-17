@@ -37,7 +37,7 @@ class _LinearGeometry(object):
     @property
     def direction(self):
         """Direction of the line as a unit vector. You may set this
-        atribute to any non-null vector, however it will be normalized
+        attribute to any non-null vector, however it will be normalized
         to unit-length.
         """
         return self._direction
@@ -53,7 +53,7 @@ class _LinearGeometry(object):
     @property
     def normal(self):
         """Normal unit vector perpendicular to the line. You may set this
-        atribute to any non-null vector, however it will be normalized
+        attribute to any non-null vector, however it will be normalized
         to unit-length. Modifying this will also affect the direction
         vector accordingly.
         """
@@ -75,7 +75,7 @@ class Line(_LinearGeometry):
     :type point: Vec2
     :param direction: Direction of the line as a vector, must not
         be null. Does not need to be unit-length.
-    :param direction: Vec2
+    :type direction: Vec2
     """
     def __init__(self, point, direction):
         self.direction = direction
@@ -126,7 +126,7 @@ class Line(_LinearGeometry):
     @property
     def points(self):
         """Return two distinct points along the line, such that
-        ``line.from_points(line.points)`` will construct an eqivilant line.
+        ``line.from_points(line.points)`` will construct an equivalent line.
         """
         point = self._normal * self.offset
         return (point, point + self._direction)
@@ -243,7 +243,7 @@ class Ray(_LinearGeometry):
     :type anchor: Vec2
     :param direction: The direction of the ray as a vector, must not
         be null. Does not need to be unit-length.
-    :param direction: Vec2
+    :type direction: Vec2
     """
     def __init__(self, anchor, direction):
         self.anchor = planar.Vec2(*anchor)
@@ -276,7 +276,7 @@ class Ray(_LinearGeometry):
     @property
     def points(self):
         """Return two distinct points along the ray, such that
-        ``ray.from_points(ray.points)`` will construct an eqivilant ray.
+        ``ray.from_points(ray.points)`` will construct an equivalent ray.
         The first point returned is always the anchor point.
         """
         return (self._anchor, self._anchor + self._direction)
@@ -397,7 +397,7 @@ class LineSegment(_LinearGeometry):
     :type anchor: Vec2
     :param vector: The direction and magnitude vector of the line segment,
         must not be null.
-    :param direction: Vec2
+    :type vector: Vec2
     """
     def __init__(self, anchor, vector):
         self.vector = vector
@@ -537,7 +537,7 @@ class LineSegment(_LinearGeometry):
             # Point "ahead"
             return (point - self.end).length
         else:
-            # Point "beside" ray
+            # Point "beside"
             return abs(to_point.dot(self._normal))
 
     def contains_point(self, point):
@@ -560,7 +560,7 @@ class LineSegment(_LinearGeometry):
 
     def point_left(self, point):
         """Return True if the specified point is in the space
-        to the left of, but not behind the ray.
+        to the left of, but not behind the line segment.
         """
         to_point = planar.Vec2(*point) - self._anchor
         along = self._direction.dot(to_point)
@@ -569,7 +569,7 @@ class LineSegment(_LinearGeometry):
     
     def point_right(self, point):
         """Return True if the specified point is in the space
-        to the right of, but not behind the ray.
+        to the right of, but not behind the line segment.
         """
         to_point = planar.Vec2(*point) - self._anchor
         along = self._direction.dot(to_point)
@@ -577,8 +577,8 @@ class LineSegment(_LinearGeometry):
             and self._normal.dot(to_point) >= planar.EPSILON)
 
     def project(self, point):
-        """Compute the projection of a point onto the ray. This
-        is the closest point on the ray to the specified point.
+        """Compute the projection of a point onto the line segment. This
+        is the closest point on the segment to the specified point.
 
         :param point: The point to project.
         :type point: Vec2
