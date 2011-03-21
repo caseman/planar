@@ -34,7 +34,7 @@ __all__ = ('TransformNotInvertibleError', 'set_epsilon',
     'Line', 'Ray', 'LineSegment',
     'Affine', 'BoundingBox', 'Polygon')
 
-__versioninfo__ = (0, 3, 0)
+__versioninfo__ = (0, 4, 0)
 __version__ = '.'.join(str(n) for n in __versioninfo__)
 
 try: # pragma: no cover
