@@ -1,5 +1,5 @@
 #!/bin/bash
-# Build from scratch and run unit tests from python 2.6, 2.7, 3.1 & 3.2
+# Build from scratch and run unit tests from python 2.6, 2.7, 3.1
 # Then run doctests to verify doc examples
 # Note: requires nose installed in each python instance
 
@@ -7,7 +7,7 @@ error=0
 
 rm -rf build
 
-for ver in 2.6 2.7 3.1 3.2; do
+for ver in 2.6 2.7 3.1; do
 	echo "************"
 	echo " Python $ver"
 	echo "************"
