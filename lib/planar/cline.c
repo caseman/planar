@@ -1195,7 +1195,7 @@ Segment_get_mid(PlanarLineObject *self) {
 static int
 Segment_init(PlanarLineObject *self, PyObject *args)
 {
-    assert(PlanarLine_Check(self) || PlanarRay_Check(self));
+    assert(PlanarSegment_Check(self));
     if (PyTuple_GET_SIZE(args) != 2) {
         PyErr_SetString(PyExc_TypeError, 
             "LineSegment: wrong number of arguments");
