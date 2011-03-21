@@ -1,3 +1,11 @@
+Release 0.4 (3/21/2011)
+-----------------------
+- Added Line type
+- Added Ray type
+- Added LineSegment type
+- Fixed build problem on Windows with MinGW. Thanks to Jonathan Hartley!
+- Add equality testing support to BoundingBox
+
 Release 0.3 (2/26/2011)
 -----------------------
 - Added BoundingBox type
