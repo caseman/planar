@@ -75,7 +75,7 @@ Line_set_normal(PlanarLineObject *self, PyObject *value, void *closure)
 static PlanarSeq2Object *
 Line_get_points(PlanarLineObject *self) {
     PlanarSeq2Object *seq;
-    double sx, sy, dx, dy;
+    double sx, sy;
 
     seq = Seq2_New(&PlanarSeq2Type, 2);
     if (seq != NULL) {
@@ -199,10 +199,11 @@ static PlanarLineObject *
 Line_new_from_points(PyTypeObject *type, PyObject *points) 
 {
     PlanarLineObject *line;
-    planar_vec2_t *vec, p1, p2;
+    planar_vec2_t *vec;
     Py_ssize_t size;
     int i;
-    double x, y, dx, dy, px, py, d, L;
+    double x, y, dx, dy, px, py, d;
+    double L = 0.0;
 
     assert(PyType_IsSubtype(type, &PlanarLineType)
         || PyType_IsSubtype(type, &PlanarRayType));
@@ -302,10 +303,6 @@ static PlanarLineObject *
 Line_new_from_normal(PyTypeObject *type, PyObject *args)
 {
     PlanarLineObject *line;
-    planar_vec2_t *vec, p1, p2;
-    Py_ssize_t size;
-    int i;
-    double x, y, dx, dy, L;
 
     assert(PyType_IsSubtype(type, &PlanarLineType));
     if (PyTuple_GET_SIZE(args) != 2) {
@@ -409,7 +406,7 @@ Line_reflect(PlanarLineObject *self, PyObject *pt)
 static PlanarLineObject *
 Line_parallel(PlanarLineObject *self, PyObject *pt)
 {
-    double px, py, d;
+    double px, py;
     PlanarLineObject *line;
 
     assert(PlanarLine_Check(self));
@@ -428,7 +425,7 @@ Line_parallel(PlanarLineObject *self, PyObject *pt)
 static PlanarLineObject *
 Line_perpendicular(PlanarLineObject *self, PyObject *pt)
 {
-    double px, py, d;
+    double px, py;
     PlanarLineObject *line;
 
     assert(PlanarLine_Check(self));
@@ -790,7 +787,7 @@ static PyGetSetDef Ray_getset[] = {
 static PyObject *
 Ray_distance_to(PlanarLineObject *self, PyObject *pt)
 {
-    double px, py, d;
+    double px, py;
 
     assert(PlanarRay_Check(self));
     if (!PlanarVec2_Parse(pt, &px, &py)) {
@@ -858,7 +855,7 @@ Ray_point_right(PlanarLineObject *self, PyObject *pt)
 static PyObject *
 Ray_contains_point(PlanarLineObject *self, PyObject *pt)
 {
-    double px, py, b, d;
+    double px, py, d;
 
     assert(PlanarRay_Check(self));
     if (!PlanarVec2_Parse(pt, &px, &py)) {
@@ -1242,7 +1239,7 @@ Segment_compare(PyObject *a, PyObject *b, int op)
                     seg1->anchor.y == seg2->anchor.y);
             case Py_NE:
                 return Py_BOOL(
-                    seg1->length != seg2->length &&
+                    seg1->length != seg2->length ||
                     seg1->normal.x != seg2->normal.x ||
                     seg1->normal.y != seg2->normal.y ||
                     seg1->anchor.x != seg2->anchor.x ||
@@ -1351,11 +1348,11 @@ static PlanarLineObject *
 Segment_new_from_points(PyTypeObject *type, PyObject *points) 
 {
     PlanarLineObject *line;
-    planar_vec2_t *vec, p1, p2;
+    planar_vec2_t *vec;
     Py_ssize_t size;
     int i;
     double furthest = 0.0;
-    double x, y, d, L;
+    double x, y, L;
     double dx = 0.0;
     double dy = 0.0;
     double sx = 0.0;
@@ -1454,7 +1451,7 @@ notCollinear:
 static PyObject *
 Segment_distance_to(PlanarLineObject *self, PyObject *pt)
 {
-    double px, py, dx, dy, along, d;
+    double px, py, dx, dy, along;
 
     assert(PlanarSegment_Check(self));
     if (!PlanarVec2_Parse(pt, &px, &py)) {
@@ -1545,7 +1542,7 @@ Segment_point_right(PlanarLineObject *self, PyObject *pt)
 static PyObject *
 Segment_contains_point(PlanarLineObject *self, PyObject *pt)
 {
-    double px, py, b, d;
+    double px, py, d;
 
     assert(PlanarSegment_Check(self));
     if (!PlanarVec2_Parse(pt, &px, &py)) {
